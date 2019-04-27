@@ -1,5 +1,5 @@
 steps:
 - name: 'gcr.io/cloud-builders/go'
-  args: ['app', 'deploy']
+  args: ['build']
   env: ['PROJECT_ROOT=pairing-bot']
   timeout: 60s

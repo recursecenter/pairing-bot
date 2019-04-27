@@ -1,0 +1,4 @@
+steps:
+- name: 'gcr.io/cloud-builders/go'
+  args: ['app', 'deploy']
+  timeout: 60s

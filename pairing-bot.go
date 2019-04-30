@@ -21,7 +21,7 @@ func main() {
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" {
+	if r.URL.Path != "/webhook" {
 		http.NotFound(w, r)
 		return
 	}

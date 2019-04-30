@@ -1,11 +1,16 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 )
+
+type data struct {
+	All string
+}
 
 func main() {
 	http.HandleFunc("/", indexHandler)
@@ -21,9 +26,15 @@ func main() {
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/webhook" {
+	if r.URL.Path != "/webhooks" {
 		http.NotFound(w, r)
 		return
 	}
-	fmt.Fprint(w, "Hello, World!")
+	decoder := json.NewDecoder(r.Body)
+	var d data
+	err := decoder.Decode(&d)
+	if err != nil {
+		log.Panicln(err)
+	}
+	log.Println(d.All)
 }

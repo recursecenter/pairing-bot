@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -32,12 +31,12 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Fprint(w, `Hello :)`)
 	/*
-	decoder := json.NewDecoder(r.Body)
-	var d data
-	err := decoder.Decode(&d)
-	if err != nil {
-		log.Panicln(err)
-	}
-	log.Println(d.All)
-	*//
+		decoder := json.NewDecoder(r.Body)
+		var d data
+		err := decoder.Decode(&d)
+		if err != nil {
+			log.Panicln(err)
+		}
+		log.Println(d.All)
+	*/
 }

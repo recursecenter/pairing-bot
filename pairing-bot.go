@@ -38,6 +38,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Panicln(err)
 	}
+	log.Println("before test")
 	log.Println(d.All)
-
+	log.Println("after test")
 }

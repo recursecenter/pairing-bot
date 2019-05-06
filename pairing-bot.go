@@ -31,7 +31,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	//fmt.Fprint(w, `Hello :)`)
-	log.Println(r)
+	log.Println(r.Body)
 	decoder := json.NewDecoder(r.Body)
 	var d data
 	err := decoder.Decode(&d)

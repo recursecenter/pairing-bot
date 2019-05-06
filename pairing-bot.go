@@ -36,7 +36,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	var d data
 	err := decoder.Decode(&d)
 	if err != nil {
-		log.Panicln(err)
+		panic(err)
 	}
 	log.Println("before test")
 	log.Println(d.All)

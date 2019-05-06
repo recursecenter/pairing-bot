@@ -9,7 +9,10 @@ import (
 )
 
 type data struct {
-	All string
+	BotEmail string `json:"bot_email"`
+	Message  string `json:"data"`
+	Token    string `json:"token"`
+	Trigger  string `json:"trigger"`
 }
 
 func main() {
@@ -26,22 +29,13 @@ func main() {
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	/*
-		if r.URL.Path != "/webhooks" {
-			http.NotFound(w, r)
-			return
-		}
-	*/
-	//fmt.Fprint(w, `Hello :)`)
-
-	//log.Println(r.Body)
-	decoder := json.NewDecoder(r.Body)
 	var d data
-	err := decoder.Decode(&d)
+	err := json.NewDecoder(r.Body).Decode(&d)
 	if err != nil {
-		panic(err)
+		http.Error(w, err.Error(), 400)
+		return
 	}
 	log.Println("before test")
-	log.Println(d.All)
+	log.Println(d.BotEmail, d.Message, d.Token, d.Trigger)
 	log.Println("after test")
 }

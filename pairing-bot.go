@@ -42,6 +42,6 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	//log.Println("before test")
-	fmt.Println(d.All)
+	log.Println(d.All)
 	//log.Println("after test")
 }

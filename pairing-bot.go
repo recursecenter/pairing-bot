@@ -13,7 +13,7 @@ type data struct {
 }
 
 func main() {
-	http.HandleFunc("/", indexHandler)
+	http.HandleFunc("/webhooks", indexHandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -26,10 +26,12 @@ func main() {
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/webhooks" {
-		http.NotFound(w, r)
-		return
-	}
+	/*
+		if r.URL.Path != "/webhooks" {
+			http.NotFound(w, r)
+			return
+		}
+	*/
 	//fmt.Fprint(w, `Hello :)`)
 
 	//log.Println(r.Body)

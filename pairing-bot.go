@@ -14,8 +14,8 @@ type data struct {
 	Token    string `json:"token"`
 	Trigger  string `json:"trigger"`
 	Message  struct {
-		SenderID    int `json:"sender_id"`
-		SenderEmail int `json:"sender_email"`
+		SenderID    int    `json:"sender_id"`
+		SenderEmail string `json:"sender_email"`
 	} `json:"message"`
 }
 
@@ -50,7 +50,7 @@ func indexHandler(w http.ResponseWriter, req *http.Request) {
 	r := response{`Hello human, please witness my generic response -_-`}
 	b, err := json.Marshal(r)
 	if err != nil {
-		panic(err)
+		log.Println(err)
 	}
 	log.Println(b)
 }

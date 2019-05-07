@@ -10,9 +10,17 @@ import (
 
 type data struct {
 	BotEmail string `json:"bot_email"`
-	Message  string `json:"data"`
+	Data     string `json:"data"`
 	Token    string `json:"token"`
 	Trigger  string `json:"trigger"`
+	Message  struct {
+		SenderID    int `json:"sender_id"`
+		SenderEmail int `json:"sender_email"`
+	} `json:"message"`
+}
+
+type response struct {
+	Message string `json:"content"`
 }
 
 func main() {
@@ -28,14 +36,21 @@ func main() {
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), nil))
 }
 
-func indexHandler(w http.ResponseWriter, r *http.Request) {
+func indexHandler(w http.ResponseWriter, req *http.Request) {
 	var d data
-	err := json.NewDecoder(r.Body).Decode(&d)
+	err := json.NewDecoder(req.Body).Decode(&d)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 		return
 	}
 	log.Println("before test")
-	log.Println(d.BotEmail, d.Message, d.Token, d.Trigger)
+	log.Println(d.BotEmail, d.Data, d.Token, d.Trigger, d.Message.SenderID, d.Message.SenderEmail)
 	log.Println("after test")
+
+	r := response{`Hello human, please witness my generic response -_-`}
+	b, err := json.Marshal(r)
+	if err != nil {
+		panic(err)
+	}
+	log.Println(b)
 }

@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-type data struct {
+type zulipIncHook struct {
 	BotEmail string `json:"bot_email"`
 	Data     string `json:"data"`
 	Token    string `json:"token"`
@@ -19,7 +19,7 @@ type data struct {
 	} `json:"message"`
 }
 
-type response struct {
+type botResponse struct {
 	Message string `json:"content"`
 }
 
@@ -36,21 +36,20 @@ func main() {
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), nil))
 }
 
-func indexHandler(w http.ResponseWriter, req *http.Request) {
-	var d data
-	err := json.NewDecoder(req.Body).Decode(&d)
+func indexHandler(w http.ResponseWriter, r *http.Request) {
+	var userReq zulipIncHook
+	err := json.NewDecoder(r.Body).Decode(&userReq)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 		return
 	}
 	log.Println("before test")
-	log.Println(d.BotEmail, d.Data, d.Token, d.Trigger, d.Message.SenderID, d.Message.SenderEmail)
+	log.Println(userReq)
 	log.Println("after test")
 
-	r := response{`Hello human, please witness my generic response -_-`}
-	b, err := json.Marshal(r)
+	res := botResponse{`Hello human, please witness my generic response -_-`}
+	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
 		log.Println(err)
 	}
-	log.Println(b)
 }

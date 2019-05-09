@@ -47,7 +47,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println(userReq)
 	log.Println("after test")
 
-	res := botResponse{`Hello human, please witness my generic response -_-`}
+	res := botResponse{`uwu`}
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
 		log.Println(err)

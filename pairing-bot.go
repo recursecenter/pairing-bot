@@ -1,11 +1,14 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+
+	"cloud.google.com/go/datastore"
 )
 
 type zulipIncHook struct {
@@ -14,13 +17,20 @@ type zulipIncHook struct {
 	Token    string `json:"token"`
 	Trigger  string `json:"trigger"`
 	Message  struct {
-		SenderID    int    `json:"sender_id"`
-		SenderEmail string `json:"sender_email"`
+		SenderID       int    `json:"sender_id"`
+		SenderEmail    string `json:"sender_email"`
+		SenderFullName string `json:"sender_full_name"`
 	} `json:"message"`
 }
 
 type botResponse struct {
 	Message string `json:"content"`
+}
+
+type recurser struct {
+	SenderID       int
+	SenderFullName string
+	Subscribed     bool
 }
 
 func main() {
@@ -37,17 +47,38 @@ func main() {
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+
 	var userReq zulipIncHook
 	err := json.NewDecoder(r.Body).Decode(&userReq)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 		return
 	}
+
+	// Validate the Token value against ours to make sure request
+	// is meant for us.
+
 	log.Println("before test")
 	log.Println(userReq)
 	log.Println("after test")
 
-	res := botResponse{`uwu`}
+	datastoreClient, err := datastore.NewClient(ctx, "pairing-bot-238901")
+	if err != nil {
+		// Probably return 500 response, or "PairBot slipped on a banana peel."
+	}
+
+	key := datastore.NameKey("Recurser", "ZulipID", nil)
+
+	zulipID := userReq.Message.SenderID
+	zulipFullName := userReq.Message.SenderFullName
+	recurser := recurser{zulipID, zulipFullName, false}
+	datastoreClient.Put(ctx, key, recurser)
+	if err != nil {
+		// Another banana peel.
+	}
+
+	res := botResponse{fmt.Sprintf("Added %v to our database!", zulipFullName)}
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
 		log.Println(err)

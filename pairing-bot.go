@@ -70,7 +70,8 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	firstName := userReq.Message.SenderShortName
 	recurser := recurser{zulipID, firstName, false}
 	datastoreClient.Put(ctx, key, recurser)
-	log.Println(recurser.SenderID, zulipID)
+	log.Println("SenderID is ", recurser.SenderID)
+	log.Println("ZulipID is ", zulipID)
 	if err != nil {
 		// Another banana peel.
 	}

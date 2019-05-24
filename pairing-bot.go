@@ -17,9 +17,9 @@ type zulipIncHook struct {
 	Token    string `json:"token"`
 	Trigger  string `json:"trigger"`
 	Message  struct {
-		SenderID       int    `json:"sender_id"`
-		SenderEmail    string `json:"sender_email"`
-		SenderFullName string `json:"sender_full_name"`
+		SenderID        int    `json:"sender_id"`
+		SenderEmail     string `json:"sender_email"`
+		SenderShortName string `json:"sender_short_name"`
 	} `json:"message"`
 }
 
@@ -28,9 +28,9 @@ type botResponse struct {
 }
 
 type recurser struct {
-	SenderID       int
-	SenderFullName string
-	Subscribed     bool
+	SenderID        int
+	SenderShortName string
+	Subscribed      bool
 }
 
 func main() {
@@ -71,14 +71,14 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	key := datastore.NameKey("Recurser", "ZulipID", nil)
 
 	zulipID := userReq.Message.SenderID
-	zulipFullName := userReq.Message.SenderFullName
-	recurser := recurser{zulipID, zulipFullName, false}
+	firstName := userReq.Message.SenderShortName
+	recurser := recurser{zulipID, firstName, false}
 	datastoreClient.Put(ctx, key, recurser)
 	if err != nil {
 		// Another banana peel.
 	}
 
-	res := botResponse{fmt.Sprintf("Added %v to our database!", zulipFullName)}
+	res := botResponse{fmt.Sprintf("Added %v to our database!", firstName)}
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
 		log.Println(err)

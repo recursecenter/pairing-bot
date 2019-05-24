@@ -59,10 +59,6 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	// Validate the Token value against ours to make sure request
 	// is meant for us.
 
-	log.Println("before test")
-	log.Println(userReq)
-	log.Println("after test")
-
 	datastoreClient, err := datastore.NewClient(ctx, "pairing-bot-238901")
 	if err != nil {
 		// Probably return 500 response, or "PairBot slipped on a banana peel."

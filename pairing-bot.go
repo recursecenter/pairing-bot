@@ -17,9 +17,9 @@ type zulipIncHook struct {
 	Token    string `json:"token"`
 	Trigger  string `json:"trigger"`
 	Message  struct {
-		SenderID        int    `json:"sender_id"`
-		SenderEmail     string `json:"sender_email"`
-		SenderShortName string `json:"sender_short_name"`
+		SenderID       int    `json:"sender_id"`
+		SenderEmail    string `json:"sender_email"`
+		SenderFullName string `json:"sender_full_name"`
 	} `json:"message"`
 }
 
@@ -28,9 +28,9 @@ type botResponse struct {
 }
 
 type recurser struct {
-	SenderID        int
-	SenderShortName string
-	Subscribed      bool
+	SenderID       int
+	SenderFullName string
+	Subscribed     bool
 }
 
 func main() {
@@ -47,14 +47,24 @@ func main() {
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
-
+	const mcb int = 215391
 	var userReq zulipIncHook
-	err := json.NewDecoder(r.Body).Decode(&userReq)
+	var err error
+
+	err = json.NewDecoder(r.Body).Decode(&userReq)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 		return
 	}
+
+	// if it's not Maren messaging the bot, just say uwu
+	// and exit with 0
+	if userReq.Message.SenderID != mcb {
+		json.NewEncoder(w).Encode(botResponse{`uwu`})
+		os.Exit(0)
+	}
+
+	ctx := context.Background()
 
 	// Validate the Token value against ours to make sure request
 	// is meant for us.
@@ -67,8 +77,8 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	key := datastore.NameKey("Recurser", "ZulipID", nil)
 
 	zulipID := userReq.Message.SenderID
-	firstName := userReq.Message.SenderShortName
-	recurser := recurser{zulipID, firstName, false}
+	fullName := userReq.Message.SenderFullName
+	recurser := recurser{zulipID, fullName, false}
 	datastoreClient.Put(ctx, key, recurser)
 	log.Println("SenderID is ", recurser.SenderID)
 	log.Println("ZulipID is ", zulipID)
@@ -76,7 +86,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 		// Another banana peel.
 	}
 
-	res := botResponse{fmt.Sprintf("Added %v to our database!", firstName)}
+	res := botResponse{fmt.Sprintf("Added %v to our database!", fullName)}
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
 		log.Println(err)

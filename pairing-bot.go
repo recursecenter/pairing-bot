@@ -1,11 +1,14 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+
+	"cloud.google.com/go/datastore"
 )
 
 type zulipIncHook struct {
@@ -56,40 +59,41 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 
 	// if it's not Maren messaging the bot, just say uwu
 	// and exit with 0
-	if userReq.Message.SenderID == mcb {
+	if userReq.Message.SenderID != mcb {
 		res := botResponse{`uwu`}
 		err = json.NewEncoder(w).Encode(res)
 		if err != nil {
 			log.Println(err)
 		}
+	} else {
+
+		ctx := context.Background()
+
+		// Validate the Token value against ours to make sure request
+		// is meant for us.
+
+		datastoreClient, err := datastore.NewClient(ctx, "pairing-bot-238901")
+		if err != nil {
+			// Probably return 500 response, or "PairBot slipped on a banana peel."
+		}
+
+		key := datastore.NameKey("Recurser", "ZulipID", nil)
+
+		zulipID := userReq.Message.SenderID
+		fullName := userReq.Message.SenderFullName
+		recurser := recurser{zulipID, fullName, false}
+		datastoreClient.Put(ctx, key, recurser)
+		log.Println("SenderID is ", recurser.SenderID)
+		log.Println("ZulipID is ", zulipID)
+		if err != nil {
+			// Another banana peel.
+		}
+
+		res := botResponse{fmt.Sprintf("Added %v to our database!", fullName)}
+		err = json.NewEncoder(w).Encode(res)
+		if err != nil {
+			log.Println(err)
+		}
+
 	}
-
-	/* ctx := context.Background()
-
-	// Validate the Token value against ours to make sure request
-	// is meant for us.
-
-	datastoreClient, err := datastore.NewClient(ctx, "pairing-bot-238901")
-	if err != nil {
-		// Probably return 500 response, or "PairBot slipped on a banana peel."
-	}
-
-	key := datastore.NameKey("Recurser", "ZulipID", nil)
-
-	zulipID := userReq.Message.SenderID
-	fullName := userReq.Message.SenderFullName
-	recurser := recurser{zulipID, fullName, false}
-	datastoreClient.Put(ctx, key, recurser)
-	log.Println("SenderID is ", recurser.SenderID)
-	log.Println("ZulipID is ", zulipID)
-	if err != nil {
-		// Another banana peel.
-	}
-
-	res := botResponse{fmt.Sprintf("Added %v to our database!", fullName)}
-	err = json.NewEncoder(w).Encode(res)
-	if err != nil {
-		log.Println(err)
-	}
-	*/
 }

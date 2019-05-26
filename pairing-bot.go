@@ -1,14 +1,11 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
-
-	"cloud.google.com/go/datastore"
 )
 
 type zulipIncHook struct {
@@ -68,7 +65,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 		//os.Exit(0)
 	}
 
-	ctx := context.Background()
+	/* ctx := context.Background()
 
 	// Validate the Token value against ours to make sure request
 	// is meant for us.
@@ -95,4 +92,5 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err)
 	}
+	*/
 }

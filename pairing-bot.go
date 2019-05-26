@@ -59,7 +59,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 
 	// if it's not Maren messaging the bot, just say uwu
 	// and exit with 0
-	if userReq.Message.SenderID != mcb {
+	if userReq.Message.SenderID == mcb {
 		json.NewEncoder(w).Encode(botResponse{`uwu`})
 		os.Exit(0)
 	}

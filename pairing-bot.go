@@ -62,7 +62,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println(err)
 		}
-		//os.Exit(0)
+		os.Exit(0)
 	}
 
 	/* ctx := context.Background()

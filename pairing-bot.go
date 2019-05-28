@@ -11,7 +11,11 @@ import (
 	"cloud.google.com/go/datastore"
 )
 
-type zulipIncHook struct {
+const mcb int = 215391
+
+var err error
+
+type incomingHook struct {
 	BotEmail string `json:"bot_email"`
 	Data     string `json:"data"`
 	Token    string `json:"token"`
@@ -34,7 +38,7 @@ type recurser struct {
 }
 
 func main() {
-	http.HandleFunc("/webhooks", indexHandler)
+	http.HandleFunc("/", handle)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -46,54 +50,75 @@ func main() {
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), nil))
 }
 
-func indexHandler(w http.ResponseWriter, r *http.Request) {
-	const mcb int = 215391
-	var userReq zulipIncHook
-	var err error
+func handle(w http.ResponseWriter, r *http.Request) {
+	var userRequest incomingHook
 
-	err = json.NewDecoder(r.Body).Decode(&userReq)
+	// 404 for anything other than /webhooks
+	if r.URL.Path != "/webhooks" {
+		http.NotFound(w, r)
+		return
+	}
+
+	// Look at the incoming webhook and slurp up the JSON
+	// Error is the POST request from Zulip istelf is bad
+	err = json.NewDecoder(r.Body).Decode(&userRequest)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 		return
 	}
 
-	// if it's not Maren messaging the bot, just say uwu
-	// and exit with 0
-	if userReq.Message.SenderID != mcb {
-		res := botResponse{`uwu`}
-		err = json.NewEncoder(w).Encode(res)
-		if err != nil {
-			log.Println(err)
-		}
-	} else {
-
-		ctx := context.Background()
-
-		// Validate the Token value against ours to make sure request
-		// is meant for us.
-
-		datastoreClient, err := datastore.NewClient(ctx, "pairing-bot-238901")
-		if err != nil {
-			// Probably return 500 response, or "PairBot slipped on a banana peel."
-		}
-
-		key := datastore.NameKey("Recurser", "ZulipID", nil)
-
-		zulipID := userReq.Message.SenderID
-		fullName := userReq.Message.SenderFullName
-		recurser := recurser{zulipID, fullName, false}
-		datastoreClient.Put(ctx, key, recurser)
-		log.Println("SenderID is ", recurser.SenderID)
-		log.Println("ZulipID is ", zulipID)
-		if err != nil {
-			// Another banana peel.
-		}
-
-		res := botResponse{fmt.Sprintf("Added %v to our database!", fullName)}
-		err = json.NewEncoder(w).Encode(res)
-		if err != nil {
-			log.Println(err)
-		}
-
+	// validate RC's Zulip instance token
+	err = validateRequest(userRequest)
+	if err != nil {
+		http.NotFound(w, r)
+		return
 	}
+
+	// Act on a user request. This both parses and acts and responds
+	// Currently a bit of a catch-all. Candidate for breaking
+	// up later.
+	response, err := touchdb(userRequest)
+	if err != nil {
+		err = json.NewEncoder(w).Encode(botResponse{`Something wrong with your command fren`})
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		return
+	}
+
+	err = json.NewEncoder(w).Encode(response)
+	if err != nil {
+		log.Println("Bot attempted to respond but failed.")
+	}
+}
+
+func validateRequest(userRequest incomingHook) error {
+	//validate the request
+	return nil
+}
+
+func touchdb(userRequest incomingHook) (botResponse, error) {
+	// if it's not Maren messaging the bot, just say uwu
+	if userRequest.Message.SenderID != mcb {
+		return botResponse{`uwu`}, nil
+	}
+
+	// Figure out what this does
+	ctx := context.Background()
+
+	datastoreClient, err := datastore.NewClient(ctx, "pairing-bot-238901")
+	if err != nil {
+		return botResponse{`error!`}, err
+	}
+
+	key := datastore.NameKey("Recurser", "ZulipID", nil)
+
+	zulipID := userRequest.Message.SenderID
+	fullName := userRequest.Message.SenderFullName
+	recurser := recurser{zulipID, fullName, false}
+	datastoreClient.Put(ctx, key, recurser)
+
+	response := botResponse{fmt.Sprintf("Added %v to our database!", fullName)}
+	return response, nil
 }

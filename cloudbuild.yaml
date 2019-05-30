@@ -10,6 +10,6 @@ steps:
   args: ['app','deploy']
   timeout: 300s
   env: ['GOPATH=/gopath']
-  volumes: ['GOPATH=/gopath']
+  volumes:
   - name: 'go'
     path: '/gopath'

@@ -1,6 +1,7 @@
 steps:
 - name: 'gcr.io/cloud-builders/go'
   args: ['get', './...']
+  env: ['GOPATH=$PWD']
 
 - name: 'gcr.io/cloud-builders/gcloud'
   args: ['app','deploy']

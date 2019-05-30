@@ -1,6 +1,7 @@
 steps:
 - name: 'gcr.io/cloud-builders/go'
   args: ['get', './...']
+  env: ['GOPATH=/gopath']
   volumes:
   - name: 'go'
     path: '/gopath'

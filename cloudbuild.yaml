@@ -1,7 +1,9 @@
 steps:
 - name: 'gcr.io/cloud-builders/go'
   args: ['get', 'cloud.google.com/go/storage']
+  env: ['GOPATH=.']
 
 - name: 'gcr.io/cloud-builders/gcloud'
   args: ['app','deploy']
   timeout: 300s
+  env ['GOPATH=.']

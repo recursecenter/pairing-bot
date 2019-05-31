@@ -1,4 +1,9 @@
 steps:
+- name: 'gcr.io/cloud-builders/go'
+  args: ['get']
+  env: ['GOPATH=go']
+  
 - name: 'gcr.io/cloud-builders/gcloud'
-  args: ['app','deploy']
+  args: ['app','deploy', 'go/src/$PROJECT_ID']
+  env: ['GOPATH=go']
   timeout: 300s

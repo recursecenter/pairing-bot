@@ -1,9 +1,3 @@
-steps:
-- name: 'gcr.io/cloud-builders/go'
-  args: ['get']
-  env: ['PROJECT_ROOT=${REPO_NAME}']
-
 - name: 'gcr.io/cloud-builders/gcloud'
   args: ['app','deploy']
   timeout: 300s
-  env: ['PROJECT_ROOT=${REPO_NAME}']

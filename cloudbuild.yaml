@@ -1,8 +1,8 @@
 steps:
-- name: 'gcr.io/cloud-builders/gcloud'
+- name: 'gcr.io/cloud-builders/go'
   args: ['mod','init']
   
-- name: 'gcr.io/cloud-builders/gcloud'
+- name: 'gcr.io/cloud-builders/go'
   env: ['GO111MODULE=on']
   args: ['build', './...']
 

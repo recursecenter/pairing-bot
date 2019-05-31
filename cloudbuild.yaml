@@ -1,10 +1,10 @@
 steps:
-- name: golang
-  args: ['go','mod','init']
+- name: 'gcr.io/cloud-builders/gcloud'
+  args: ['mod','init']
   
-- name: golang
+- name: 'gcr.io/cloud-builders/gcloud'
   env: ['GO111MODULE=on']
-  args: ['go', 'build', './...']
+  args: ['build', './...']
 
 - name: 'gcr.io/cloud-builders/gcloud'
   args: ['app','deploy']

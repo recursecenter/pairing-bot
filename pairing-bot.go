@@ -13,9 +13,11 @@ import (
 )
 
 // this is my real id (it's not really secret)
-// const mcb int = 215391
+const mcb int = 215391
 
-const mcb int = 215393
+// this is my wrong ID, for testing how pairing-bot
+// responds to other users
+// const mcb int = 215393
 
 var err error
 

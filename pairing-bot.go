@@ -99,7 +99,7 @@ func validateRequest(userRequest incomingJSON) error {
 func touchdb(userRequest incomingJSON) (string, error) {
 	// if it's not Maren messaging the bot, just say uwu
 	if userRequest.Message.SenderID != mcb {
-		return `uwu`, nil
+		return "uwu", nil
 	}
 
 	// Get set up to talk to the Firestore database

@@ -8,7 +8,7 @@ steps:
 
 - name: 'gcr.io/cloud-builders/gcloud'
   args: ['app','deploy']
-  timeout: 300s
+  timeout: 600s
   env: ['GOPATH=/gopath']
   volumes:
   - name: 'go'

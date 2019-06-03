@@ -93,11 +93,6 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-
-	err = json.NewEncoder(w).Encode(response)
-	if err != nil {
-		log.Println("Bot attempted to respond but failed.")
-	}
 }
 
 func validateRequest(userRequest incomingJSON) error {

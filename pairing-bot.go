@@ -72,6 +72,15 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check if it's me
+	if userRequest.Message.SenderID != mcb {
+		err = respond(`uwu`, w)
+		if err != nil {
+			log.Println(err)
+		}
+		return
+	}
+
 	// Act on a user request. This both parses and acts and responds
 	// Currently a bit of a catch-all. Candidate for breaking
 	// up later.
@@ -97,11 +106,6 @@ func validateRequest(userRequest incomingJSON) error {
 }
 
 func touchdb(userRequest incomingJSON) (string, error) {
-	// if it's not Maren messaging the bot, just say uwu
-	if userRequest.Message.SenderID != mcb {
-		return "uwu", nil
-	}
-
 	// Get set up to talk to the Firestore database
 	ctx := context.Background()
 	client, err := firestore.NewClient(ctx, "pairing-bot-238901")

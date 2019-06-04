@@ -38,8 +38,8 @@ type botResponse struct {
 }
 
 type recurser struct {
-	ID   string `firestore:"id"`
-	Name string `firestore:"name"`
+	ID   string `firestore:"id,omitempty"`
+	Name string `firestore:"name,omitempty"`
 }
 
 // Any incoming http request is handled here
@@ -117,7 +117,7 @@ func touchdb(userRequest incomingJSON) (string, error) {
 	}
 	// key := firestore.NameKey("Recurser", "ZulipID", nil)
 
-	_, err = client.Collection("recursers").Doc(recurser.ID).Set(ctx, recurser, firestore.MergeAll)
+	_, err = client.Collection("recursers").Doc(recurser.ID).Set(ctx, recurser)
 	if err != nil {
 		return `Something went sideways while writing to the Database`, err
 	}

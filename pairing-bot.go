@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -109,8 +110,10 @@ func validateRequest(userRequest incomingJSON) error {
 	}
 	document, err := client.Collection("botauth").Doc("token").Get(ctx)
 	token := document.Data()
-	log.Println(token["value"])
-	return nil
+	if "THISISFAKE98etu80y54hoe8u" == token["value"] {
+		return nil
+	}
+	return errors.New("unauthorized interaction attempt")
 }
 
 func touchdb(userRequest incomingJSON) (string, error) {

@@ -105,6 +105,7 @@ func validateRequest(userRequest incomingJSON) error {
 func touchdb(userRequest incomingJSON) (string, error) {
 	// Get set up to talk to the Firestore database
 	ctx := context.Background()
+
 	client, err := firestore.NewClient(ctx, "pairing-bot-242820")
 	if err != nil {
 		return `error!`, err
@@ -122,8 +123,8 @@ func touchdb(userRequest incomingJSON) (string, error) {
 		return `Something went sideways while writing to the Database`, err
 	}
 
-	response := fmt.Sprintf("Added %v to our database!", recurser.Name)
-	return response, nil
+	log.Printf("Added %v to our database!", recurser.Name)
+	return fmt.Sprintf("Added %v to our database!", recurser.Name), nil
 }
 
 func respond(response string, w http.ResponseWriter) error {

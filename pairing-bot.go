@@ -65,8 +65,8 @@ func handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// validate RC's Zulip token
-	// if it doesn't validate, we don't know this person
-	// and thus don't give them anything
+	// if it doesn't validate, we don't know this
+	// person so don't give them anything
 	err = validateRequest(userRequest)
 	if err != nil {
 		log.Println(err)
@@ -75,6 +75,8 @@ func handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if it's me
+	// This is just for testing
+
 	if userRequest.Message.SenderID != mcb {
 		err = respond(`uwu`, w)
 		if err != nil {
@@ -83,7 +85,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Act on a user request. This both parses and acts and responds
+	// Act on a user request. This parses and acts and responds
 	// Currently a bit of a catch-all. Candidate for breaking
 	// up later.
 	response, err := touchdb(userRequest)
@@ -98,36 +100,53 @@ func handle(w http.ResponseWriter, r *http.Request) {
 
 }
 
+//validate the request
 func validateRequest(userRequest incomingJSON) error {
-	//validate the request
+	ctx := context.Background()
+	client, err := firestore.NewClient(ctx, "pairing-bot-242820")
+	if err != nil {
+		return err
+	}
+	token, err := client.Collection("botauth").Doc("token").Get(ctx)
+	log.Println(token)
 	return nil
 }
 
 func touchdb(userRequest incomingJSON) (string, error) {
 	// Get set up to talk to the Firestore database
 	ctx := context.Background()
-
 	client, err := firestore.NewClient(ctx, "pairing-bot-242820")
 	if err != nil {
 		return `error!`, err
 	}
 
-	// Get the data we need about the person making the request
+	// Get the data we need about the user making the request
 	recurser := recurser{
 		ID:   strconv.Itoa(userRequest.Message.SenderID),
 		Name: userRequest.Message.SenderFullName,
 	}
-	// key := firestore.NameKey("Recurser", "ZulipID", nil)
 
+	// This is a little sloppy, but works. This just  overwrites
+	// all the fields for the db entry for this recurser with
+	// new data, every time. There is a better way to do this with
+	// "firestore.MergeAll", which only overwrites data in fields
+	// with changed data, however using it requires declaring the type
+	// with a map rather than a struct, which I didn't want to do
+	// because it doesn't make as much sense to me. This is worth looking
+	// into in the future.
 	_, err = client.Collection("recursers").Doc(recurser.ID).Set(ctx, recurser)
 	if err != nil {
 		return `Something went sideways while writing to the Database`, err
 	}
-
-	log.Printf("Added %v to our database!", recurser.Name)
 	return fmt.Sprintf("Added %v to our database!", recurser.Name), nil
 }
 
+// I found that I was writing this out a lot, so I broke it
+// out into a function. I'm not sure if it was the best idea,
+// because there's still a bunch of error handling  that the
+// caller has to do which looks just as messy as before, but that
+// could probably be handled with some custom error types a la
+// https://www.innoq.com/en/blog/golang-errors-monads/
 func respond(response string, w http.ResponseWriter) error {
 	err = json.NewEncoder(w).Encode(botResponse{response})
 	if err != nil {
@@ -136,7 +155,7 @@ func respond(response string, w http.ResponseWriter) error {
 	return nil
 }
 
-// It's alive! The app starts here.
+// It's alive! The application starts here.
 func main() {
 	http.HandleFunc("/", handle)
 

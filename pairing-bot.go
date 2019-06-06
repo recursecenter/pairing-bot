@@ -110,7 +110,7 @@ func validateRequest(userRequest incomingJSON) error {
 	}
 	document, err := client.Collection("botauth").Doc("token").Get(ctx)
 	token := document.Data()
-	if "THISISFAKE98etu80y54hoe8u" == token["value"] {
+	if "THISISFAE98etu80y54hoe8u" == token["value"] {
 		return nil
 	}
 	return errors.New("unauthorized interaction attempt")

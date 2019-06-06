@@ -108,7 +108,7 @@ func validateRequest(userRequest incomingJSON) error {
 		return err
 	}
 	token, err := client.Collection("botauth").Doc("token").Get(ctx)
-	log.Println(token.Data)
+	log.Println(token.Data())
 	return nil
 }
 

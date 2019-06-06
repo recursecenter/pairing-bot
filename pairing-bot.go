@@ -89,12 +89,13 @@ func handle(w http.ResponseWriter, r *http.Request) {
 	response, err := touchdb(userRequest)
 	if err != nil {
 		log.Println(err)
-		err = respond(response, w)
-		if err != nil {
-			log.Println(err)
-		}
-		return
 	}
+	err = respond(response, w)
+	if err != nil {
+		log.Println(err)
+	}
+	return
+
 }
 
 func validateRequest(userRequest incomingJSON) error {

@@ -65,7 +65,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// validate RC's Zulip token
+	// validate the bot's zulip-assigned token
 	// if it doesn't validate, we don't know this
 	// person so don't give them anything
 	err = validateRequest(userRequest)
@@ -110,7 +110,7 @@ func validateRequest(userRequest incomingJSON) error {
 	}
 	document, err := client.Collection("botauth").Doc("token").Get(ctx)
 	token := document.Data()
-	if "THISISFAE98etu80y54hoe8u" == token["value"] {
+	if userRequest.Token == token["value"] {
 		return nil
 	}
 	return errors.New("unauthorized interaction attempt")

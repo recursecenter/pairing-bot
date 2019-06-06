@@ -105,7 +105,7 @@ func validateRequest(userRequest incomingJSON) error {
 func touchdb(userRequest incomingJSON) (string, error) {
 	// Get set up to talk to the Firestore database
 	ctx := context.Background()
-	client, err := firestore.NewClient(ctx, "pairing-bot-238901")
+	client, err := firestore.NewClient(ctx, "pairing-bot-242820")
 	if err != nil {
 		return `error!`, err
 	}

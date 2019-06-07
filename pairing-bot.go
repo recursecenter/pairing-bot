@@ -23,13 +23,11 @@ const mcb int = 215391
 var err error
 
 type incomingJSON struct {
-	BotEmail string `json:"bot_email"`
-	Data     string `json:"data"`
-	Token    string `json:"token"`
-	Trigger  string `json:"trigger"`
-	Message  struct {
+	Data    string `json:"data"`
+	Token   string `json:"token"`
+	Trigger string `json:"trigger"`
+	Message struct {
 		SenderID       int    `json:"sender_id"`
-		SenderEmail    string `json:"sender_email"`
 		SenderFullName string `json:"sender_full_name"`
 	} `json:"message"`
 }
@@ -76,8 +74,6 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println(userRequest)
-	return
 	// Check if it's me
 	// This is just for testing
 	if userRequest.Message.SenderID != mcb {
@@ -88,7 +84,14 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// if userRequest.Trigger !=
+	// if the bot was @-mentioned, do this
+	if userRequest.Trigger != "private_message" {
+		err = respond(`girl don't @ me i only do pm's`, w)
+		if err != nil {
+			log.Println(err)
+		}
+		return
+	}
 
 	// Act on a user request. This parses and acts and responds
 	// Currently a bit of a catch-all. Candidate for breaking

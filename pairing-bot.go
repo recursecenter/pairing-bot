@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"cloud.google.com/go/firestore"
 )
@@ -124,17 +125,24 @@ func validateRequest(userRequest incomingJSON) error {
 
 func touchdb(userRequest incomingJSON) (string, error) {
 	// Get set up to talk to the Firestore database
+	// this is just firestore boilerplate
 	ctx := context.Background()
 	client, err := firestore.NewClient(ctx, "pairing-bot-242820")
 	if err != nil {
-		return `error!`, err
+		return `There was a spooky cloud error`, err
 	}
 
 	// Get the data we need about the user making the request
+	// into an object in program memory
+	// All we need is SenderID, which is a unique zulip account
+	// ID that never changes, SenderFullName, which is
+	// the user's full name on zulip (including their batch),
+	// and Data, which is the contents of the private message that
+	// the user sent to pairing bot.
 	recurser := recurser{
 		ID:      strconv.Itoa(userRequest.Message.SenderID),
 		Name:    userRequest.Message.SenderFullName,
-		Message: userRequest.Data,
+		Message: strings.ToLower(userRequest.Data),
 	}
 
 	// This is a little sloppy, but works. This just  overwrites
@@ -154,7 +162,7 @@ func touchdb(userRequest incomingJSON) (string, error) {
 
 // I found that I was writing this out a lot, so I broke it
 // out into a function. I'm not sure if it was the best idea,
-// because there's still a bunch of error handling  that the
+// because there's still a bunch of error handling that the
 // caller has to do which looks just as messy as before, but that
 // could probably be handled with some custom error types a la
 // https://www.innoq.com/en/blog/golang-errors-monads/

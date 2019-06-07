@@ -39,8 +39,9 @@ type botResponse struct {
 }
 
 type recurser struct {
-	ID   string `firestore:"id,omitempty"`
-	Name string `firestore:"name,omitempty"`
+	ID      string `firestore:"id,omitempty"`
+	Name    string `firestore:"name,omitempty"`
+	Message string `firestore:"message,omitempty"`
 }
 
 // Any incoming http request is handled here
@@ -75,9 +76,10 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	fmt.Println(userRequest)
+	return
 	// Check if it's me
 	// This is just for testing
-
 	if userRequest.Message.SenderID != mcb {
 		err = respond(`uwu`, w)
 		if err != nil {
@@ -85,6 +87,8 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+
+	// if userRequest.Trigger !=
 
 	// Act on a user request. This parses and acts and responds
 	// Currently a bit of a catch-all. Candidate for breaking
@@ -98,7 +102,6 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 	return
-
 }
 
 //validate the request
@@ -126,8 +129,9 @@ func touchdb(userRequest incomingJSON) (string, error) {
 
 	// Get the data we need about the user making the request
 	recurser := recurser{
-		ID:   strconv.Itoa(userRequest.Message.SenderID),
-		Name: userRequest.Message.SenderFullName,
+		ID:      strconv.Itoa(userRequest.Message.SenderID),
+		Name:    userRequest.Message.SenderFullName,
+		Message: userRequest.Data,
 	}
 
 	// This is a little sloppy, but works. This just  overwrites

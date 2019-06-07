@@ -76,7 +76,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println(userRequest)
+	log.Println(userRequest)
 	return
 	// Check if it's me
 	// This is just for testing

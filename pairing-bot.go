@@ -23,6 +23,8 @@ const mcb int = 215391
 
 var err error
 
+// This is a struct that gets only what
+// we need from the incoming JSON payload
 type incomingJSON struct {
 	Data    string `json:"data"`
 	Token   string `json:"token"`
@@ -33,6 +35,10 @@ type incomingJSON struct {
 	} `json:"message"`
 }
 
+// Zulip has to get JSON back from the bot,
+// this does that. An empty message field stops
+// zulip from throwing an error at the user that
+// messaged the bot, but doesn't send a response
 type botResponse struct {
 	Message string `json:"content"`
 }
@@ -41,6 +47,17 @@ type recurser struct {
 	ID      string `firestore:"id,omitempty"`
 	Name    string `firestore:"name,omitempty"`
 	Message string `firestore:"message,omitempty"`
+}
+
+// starting to figure out how to map out the
+// commands that the user can send. This will
+// probably change
+var commands = map[string]string{
+	"sub":    "subscribe",
+	"help":   "help",
+	"status": "status",
+	"skip":   "skip tomorrow",
+	"unsub":  "unsubscribe",
 }
 
 // Any incoming http request is handled here
@@ -84,7 +101,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 
 	// if the bot was @-mentioned, do this
 	if userRequest.Trigger != "private_message" {
-		err = respond(`girl don't @ me i only do pm's`, w)
+		err = respond(`plz don't @ me i only do pm's <3`, w)
 		if err != nil {
 			log.Println(err)
 		}
@@ -139,7 +156,7 @@ func touchdb(userRequest incomingJSON) (string, error) {
 	recurser := recurser{
 		ID:      strconv.Itoa(userRequest.Message.SenderID),
 		Name:    userRequest.Message.SenderFullName,
-		Message: strings.ToLower(userRequest.Data),
+		Message: strings.ToLower(strings.TrimSpace(userRequest.Data)),
 	}
 
 	// This is a little sloppy, but works. This just  overwrites

@@ -58,10 +58,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 	err = json.NewDecoder(r.Body).Decode(&userRequest)
 	if err != nil {
 		log.Println(err)
-		err = respond("Oof, Zulip may have just sent me invalid JSON.", w)
-		if err != nil {
-			log.Println(err)
-		}
+		http.NotFound(w, r)
 		return
 	}
 

@@ -21,8 +21,6 @@ const mcb int = 215391
 // responds to other users
 // const mcb int = 215393
 
-var err error
-
 // This is a struct that gets only what
 // we need from the incoming JSON payload
 type incomingJSON struct {
@@ -52,16 +50,12 @@ type recurser struct {
 // starting to figure out how to map out the
 // commands that the user can send. This will
 // probably change
-var commands = map[string]string{
-	"sub":    "subscribe",
-	"help":   "help",
-	"status": "status",
-	"skip":   "skip tomorrow",
-	"unsub":  "unsubscribe",
-}
+type command string
 
 // Any incoming http request is handled here
-func handle(w http.ResponseWriter, r *http.Request) {
+func sanitize(w http.ResponseWriter, r *http.Request) {
+
+	responder := json.NewEncoder(w)
 
 	// 404 for anything other than /webhooks
 	if r.URL.Path != "/webhooks" {
@@ -72,7 +66,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 	// Look at the incoming webhook and slurp up the JSON
 	// Error if the JSON from Zulip istelf is bad
 	var userRequest incomingJSON
-	err = json.NewDecoder(r.Body).Decode(&userRequest)
+	err := json.NewDecoder(r.Body).Decode(&userRequest)
 	if err != nil {
 		log.Println(err)
 		http.NotFound(w, r)
@@ -82,6 +76,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 	// validate the bot's zulip-assigned token
 	// if it doesn't validate, we don't know this
 	// person so don't give them anything
+	// TODO -- Does this really need the whole userRequest object?
 	err = validateRequest(userRequest)
 	if err != nil {
 		log.Println(err)
@@ -92,7 +87,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 	// Check if it's me
 	// This is just for testing
 	if userRequest.Message.SenderID != mcb {
-		err = respond(`uwu`, w)
+		err = responder.Encode(botResponse{`uwu`})
 		if err != nil {
 			log.Println(err)
 		}
@@ -101,13 +96,14 @@ func handle(w http.ResponseWriter, r *http.Request) {
 
 	// if the bot was @-mentioned, do this
 	if userRequest.Trigger != "private_message" {
-		err = respond(`plz don't @ me i only do pm's <3`, w)
+		err = responder.Encode(botResponse{`plz don't @ me i only do pm's <3`})
 		if err != nil {
 			log.Println(err)
 		}
 		return
 	}
 
+	//
 	// Act on a user request. This parses and acts and responds
 	// Currently a bit of a catch-all. Candidate for breaking
 	// up later.
@@ -115,14 +111,16 @@ func handle(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err)
 	}
-	err = respond(response, w)
+	err = responder.Encode(botResponse{response})
 	if err != nil {
 		log.Println(err)
 	}
 	return
 }
 
-//validate the request
+// validate the request
+// The token it's checking was manually put into the database
+// Afaict that was the suggested GAE way to keep it out of version control
 func validateRequest(userRequest incomingJSON) error {
 	ctx := context.Background()
 	client, err := firestore.NewClient(ctx, "pairing-bot-242820")
@@ -138,14 +136,6 @@ func validateRequest(userRequest incomingJSON) error {
 }
 
 func touchdb(userRequest incomingJSON) (string, error) {
-	// Get set up to talk to the Firestore database
-	// this is just firestore boilerplate
-	ctx := context.Background()
-	client, err := firestore.NewClient(ctx, "pairing-bot-242820")
-	if err != nil {
-		return `There was a spooky cloud error`, err
-	}
-
 	// Get the data we need about the user making the request
 	// into an object in program memory
 	// All we need is SenderID, which is a unique zulip account
@@ -159,6 +149,42 @@ func touchdb(userRequest incomingJSON) (string, error) {
 		Message: strings.ToLower(strings.TrimSpace(userRequest.Data)),
 	}
 
+	pm := strings.Split(recurser.Message, " ")
+	if len(pm) != 0 {
+		response, err := help()
+		if err != nil {
+			return "I failed at parsing your message", err
+		}
+		return response, nil
+	}
+
+	// this runs the command based on user input and the
+	// existing list (map) of commands
+	/*
+		for key, value := range commands {
+
+		}
+	*/
+	return "", nil
+}
+
+func help() (string, error) {
+	return `This is the help menu`, nil
+}
+
+func subscribe(recurser recurser, pm string) (string, error) {
+	// Get set up to talk to the Firestore database
+	// this is just firestore boilerplate
+	// Tthis gets repeated a lot, but I didn't want
+	// to pass all this stuff to every single function either
+	// ugh i need code review so bad plz
+	ctx := context.Background()
+	client, err := firestore.NewClient(ctx, "pairing-bot-242820")
+	if err != nil {
+		return `There was a spooky cloud error`, err
+	}
+
+	// Subscribe the user
 	// This is a little sloppy, but works. This just  overwrites
 	// all the fields for the db entry for this recurser with
 	// new data, every time. There is a better way to do this with
@@ -171,21 +197,28 @@ func touchdb(userRequest incomingJSON) (string, error) {
 	if err != nil {
 		return `Something went sideways while writing to the Database`, err
 	}
-	return fmt.Sprintf("Added %v to our database!", recurser.Name), nil
+	return fmt.Sprintf("%v is now subscribed to Pairing Bot! Thanks for signing up, you :)", recurser.Name), nil
 }
 
-// I found that I was writing this out a lot, so I broke it
-// out into a function. I'm not sure if it was the best idea,
-// because there's still a bunch of error handling that the
-// caller has to do which looks just as messy as before, but that
-// could probably be handled with some custom error types a la
-// https://www.innoq.com/en/blog/golang-errors-monads/
-func respond(response string, w http.ResponseWriter) error {
-	err = json.NewEncoder(w).Encode(botResponse{response})
-	if err != nil {
-		return err
-	}
-	return nil
+/*
+func status(recurser recurser, pm string) (string, error) {
+	return "", nil
+}
+
+func skiptomorrow(recurser recurser, pm string) (string, error) {
+	return "", nil
+}
+
+func unsubscribe(recurser recurser, pm string) (string, error) {
+	return "", nil
+}
+
+func schedule(recurser recurser, pm string) (string, error) {
+	return "", nil
+}
+*/
+func handle(w http.ResponseWriter, r *http.Request) {
+	sanitize(w, r)
 }
 
 // It's alive! The application starts here.

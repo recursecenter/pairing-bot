@@ -15,11 +15,11 @@ import (
 )
 
 // this is my real id (it's not really secret)
-const mcb int = 215391
+const maren int = 215391
 
 // this is my wrong ID, for testing how pairing-bot
 // responds to other users
-// const mcb int = 215393
+// const maren int = 215393
 
 // This is a struct that gets only what
 // we need from the incoming JSON payload
@@ -41,52 +41,90 @@ type botResponse struct {
 	Message string `json:"content"`
 }
 
-type recurser struct {
-	ID      string `firestore:"id,omitempty"`
-	Name    string `firestore:"name,omitempty"`
-	Message string `firestore:"message,omitempty"`
-}
-
-// starting to figure out how to map out the
-// commands that the user can send. This will
-// probably change
-type command string
-
 // Any incoming http request is handled here
-func sanitize(w http.ResponseWriter, r *http.Request) {
-
-	responder := json.NewEncoder(w)
-
-	// 404 for anything other than /webhooks
-	if r.URL.Path != "/webhooks" {
-		http.NotFound(w, r)
-		return
-	}
-
+func sanityCheck(ctx context.Context, client *firestore.Client, w http.ResponseWriter, r *http.Request) (incomingJSON, error) {
 	// Look at the incoming webhook and slurp up the JSON
 	// Error if the JSON from Zulip istelf is bad
-	var userRequest incomingJSON
-	err := json.NewDecoder(r.Body).Decode(&userRequest)
+	var userReq incomingJSON
+
+	err := json.NewDecoder(r.Body).Decode(&userReq)
+	if err != nil {
+		http.NotFound(w, r)
+		return userReq, err
+	}
+
+	// validate our zulip-bot token
+	// this was manually put into the database before deployment
+	// if it
+	document, err := client.Collection("botauth").Doc("token").Get(ctx)
+	if err != nil {
+		log.Println("Something weird happend trying to read the auth token from the database")
+		return userReq, err
+	}
+	token := document.Data()
+	if userReq.Token != token["value"] {
+		http.NotFound(w, r)
+		return userReq, errors.New("unauthorized interaction attempt")
+	}
+	return userReq, err
+}
+
+func touchdb(ctx context.Context, client *firestore.Client, userReq incomingJSON) (string, error) {
+	var response string
+	var err error
+
+	// make the lil' recurser map object. Mapject?
+	recurser := map[string]string{
+		"id":      strconv.Itoa(userReq.Message.SenderID),
+		"name":    userReq.Message.SenderFullName,
+		"message": strings.ToLower(strings.TrimSpace(userReq.Data)),
+	}
+
+	// be sure they said something
+	pm := strings.Split(recurser["id"], " ")
+	if len(pm) == 0 {
+		response = `You didn't say anything, fren <3`
+		return response, err
+	}
+
+	switch pm[0] {
+	case "subscribe":
+		_, err := client.Collection("recursers").Doc(recurser["id"]).Set(ctx, recurser, firestore.MergeAll)
+		if err != nil {
+			response = `Something went sideways while writing to the Database`
+		} else {
+			response = fmt.Sprintf("%v is now subscribed to Pairing Bot! Thanks for signing up, you :)", recurser["name"])
+		}
+	default:
+		response = `This is the help menu`
+	}
+
+	return response, err
+}
+
+func help() (string, error) {
+	return `This is the help menu`, nil
+}
+
+func handle(w http.ResponseWriter, r *http.Request) {
+	responder := json.NewEncoder(w)
+
+	ctx := context.Background()
+	client, err := firestore.NewClient(ctx, "pairing-bot-242820")
+	if err != nil {
+		log.Panic(err)
+	}
+
+	// sanity check the incoming request
+	userReq, err := sanityCheck(ctx, client, w, r)
 	if err != nil {
 		log.Println(err)
-		http.NotFound(w, r)
 		return
 	}
 
-	// validate the bot's zulip-assigned token
-	// if it doesn't validate, we don't know this
-	// person so don't give them anything
-	// TODO -- Does this really need the whole userRequest object?
-	err = validateRequest(userRequest)
-	if err != nil {
-		log.Println(err)
-		http.NotFound(w, r)
-		return
-	}
-
-	// Check if it's me
-	// This is just for testing
-	if userRequest.Message.SenderID != mcb {
+	// for testing only
+	// this responds uwu and quits if it's not me
+	if userReq.Message.SenderID == maren {
 		err = responder.Encode(botResponse{`uwu`})
 		if err != nil {
 			log.Println(err)
@@ -94,8 +132,9 @@ func sanitize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// if the bot was @-mentioned, do this
-	if userRequest.Trigger != "private_message" {
+	// if it was a private message do this
+	// TODO: i'd like to handle this differently
+	if userReq.Trigger != "private_message" {
 		err = responder.Encode(botResponse{`plz don't @ me i only do pm's <3`})
 		if err != nil {
 			log.Println(err)
@@ -103,11 +142,7 @@ func sanitize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//
-	// Act on a user request. This parses and acts and responds
-	// Currently a bit of a catch-all. Candidate for breaking
-	// up later.
-	response, err := touchdb(userRequest)
+	response, err := touchdb(ctx, client, userReq)
 	if err != nil {
 		log.Println(err)
 	}
@@ -118,112 +153,14 @@ func sanitize(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// validate the request
-// The token it's checking was manually put into the database
-// Afaict that was the suggested GAE way to keep it out of version control
-func validateRequest(userRequest incomingJSON) error {
-	ctx := context.Background()
-	client, err := firestore.NewClient(ctx, "pairing-bot-242820")
-	if err != nil {
-		return err
-	}
-	document, err := client.Collection("botauth").Doc("token").Get(ctx)
-	token := document.Data()
-	if userRequest.Token == token["value"] {
-		return nil
-	}
-	return errors.New("unauthorized interaction attempt")
-}
-
-func touchdb(userRequest incomingJSON) (string, error) {
-	// Get the data we need about the user making the request
-	// into an object in program memory
-	// All we need is SenderID, which is a unique zulip account
-	// ID that never changes, SenderFullName, which is
-	// the user's full name on zulip (including their batch),
-	// and Data, which is the contents of the private message that
-	// the user sent to pairing bot.
-	recurser := recurser{
-		ID:      strconv.Itoa(userRequest.Message.SenderID),
-		Name:    userRequest.Message.SenderFullName,
-		Message: strings.ToLower(strings.TrimSpace(userRequest.Data)),
-	}
-
-	pm := strings.Split(recurser.Message, " ")
-	if len(pm) != 0 {
-		response, err := help()
-		if err != nil {
-			return "I failed at parsing your message", err
-		}
-		return response, nil
-	}
-
-	// this runs the command based on user input and the
-	// existing list (map) of commands
-	/*
-		for key, value := range commands {
-
-		}
-	*/
-	return "", nil
-}
-
-func help() (string, error) {
-	return `This is the help menu`, nil
-}
-
-func subscribe(recurser recurser, pm string) (string, error) {
-	// Get set up to talk to the Firestore database
-	// this is just firestore boilerplate
-	// Tthis gets repeated a lot, but I didn't want
-	// to pass all this stuff to every single function either
-	// ugh i need code review so bad plz
-	ctx := context.Background()
-	client, err := firestore.NewClient(ctx, "pairing-bot-242820")
-	if err != nil {
-		return `There was a spooky cloud error`, err
-	}
-
-	// Subscribe the user
-	// This is a little sloppy, but works. This just  overwrites
-	// all the fields for the db entry for this recurser with
-	// new data, every time. There is a better way to do this with
-	// "firestore.MergeAll", which only overwrites data in fields
-	// with changed data, however using it requires declaring the type
-	// with a map rather than a struct, which I didn't want to do
-	// because it doesn't make as much sense to me. This is worth looking
-	// into in the future.
-	_, err = client.Collection("recursers").Doc(recurser.ID).Set(ctx, recurser)
-	if err != nil {
-		return `Something went sideways while writing to the Database`, err
-	}
-	return fmt.Sprintf("%v is now subscribed to Pairing Bot! Thanks for signing up, you :)", recurser.Name), nil
-}
-
-/*
-func status(recurser recurser, pm string) (string, error) {
-	return "", nil
-}
-
-func skiptomorrow(recurser recurser, pm string) (string, error) {
-	return "", nil
-}
-
-func unsubscribe(recurser recurser, pm string) (string, error) {
-	return "", nil
-}
-
-func schedule(recurser recurser, pm string) (string, error) {
-	return "", nil
-}
-*/
-func handle(w http.ResponseWriter, r *http.Request) {
-	sanitize(w, r)
+func nope(w http.ResponseWriter, r *http.Request) {
+	http.NotFound(w, r)
 }
 
 // It's alive! The application starts here.
 func main() {
-	http.HandleFunc("/", handle)
+	http.HandleFunc("/", nope)
+	http.HandleFunc("/webhooks", handle)
 
 	port := os.Getenv("PORT")
 	if port == "" {

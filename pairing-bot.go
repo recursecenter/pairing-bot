@@ -124,7 +124,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 
 	// for testing only
 	// this responds uwu and quits if it's not me
-	if userReq.Message.SenderID == maren {
+	if userReq.Message.SenderID != maren {
 		err = responder.Encode(botResponse{`uwu`})
 		if err != nil {
 			log.Println(err)

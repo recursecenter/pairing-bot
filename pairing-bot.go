@@ -41,12 +41,11 @@ type botResponse struct {
 	Message string `json:"content"`
 }
 
-// Any incoming http request is handled here
 func sanityCheck(ctx context.Context, client *firestore.Client, w http.ResponseWriter, r *http.Request) (incomingJSON, error) {
-	// Look at the incoming webhook and slurp up the JSON
-	// Error if the JSON from Zulip istelf is bad
 	var userReq incomingJSON
 
+	// Look at the incoming webhook and slurp up the JSON
+	// Error if the JSON from Zulip istelf is bad
 	err := json.NewDecoder(r.Body).Decode(&userReq)
 	if err != nil {
 		http.NotFound(w, r)
@@ -55,7 +54,6 @@ func sanityCheck(ctx context.Context, client *firestore.Client, w http.ResponseW
 
 	// validate our zulip-bot token
 	// this was manually put into the database before deployment
-	// if it
 	document, err := client.Collection("botauth").Doc("token").Get(ctx)
 	if err != nil {
 		log.Println("Something weird happend trying to read the auth token from the database")
@@ -81,7 +79,7 @@ func touchdb(ctx context.Context, client *firestore.Client, userReq incomingJSON
 	}
 
 	// be sure they said something
-	pm := strings.Split(recurser["id"], " ")
+	pm := strings.Split(recurser["message"], " ")
 	if len(pm) == 0 {
 		response = `You didn't say anything, fren <3`
 		return response, err

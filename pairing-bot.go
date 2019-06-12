@@ -16,12 +16,12 @@ import (
 )
 
 // this is my real id (it's not really secret)
-const marenID int = 215391
+// const marenID int = 215391
 const maren string = `@_**Maren Beam (SP2'19)**`
 
 // this is my wrong ID, for testing how pairing-bot
 // responds to other users
-// const marenID int = 215393
+const marenID int = 215393
 
 // This is a struct that gets only what
 // we need from the incoming JSON payload

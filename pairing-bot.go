@@ -12,6 +12,9 @@ import (
 	"strconv"
 	"strings"
 
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+
 	"cloud.google.com/go/firestore"
 )
 
@@ -88,7 +91,7 @@ func botAction(ctx context.Context, client *firestore.Client, userReq incomingJS
 	pm := strings.Split(recurser["message"], " ")
 	// tell us whether the user is currently in the database
 	doc, err := client.Collection("recursers").Doc(recurser["id"]).Get(ctx)
-	if err != nil {
+	if err != nil && grpc.Code(err) != codes.NotFound {
 		response = fmt.Sprintf(`Something went sideways while reading from the database. You should probably ping %v`, maren)
 		return response, err
 	}

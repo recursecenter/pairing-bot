@@ -21,7 +21,8 @@ import (
 // this is my real id (it's not really secret)
 const marenID int = 215391
 const maren string = `@_**Maren Beam (SP2'19)**`
-const helpMenu string = `This is the help menu`
+const helpMessage string = `This is the help menu`
+const subscribedMessage string = "Yay! You're now subscribed to Pairing Bot!\nCurrently, I'm set to find pair programming partners for you on Mondays, Tuesdays, Wednesdays, and Thursdays.\nYou can customize your schedule any time with `schedule`.\n\nThanks for signing up :)"
 
 // this is my wrong ID, for testing how pairing-bot
 // responds to other users
@@ -49,7 +50,6 @@ type botResponse struct {
 
 func sanityCheck(ctx context.Context, client *firestore.Client, w http.ResponseWriter, r *http.Request) (incomingJSON, error) {
 	var userReq incomingJSON
-
 	// Look at the incoming webhook and slurp up the JSON
 	// Error if the JSON from Zulip istelf is bad
 	err := json.NewDecoder(r.Body).Decode(&userReq)
@@ -111,7 +111,7 @@ func botAction(ctx context.Context, client *firestore.Client, userReq incomingJS
 				response = fmt.Sprintf(`Something went sideways while writing to the database. You should probably ping %v`, maren)
 				break
 			}
-			response = fmt.Sprintf("Yay! You're now subscribed to Pairing Bot!\nI'll find you a pair programming partner on Monday through Thursday, unless you set a new schedule with `schedule`.\nThanks for signing up, %v :)", recurser["name"])
+			response = subscribedMessage
 		} else {
 			response = "You're already subscribed! Use `schedule` to set your schedule."
 		}
@@ -124,21 +124,17 @@ func botAction(ctx context.Context, client *firestore.Client, userReq incomingJS
 				break
 			}
 		}
-		response = "You're unsubscribed! I won't find you pairing partners anymore unless you `subscribe` again. Be well :)"
+		response = "You're unsubscribed! I won't find you pairing partners unless you `subscribe` again. Be well :)"
 
 	case pm[0] == "schedule":
 
 	case pm[0] == "skip":
 
 	default:
-		response = helpMenu
+		response = helpMessage
 	}
 
 	return response, err
-}
-
-func help() (string, error) {
-	return `This is the help menu`, nil
 }
 
 func handle(w http.ResponseWriter, r *http.Request) {
@@ -161,16 +157,6 @@ func handle(w http.ResponseWriter, r *http.Request) {
 	// this responds uwu and quits if it's not me
 	if userReq.Message.SenderID != marenID {
 		err = responder.Encode(botResponse{`uwu`})
-		if err != nil {
-			log.Println(err)
-		}
-		return
-	}
-
-	// if it was a private message do this
-	// TODO: i'd like to handle this differently
-	if userReq.Trigger != "private_message" {
-		err = responder.Encode(botResponse{`plz don't @ me i only do pm's <3`})
 		if err != nil {
 			log.Println(err)
 		}

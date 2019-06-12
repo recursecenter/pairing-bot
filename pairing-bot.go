@@ -22,7 +22,8 @@ import (
 const marenID int = 215391
 const maren string = `@_**Maren Beam (SP2'19)**`
 const helpMessage string = `This is the help menu`
-const subscribedMessage string = "Yay! You're now subscribed to Pairing Bot!\nCurrently, I'm set to find pair programming partners for you on Mondays, Tuesdays, Wednesdays, and Thursdays.\nYou can customize your schedule any time with `schedule`.\n\nThanks for signing up :)"
+const subscribeMessage string = "Yay! You're now subscribed to Pairing Bot!\nCurrently, I'm set to find pair programming partners for you on **Mondays**, **Tuesdays**, **Wednesdays**, and **Thursdays**.\nYou can customize your schedule any time with `schedule`.\n\nThanks for signing up :)"
+const unsubscribeMessage string = "You're unsubscribed!\nI won't find pairing partners for you unless you `subscribe`.\n\nBe well :)"
 
 // this is my wrong ID, for testing how pairing-bot
 // responds to other users
@@ -92,9 +93,11 @@ func botAction(ctx context.Context, client *firestore.Client, userReq incomingJS
 	space := regexp.MustCompile(`\s+`)
 	// make the lil' recurser map object. Mapject?
 	recurser := map[string]interface{}{
-		"id":      strconv.Itoa(userReq.Message.SenderID),
-		"name":    userReq.Message.SenderFullName,
-		"message": strings.ToLower(strings.TrimSpace(space.ReplaceAllString(userReq.Data, ` `))),
+		"id":                 strconv.Itoa(userReq.Message.SenderID),
+		"name":               userReq.Message.SenderFullName,
+		"message":            strings.ToLower(strings.TrimSpace(space.ReplaceAllString(userReq.Data, ` `))),
+		"isSkippingTomorrow": false,
+		"days":               []int{0, 1, 2, 3},
 	}
 
 	// split the PM into a slice  of strings so we can look at it real good
@@ -108,12 +111,16 @@ func botAction(ctx context.Context, client *firestore.Client, userReq incomingJS
 	isSubscribed := doc.Exists()
 
 	switch {
+	// if the user string is "". This shouldn't be possible because zulip
+	// handles it but we should check anyway
 	case len(pm) == 0:
 		response = `You didn't say anything, friend <3`
 
+	// if it's not a private message
 	case userReq.Trigger != "private_message":
 		response = `plz don't @ me i only do pm's <3`
 
+	// if the first word of whatever they sent is "subscribe"
 	case pm[0] == "subscribe":
 		if isSubscribed == false {
 			_, err = client.Collection("recursers").Doc(recurser["id"].(string)).Set(ctx, recurser, firestore.MergeAll)
@@ -121,12 +128,12 @@ func botAction(ctx context.Context, client *firestore.Client, userReq incomingJS
 				response = fmt.Sprintf(`Something went sideways while writing to the database. You should probably ping %v`, maren)
 				break
 			}
-			response = subscribedMessage
+			response = subscribeMessage
 		} else {
 			response = "You're already subscribed! Use `schedule` to set your schedule."
 		}
-
-	case pm[0] == "unsubscribe":
+	// if they sent only the word "unsubscribe"
+	case pm[0] == "unsubscribe" && len(pm) == 1:
 		if isSubscribed {
 			_, err = client.Collection("recursers").Doc(recurser["id"].(string)).Delete(ctx)
 			if err != nil {
@@ -134,7 +141,7 @@ func botAction(ctx context.Context, client *firestore.Client, userReq incomingJS
 				break
 			}
 		}
-		response = "You're unsubscribed! I won't find you pairing partners unless you `subscribe` again. Be well :)"
+		response = unsubscribeMessage
 
 	case pm[0] == "schedule":
 

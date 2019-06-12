@@ -112,9 +112,14 @@ func botAction(ctx context.Context, client *firestore.Client, userReq incomingJS
 		}
 
 	case pm[0] == "unsubscribe":
+		break
+
 	case pm[0] == "schedule":
-	case pm[0] == "status":
+		break
+
 	case pm[0] == "skip":
+		break
+
 	default:
 		response = `This is the help menu`
 	}

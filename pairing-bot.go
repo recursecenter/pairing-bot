@@ -18,6 +18,7 @@ import (
 // this is my real id (it's not really secret)
 const marenID int = 215391
 const maren string = `@_**Maren Beam (SP2'19)**`
+const helpMenu string = `This is the help menu`
 
 // this is my wrong ID, for testing how pairing-bot
 // responds to other users
@@ -85,6 +86,13 @@ func botAction(ctx context.Context, client *firestore.Client, userReq incomingJS
 
 	// split the PM into a slice  of strings so we can look at it real good
 	pm := strings.Split(recurser["message"], " ")
+	// tell us whether the user is currently in the database
+	doc, err := client.Collection("recursers").Doc(recurser["id"]).Get(ctx)
+	if err != nil {
+		response = fmt.Sprintf(`Something went sideways while reading from the database. You should probably ping %v`, maren)
+		return response, err
+	}
+	isSubscribed := doc.Exists()
 
 	switch {
 	case len(pm) == 0:
@@ -94,13 +102,7 @@ func botAction(ctx context.Context, client *firestore.Client, userReq incomingJS
 		response = `plz don't @ me i only do pm's <3`
 
 	case pm[0] == "subscribe":
-		// check if the user is already subscribed
-		doc, err := client.Collection("recursers").Doc(recurser["id"]).Get(ctx)
-		if err != nil {
-			response = fmt.Sprintf(`Something went sideways while reading from the database. You should probably ping %v`, maren)
-			break
-		}
-		if doc.Exists() == false {
+		if isSubscribed == false {
 			_, err = client.Collection("recursers").Doc(recurser["id"]).Set(ctx, recurser, firestore.MergeAll)
 			if err != nil {
 				response = fmt.Sprintf(`Something went sideways while writing to the database. You should probably ping %v`, maren)
@@ -112,16 +114,21 @@ func botAction(ctx context.Context, client *firestore.Client, userReq incomingJS
 		}
 
 	case pm[0] == "unsubscribe":
-		break
+		if isSubscribed {
+			_, err = client.Collection("recursers").Doc(recurser["id"]).Delete(ctx)
+			if err != nil {
+				response = fmt.Sprintf(`Something went sideways while writing to the database. You should probably ping %v`, maren)
+				break
+			}
+		}
+		response = "You're unsubscribed! I won't find you pairing partners anymore unless to subscribe again. Be well :)"
 
 	case pm[0] == "schedule":
-		break
 
 	case pm[0] == "skip":
-		break
 
 	default:
-		response = `This is the help menu`
+		response = helpMenu
 	}
 
 	return response, err

@@ -121,7 +121,7 @@ func botAction(ctx context.Context, client *firestore.Client, userReq incomingJS
 				break
 			}
 		}
-		response = "You're unsubscribed! I won't find you pairing partners anymore unless to subscribe again. Be well :)"
+		response = "You're unsubscribed! I won't find you pairing partners anymore unless you `subscribe` again. Be well :)"
 
 	case pm[0] == "schedule":
 

@@ -48,6 +48,16 @@ type botResponse struct {
 	Message string `json:"content"`
 }
 
+var weekdays = map[string]int{
+	"monday":    0,
+	"tuesday":   1,
+	"wednesday": 2,
+	"thursday":  3,
+	"friday":    4,
+	"saturday":  5,
+	"sunday":    6,
+}
+
 func sanityCheck(ctx context.Context, client *firestore.Client, w http.ResponseWriter, r *http.Request) (incomingJSON, error) {
 	var userReq incomingJSON
 	// Look at the incoming webhook and slurp up the JSON
@@ -81,16 +91,16 @@ func botAction(ctx context.Context, client *firestore.Client, userReq incomingJS
 	// in PM from user
 	space := regexp.MustCompile(`\s+`)
 	// make the lil' recurser map object. Mapject?
-	recurser := map[string]string{
+	recurser := map[string]interface{}{
 		"id":      strconv.Itoa(userReq.Message.SenderID),
 		"name":    userReq.Message.SenderFullName,
 		"message": strings.ToLower(strings.TrimSpace(space.ReplaceAllString(userReq.Data, ` `))),
 	}
 
 	// split the PM into a slice  of strings so we can look at it real good
-	pm := strings.Split(recurser["message"], " ")
+	pm := strings.Split(recurser["message"].(string), " ")
 	// tell us whether the user is currently in the database
-	doc, err := client.Collection("recursers").Doc(recurser["id"]).Get(ctx)
+	doc, err := client.Collection("recursers").Doc(recurser["id"].(string)).Get(ctx)
 	if err != nil && grpc.Code(err) != codes.NotFound {
 		response = fmt.Sprintf(`Something went sideways while reading from the database. You should probably ping %v`, maren)
 		return response, err
@@ -106,7 +116,7 @@ func botAction(ctx context.Context, client *firestore.Client, userReq incomingJS
 
 	case pm[0] == "subscribe":
 		if isSubscribed == false {
-			_, err = client.Collection("recursers").Doc(recurser["id"]).Set(ctx, recurser, firestore.MergeAll)
+			_, err = client.Collection("recursers").Doc(recurser["id"].(string)).Set(ctx, recurser, firestore.MergeAll)
 			if err != nil {
 				response = fmt.Sprintf(`Something went sideways while writing to the database. You should probably ping %v`, maren)
 				break
@@ -118,7 +128,7 @@ func botAction(ctx context.Context, client *firestore.Client, userReq incomingJS
 
 	case pm[0] == "unsubscribe":
 		if isSubscribed {
-			_, err = client.Collection("recursers").Doc(recurser["id"]).Delete(ctx)
+			_, err = client.Collection("recursers").Doc(recurser["id"].(string)).Delete(ctx)
 			if err != nil {
 				response = fmt.Sprintf(`Something went sideways while writing to the database. You should probably ping %v`, maren)
 				break

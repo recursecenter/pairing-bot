@@ -193,7 +193,7 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 					"sunday":    false,
 				},
 			}
-			_, err = client.Collection("recursers").Doc(recurser["id"].(string)).Set(ctx, recurser)
+			_, err = client.Collection("recursers").Doc(userID).Set(ctx, recurser)
 			if err != nil {
 				response = fmt.Sprintf(`Something went sideways while writing to the database. You should probably ping %v`, maren)
 				break
@@ -204,6 +204,15 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 		}
 
 	case "unsubscribe":
+		if isSubscribed == true {
+			_, err = client.Collection("recursers").Doc(userID).Delete(ctx)
+			if err != nil {
+				response = fmt.Sprintf(`Something went sideways while writing to the database. You should probably ping %v`, maren)
+				break
+			}
+		}
+		response = unsubscribeMessage
+
 	case "skip":
 	case "unskip":
 	case "status":

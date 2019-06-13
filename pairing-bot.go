@@ -164,7 +164,7 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 	}
 
 	// tell us whether the user is currently in the database
-	doc, err := client.Collection("recursers").Doc(recurser["id"].(string)).Get(ctx)
+	doc, err := client.Collection("recursers").Doc(userID).Get(ctx)
 	if err != nil && grpc.Code(err) != codes.NotFound {
 		response = readError
 		return response, err

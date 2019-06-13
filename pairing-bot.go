@@ -163,12 +163,16 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 		},
 	}
 
-	// tell us whether the user is currently in the database
+	// get the users "document" (database entry) out of firestore
+	// we temporarily keep in in 'doc'
 	doc, err := client.Collection("recursers").Doc(userID).Get(ctx)
+	// this says "if theres and error, and if that error was not document-not-found"
 	if err != nil && grpc.Code(err) != codes.NotFound {
 		response = readError
 		return response, err
 	}
+	// if there's a db entry, that means they were already subscribed to pairing bot
+	// if there's not, they were not subscribed
 	isSubscribed := doc.Exists()
 
 	// if the user is in the database, get their current state into this map
@@ -230,6 +234,7 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 	case "unskip":
 	case "status":
 	case "help":
+		response = helpMessage
 	default:
 		// this won't execute because all input has been sanitized
 		// by parseCmd() and all cases are handled explicitly here

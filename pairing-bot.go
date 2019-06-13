@@ -221,8 +221,7 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 		// this won't execute because all input has been sanitized
 		// by parseCmd() and all cases are handled explicitly here
 	}
-
-	return "Did some action", nil
+	return response, err
 }
 
 func handle(w http.ResponseWriter, r *http.Request) {

@@ -12,10 +12,9 @@ import (
 	"strconv"
 	"strings"
 
+	"cloud.google.com/go/firestore"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-
-	"cloud.google.com/go/firestore"
 )
 
 // this is my real id (it's not really secret)
@@ -49,16 +48,6 @@ type botResponse struct {
 	Message string `json:"content"`
 }
 
-var weekdays = map[string]int{
-	"monday":    0,
-	"tuesday":   1,
-	"wednesday": 2,
-	"thursday":  3,
-	"friday":    4,
-	"saturday":  5,
-	"sunday":    6,
-}
-
 func sanityCheck(ctx context.Context, client *firestore.Client, w http.ResponseWriter, r *http.Request) (incomingJSON, error) {
 	var userReq incomingJSON
 	// Look at the incoming webhook and slurp up the JSON
@@ -84,24 +73,93 @@ func sanityCheck(ctx context.Context, client *firestore.Client, w http.ResponseW
 	return userReq, err
 }
 
-func botAction(ctx context.Context, client *firestore.Client, userReq incomingJSON) (string, error) {
-	var response string
-	var err error
+/* func botAction(ctx context.Context, client *firestore.Client, userReq incomingJSON) (string, error) {
+var response string
+var err error
+var recurser recurser
 
-	// create regex for removing internal whitespace
-	// in PM from user
-	space := regexp.MustCompile(`\s+`)
-	// make the lil' recurser map object. Mapject?
-	recurser := map[string]interface{}{
-		"id":                 strconv.Itoa(userReq.Message.SenderID),
-		"name":               userReq.Message.SenderFullName,
-		"message":            strings.ToLower(strings.TrimSpace(space.ReplaceAllString(userReq.Data, ` `))),
-		"isSkippingTomorrow": false,
-		"days":               []int{0, 1, 2, 3},
+// create regex for removing internal whitespace in PM from user
+space := regexp.MustCompile(`\s+`)
+
+// split the PM into a slice of strings so we can look at it real good
+pm := strings.Split(recurser.Data, " ")
+// tell us whether the user is currently in the database
+doc, err := client.Collection("recursers").Doc(recurser["id"].(string)).Get(ctx)
+if err != nil && grpc.Code(err) != codes.NotFound {
+	response = fmt.Sprintf(`Something went sideways while reading from the database. You should probably ping %v`, maren)
+	return response, err
+}
+isSubscribed := doc.Exists()
+
+switch {
+// if the user string is "". This shouldn't be possible because zulip
+// handles it but we should check anyway
+case len(pm) == 0:
+	response = `You didn't say anything, friend <3`
+
+// if it's not a private message
+case userReq.Trigger != "private_message":
+	response = `plz don't @ me i only do pm's <3`
+
+// if the first word of whatever they sent is "subscribe"
+case pm[0] == "subscribe":
+	if isSubscribed == false {
+		_, err = client.Collection("recursers").Doc(recurser["id"].(string)).Set(ctx, recurser, firestore.MergeAll)
+		if err != nil {
+			response = fmt.Sprintf(`Something went sideways while writing to the database. You should probably ping %v`, maren)
+			break
+		}
+		response = subscribeMessage
+	} else {
+		response = "You're already subscribed! Use `schedule` to set your schedule."
+	}
+// if they sent only the word "unsubscribe"
+case pm[0] == "unsubscribe" && len(pm) == 1:
+	if isSubscribed {
+		_, err = client.Collection("recursers").Doc(recurser["id"].(string)).Delete(ctx)
+		if err != nil {
+			response = fmt.Sprintf(`Something went sideways while writing to the database. You should probably ping %v`, maren)
+			break
+		}
+	}
+	response = unsubscribeMessage
+
+case pm[0] == "schedule":
+	if isSubscribed == false {
+		response = "You're not subscribed! First you need to sign up for Pairing Bot with `subscribe`"
+		break
 	}
 
-	// split the PM into a slice  of strings so we can look at it real good
-	pm := strings.Split(recurser["message"].(string), " ")
+	//for _, d := range pm[1:] {
+	//	if val, ok := recurser[]
+	//}
+
+case pm[0] == "skip":
+
+default:
+	response = helpMessage
+}
+
+return response, err
+} */
+func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs []string, userID string, userName string) (string, error) {
+	var response string
+	var err error
+	var recurser = map[string]interface{}{
+		"id":                 "string",
+		"name":               "string",
+		"isSkippingTomorrow": false,
+		"schedule": map[string]interface{}{
+			"monday":    false,
+			"tuesday":   false,
+			"wednesday": false,
+			"thursday":  false,
+			"friday":    false,
+			"saturday":  false,
+			"sunday":    false,
+		},
+	}
+
 	// tell us whether the user is currently in the database
 	doc, err := client.Collection("recursers").Doc(recurser["id"].(string)).Get(ctx)
 	if err != nil && grpc.Code(err) != codes.NotFound {
@@ -109,21 +167,33 @@ func botAction(ctx context.Context, client *firestore.Client, userReq incomingJS
 		return response, err
 	}
 	isSubscribed := doc.Exists()
+	// if the user is in the database, get their current current state into this map
+	if isSubscribed {
+		recurser = doc.Data()
+	}
+	// here's the actual actions. command input from
+	// the user has already been sanitized, so we can
+	// trust that cmd and cmdArgs only have valid stuff in them
+	switch cmd {
+	case "schedule":
 
-	switch {
-	// if the user string is "". This shouldn't be possible because zulip
-	// handles it but we should check anyway
-	case len(pm) == 0:
-		response = `You didn't say anything, friend <3`
-
-	// if it's not a private message
-	case userReq.Trigger != "private_message":
-		response = `plz don't @ me i only do pm's <3`
-
-	// if the first word of whatever they sent is "subscribe"
-	case pm[0] == "subscribe":
+	case "subscribe":
 		if isSubscribed == false {
-			_, err = client.Collection("recursers").Doc(recurser["id"].(string)).Set(ctx, recurser, firestore.MergeAll)
+			recurser = map[string]interface{}{
+				"id":                 userID,
+				"name":               userName,
+				"isSkippingTomorrow": false,
+				"schedule": map[string]interface{}{
+					"monday":    true,
+					"tuesday":   true,
+					"wednesday": true,
+					"thursday":  true,
+					"friday":    false,
+					"saturday":  false,
+					"sunday":    false,
+				},
+			}
+			_, err = client.Collection("recursers").Doc(recurser["id"].(string)).Set(ctx, recurser)
 			if err != nil {
 				response = fmt.Sprintf(`Something went sideways while writing to the database. You should probably ping %v`, maren)
 				break
@@ -132,44 +202,33 @@ func botAction(ctx context.Context, client *firestore.Client, userReq incomingJS
 		} else {
 			response = "You're already subscribed! Use `schedule` to set your schedule."
 		}
-	// if they sent only the word "unsubscribe"
-	case pm[0] == "unsubscribe" && len(pm) == 1:
-		if isSubscribed {
-			_, err = client.Collection("recursers").Doc(recurser["id"].(string)).Delete(ctx)
-			if err != nil {
-				response = fmt.Sprintf(`Something went sideways while writing to the database. You should probably ping %v`, maren)
-				break
-			}
-		}
-		response = unsubscribeMessage
 
-	case pm[0] == "schedule":
-
-	case pm[0] == "skip":
-
+	case "unsubscribe":
+	case "skip":
+	case "unskip":
+	case "status":
+	case "help":
 	default:
-		response = helpMessage
+		// this won't execute because all input has been sanitized
+		// by parseCmd() and all cases are handled explicitly here
 	}
 
-	return response, err
+	return "Did some action", nil
 }
 
 func handle(w http.ResponseWriter, r *http.Request) {
 	responder := json.NewEncoder(w)
-
 	ctx := context.Background()
 	client, err := firestore.NewClient(ctx, "pairing-bot-242820")
 	if err != nil {
 		log.Panic(err)
 	}
-
 	// sanity check the incoming request
 	userReq, err := sanityCheck(ctx, client, w, r)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-
 	// for testing only
 	// this responds uwu and quits if it's not me
 	if userReq.Message.SenderID != marenID {
@@ -179,8 +238,21 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-
-	response, err := botAction(ctx, client, userReq)
+	if userReq.Trigger != "private_message" {
+		err = responder.Encode(botResponse{`plz don't @ me i only do pm's <3`})
+		if err != nil {
+			log.Println(err)
+		}
+		return
+	}
+	// you *should* be able to throw any freakin string array at this thing and get back a valid command for dispatch()
+	// if there are no commad arguments, cmdArgs will be nil
+	cmd, cmdArgs, err := parseCmd(userReq.Data)
+	if err != nil {
+		log.Println(err)
+	}
+	// the tofu and potatoes right here y'all
+	response, err := dispatch(ctx, client, cmd, cmdArgs, strconv.Itoa(userReq.Message.SenderID), userReq.Message.SenderFullName)
 	if err != nil {
 		log.Println(err)
 	}
@@ -188,11 +260,6 @@ func handle(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err)
 	}
-	return
-}
-
-func nope(w http.ResponseWriter, r *http.Request) {
-	http.NotFound(w, r)
 }
 
 // It's alive! The application starts here.
@@ -208,4 +275,92 @@ func main() {
 
 	log.Printf("Listening on port %s", port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), nil))
+}
+
+func parseCmd(cmdStr string) (string, []string, error) {
+	var err error
+	var cmdList = []string{
+		"subscribe",
+		"unsubscribe",
+		"help",
+		"schedule",
+		"skip",
+		"unskip",
+		"status"}
+
+	var daysList = []string{
+		"monday",
+		"tuesday",
+		"wednesday",
+		"thursday",
+		"friday",
+		"saturday",
+		"sunday"}
+
+	// convert the string to a slice
+	// after this, we have a value "cmd" of type []string
+	// where cmd[0] is the command and cmd[1:] are any arguments
+	space := regexp.MustCompile(`\s+`)
+	cmdStr = space.ReplaceAllString(cmdStr, ` `)
+	cmdStr = strings.TrimSpace(cmdStr)
+	cmdStr = strings.ToLower(cmdStr)
+	cmd := strings.Split(cmdStr, ` `)
+
+	// Big validation logic -- hellooo darkness my old frieeend
+	switch {
+	// if there's nothing in the command string srray
+	case len(cmd) == 0:
+		err = errors.New("the user-issued command was blank")
+		return "help", nil, err
+
+	// if there's a valid command and if there's no arguments
+	case contains(cmdList, cmd[0]) && len(cmd) == 1:
+		if cmd[0] == "schedule" || cmd[0] == "skip" || cmd[0] == "unskip" {
+			err = errors.New("the user issued a command without args, but it required args")
+			return "help", nil, err
+		}
+		return cmd[0], nil, err
+
+	// if there's a valid command and there's some arguments
+	case contains(cmdList, cmd[0]) && len(cmd) > 1:
+		switch {
+		case cmd[0] == "subscribe" || cmd[0] == "unsubscribe" || cmd[0] == "help" || cmd[0] == "status":
+			err = errors.New("the user issued a command with args, but it disallowed args")
+			return "help", nil, err
+		case cmd[0] == "skip" && len(cmd) != 2 && cmd[1] != "tomorrow":
+			err = errors.New("the user issued SKIP with malformed arguments")
+			return "help", nil, err
+		case cmd[0] == "unskip" && len(cmd) != 2 && cmd[1] != "tomorrow":
+			err = errors.New("the user issued UNSKIP with malformed arguments")
+			return "help", nil, err
+		case cmd[0] == "schedule":
+			for _, v := range cmd[1:] {
+				if contains(daysList, v) == false {
+					err = errors.New("the user issued SCHEDULE with malformed arguments")
+					return "help", nil, err
+				}
+			}
+			fallthrough
+		default:
+			return cmd[0], cmd[1:], err
+		}
+
+	// if there's not a valid command
+	default:
+		err = errors.New("the user-issued command wasn't valid")
+		return "help", nil, err
+	}
+}
+
+func contains(list []string, cmd string) bool {
+	for _, v := range list {
+		if v == cmd {
+			return true
+		}
+	}
+	return false
+}
+
+func nope(w http.ResponseWriter, r *http.Request) {
+	http.NotFound(w, r)
 }

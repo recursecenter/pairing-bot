@@ -24,6 +24,9 @@ const helpMessage string = `This is the help menu`
 const subscribeMessage string = "Yay! You're now subscribed to Pairing Bot!\nCurrently, I'm set to find pair programming partners for you on **Mondays**, **Tuesdays**, **Wednesdays**, and **Thursdays**.\nYou can customize your schedule any time with `schedule`.\n\nThanks for signing up :)"
 const unsubscribeMessage string = "You're unsubscribed!\nI won't find pairing partners for you unless you `subscribe`.\n\nBe well :)"
 
+var writeError = fmt.Sprintf(`Something went sideways while writing to the database. You should probably ping %v`, maren)
+var readError = fmt.Sprintf(`Something went sideways while reading from the database. You should probably ping %v`, maren)
+
 // this is my wrong ID, for testing how pairing-bot
 // responds to other users
 // const marenID int = 215393
@@ -163,13 +166,16 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 	// tell us whether the user is currently in the database
 	doc, err := client.Collection("recursers").Doc(recurser["id"].(string)).Get(ctx)
 	if err != nil && grpc.Code(err) != codes.NotFound {
-		response = fmt.Sprintf(`Something went sideways while reading from the database. You should probably ping %v`, maren)
+		response = readError
 		return response, err
 	}
 	isSubscribed := doc.Exists()
-	// if the user is in the database, get their current current state into this map
+
+	// if the user is in the database, get their current state into this map
+	// also assign their zulip name to the name field, just in case it changed
 	if isSubscribed {
 		recurser = doc.Data()
+		recurser["name"] = userName
 	}
 	// here's the actual actions. command input from
 	// the user has already been sanitized, so we can
@@ -195,7 +201,7 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 			}
 			_, err = client.Collection("recursers").Doc(userID).Set(ctx, recurser)
 			if err != nil {
-				response = fmt.Sprintf(`Something went sideways while writing to the database. You should probably ping %v`, maren)
+				response = writeError
 				break
 			}
 			response = subscribeMessage
@@ -207,13 +213,20 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 		if isSubscribed == true {
 			_, err = client.Collection("recursers").Doc(userID).Delete(ctx)
 			if err != nil {
-				response = fmt.Sprintf(`Something went sideways while writing to the database. You should probably ping %v`, maren)
+				response = writeError
 				break
 			}
 		}
 		response = unsubscribeMessage
 
 	case "skip":
+		recurser["isSkippingTomorrow"] = true
+		_, err = client.Collection("recursers").Doc(userID).Set(ctx, recurser, firestore.MergeAll)
+		if err != nil {
+			response = writeError
+			break
+		}
+		response = "Tomorrow: cancelled. I feel you. I won't match you for pairing tomorrow."
 	case "unskip":
 	case "status":
 	case "help":

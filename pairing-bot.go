@@ -318,6 +318,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 func main() {
 	http.HandleFunc("/", nope)
 	http.HandleFunc("/webhooks", handle)
+	http.HandleFunc("/cron", cron)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -415,4 +416,13 @@ func contains(list []string, cmd string) bool {
 
 func nope(w http.ResponseWriter, r *http.Request) {
 	http.NotFound(w, r)
+}
+
+func cron(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("X-Appengine-Cron") != "true" {
+		log.Println("The cron job is not working")
+		http.NotFound(w, r)
+		return
+	}
+	log.Println("The cron job is working")
 }

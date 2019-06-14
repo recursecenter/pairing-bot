@@ -267,7 +267,7 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 		// make a sorted list of their scheduke
 		var schedule []string
 		for _, v := range daysList {
-			if recurser["schedule"].(map[string]interface{})[v].(bool) {
+			if recurser["schedule"].(map[string]interface{})[strings.ToLower(v)].(bool) {
 				schedule = append(schedule, v)
 			}
 		}

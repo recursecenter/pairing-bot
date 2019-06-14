@@ -23,6 +23,7 @@ const maren string = `@_**Maren Beam (SP2'19)**`
 const helpMessage string = `This is the help menu`
 const subscribeMessage string = "Yay! You're now subscribed to Pairing Bot!\nCurrently, I'm set to find pair programming partners for you on **Mondays**, **Tuesdays**, **Wednesdays**, and **Thursdays**.\nYou can customize your schedule any time with `schedule`.\n\nThanks for signing up :)"
 const unsubscribeMessage string = "You're unsubscribed!\nI won't find pairing partners for you unless you `subscribe`.\n\nBe well :)"
+const notSubscribedMessage string = "You're not subscribed to Pairing Bot <3"
 
 var writeError = fmt.Sprintf("Something went sideways while writing to the database. You should probably ping %v", maren)
 var readError = fmt.Sprintf("Something went sideways while reading from the database. You should probably ping %v", maren)
@@ -76,75 +77,6 @@ func sanityCheck(ctx context.Context, client *firestore.Client, w http.ResponseW
 	return userReq, err
 }
 
-/* func botAction(ctx context.Context, client *firestore.Client, userReq incomingJSON) (string, error) {
-var response string
-var err error
-var recurser recurser
-
-// create regex for removing internal whitespace in PM from user
-space := regexp.MustCompile(`\s+`)
-
-// split the PM into a slice of strings so we can look at it real good
-pm := strings.Split(recurser.Data, " ")
-// tell us whether the user is currently in the database
-doc, err := client.Collection("recursers").Doc(recurser["id"].(string)).Get(ctx)
-if err != nil && grpc.Code(err) != codes.NotFound {
-	response = fmt.Sprintf(`Something went sideways while reading from the database. You should probably ping %v`, maren)
-	return response, err
-}
-isSubscribed := doc.Exists()
-
-switch {
-// if the user string is "". This shouldn't be possible because zulip
-// handles it but we should check anyway
-case len(pm) == 0:
-	response = `You didn't say anything, friend <3`
-
-// if it's not a private message
-case userReq.Trigger != "private_message":
-	response = `plz don't @ me i only do pm's <3`
-
-// if the first word of whatever they sent is "subscribe"
-case pm[0] == "subscribe":
-	if isSubscribed == false {
-		_, err = client.Collection("recursers").Doc(recurser["id"].(string)).Set(ctx, recurser, firestore.MergeAll)
-		if err != nil {
-			response = fmt.Sprintf(`Something went sideways while writing to the database. You should probably ping %v`, maren)
-			break
-		}
-		response = subscribeMessage
-	} else {
-		response = "You're already subscribed! Use `schedule` to set your schedule."
-	}
-// if they sent only the word "unsubscribe"
-case pm[0] == "unsubscribe" && len(pm) == 1:
-	if isSubscribed {
-		_, err = client.Collection("recursers").Doc(recurser["id"].(string)).Delete(ctx)
-		if err != nil {
-			response = fmt.Sprintf(`Something went sideways while writing to the database. You should probably ping %v`, maren)
-			break
-		}
-	}
-	response = unsubscribeMessage
-
-case pm[0] == "schedule":
-	if isSubscribed == false {
-		response = "You're not subscribed! First you need to sign up for Pairing Bot with `subscribe`"
-		break
-	}
-
-	//for _, d := range pm[1:] {
-	//	if val, ok := recurser[]
-	//}
-
-case pm[0] == "skip":
-
-default:
-	response = helpMessage
-}
-
-return response, err
-} */
 func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs []string, userID string, userName string) (string, error) {
 	var response string
 	var err error
@@ -186,44 +118,77 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 	// trust that cmd and cmdArgs only have valid stuff in them
 	switch cmd {
 	case "schedule":
+		if isSubscribed == false {
+			response = notSubscribedMessage
+			break
+		}
+		// create a new blank schedule
+		var newSchedule = map[string]interface{}{
+			"monday":    false,
+			"tuesday":   false,
+			"wednesday": false,
+			"thursday":  false,
+			"friday":    false,
+			"saturday":  false,
+			"sunday":    false,
+		}
+		// populate it with the new days they want to pair on
+		for _, day := range cmdArgs {
+			newSchedule[day] = true
+		}
+		// put it in the database
+		recurser["schedule"] = newSchedule
+		_, err = client.Collection("recursers").Doc(userID).Set(ctx, recurser, firestore.MergeAll)
+		if err != nil {
+			response = writeError
+			break
+		}
+		response = "Awesome, your new schedule's been set! You can check it with `status`."
 
 	case "subscribe":
-		if isSubscribed == false {
-			recurser = map[string]interface{}{
-				"id":                 userID,
-				"name":               userName,
-				"isSkippingTomorrow": false,
-				"schedule": map[string]interface{}{
-					"monday":    true,
-					"tuesday":   true,
-					"wednesday": true,
-					"thursday":  true,
-					"friday":    false,
-					"saturday":  false,
-					"sunday":    false,
-				},
-			}
-			_, err = client.Collection("recursers").Doc(userID).Set(ctx, recurser)
-			if err != nil {
-				response = writeError
-				break
-			}
-			response = subscribeMessage
-		} else {
+		if isSubscribed {
 			response = "You're already subscribed! Use `schedule` to set your schedule."
+			break
 		}
 
+		recurser = map[string]interface{}{
+			"id":                 userID,
+			"name":               userName,
+			"isSkippingTomorrow": false,
+			"schedule": map[string]interface{}{
+				"monday":    true,
+				"tuesday":   true,
+				"wednesday": true,
+				"thursday":  true,
+				"friday":    false,
+				"saturday":  false,
+				"sunday":    false,
+			},
+		}
+		_, err = client.Collection("recursers").Doc(userID).Set(ctx, recurser)
+		if err != nil {
+			response = writeError
+			break
+		}
+		response = subscribeMessage
+
 	case "unsubscribe":
-		if isSubscribed {
-			_, err = client.Collection("recursers").Doc(userID).Delete(ctx)
-			if err != nil {
-				response = writeError
-				break
-			}
+		if isSubscribed == false {
+			response = notSubscribedMessage
+			break
+		}
+		_, err = client.Collection("recursers").Doc(userID).Delete(ctx)
+		if err != nil {
+			response = writeError
+			break
 		}
 		response = unsubscribeMessage
 
 	case "skip":
+		if isSubscribed == false {
+			response = notSubscribedMessage
+			break
+		}
 		recurser["isSkippingTomorrow"] = true
 		_, err = client.Collection("recursers").Doc(userID).Set(ctx, recurser, firestore.MergeAll)
 		if err != nil {
@@ -233,6 +198,10 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 		response = `Tomorrow: cancelled. I feel you. **I will not match you** for pairing tomorrow <3`
 
 	case "unskip":
+		if isSubscribed == false {
+			response = notSubscribedMessage
+			break
+		}
 		recurser["isSkippingTomorrow"] = false
 		_, err = client.Collection("recursers").Doc(userID).Set(ctx, recurser, firestore.MergeAll)
 		if err != nil {
@@ -242,6 +211,10 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 		response = "Tomorrow: uncancelled! Heckin *yes*! **I will match you** for pairing tomorrow :)"
 
 	case "status":
+		if isSubscribed == false {
+			response = notSubscribedMessage
+			break
+		}
 		// this particular days list is for sorting and printing the
 		// schedule correctly, since it's stored in a map in all lowercase
 		var daysList = []string{
@@ -266,19 +239,27 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 
 		// make a sorted list of their scheduke
 		var schedule []string
-		for _, v := range daysList {
-			if recurser["schedule"].(map[string]interface{})[strings.ToLower(v)].(bool) {
-				schedule = append(schedule, v)
+		for _, day := range daysList {
+			// this line is a little wild sorry. it looks so weird because we
+			// have to do type assertion on both interface types
+			if recurser["schedule"].(map[string]interface{})[strings.ToLower(day)].(bool) {
+				schedule = append(schedule, day)
 			}
 		}
+		// make a lil nice-lookin schedule string
+		var scheduleStr string
+		for i := range schedule[:len(schedule)-1] {
+			scheduleStr += schedule[i] + ", "
+		}
+		scheduleStr += schedule[len(schedule)-1]
 
-		response = fmt.Sprintf("You are %v.\nYou are scheduled for pairing on %v.\nYou %v set to skip pairing tomorrow.", whoami, schedule, skipStr)
+		response = fmt.Sprintf("You are %v.\nYou are scheduled for pairing on %v.\nYou %v set to skip pairing tomorrow.", whoami, scheduleStr, skipStr)
 
 	case "help":
 		response = helpMessage
 	default:
 		// this won't execute because all input has been sanitized
-		// by parseCmd() and all cases are handled explicitly here
+		// by parseCmd() and all cases are handled explicitly above
 	}
 	return response, err
 }

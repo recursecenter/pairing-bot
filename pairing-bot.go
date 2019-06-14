@@ -20,13 +20,13 @@ import (
 // this is my real id (it's not really secret)
 const marenID int = 215391
 const maren string = `@_**Maren Beam (SP2'19)**`
-const helpMessage string = "**How to use Pairing Bot:**\n* `subscribe` to start getting matched with other Pairing Bot users for pair programming\n* `schedule monday wednesday friday` to set your weekly pairing schedule\n  * In this example, I've been set to find pairing partners for you on every Monday, Wednesday, and Friday\n  * You can schedule pairing for any combination of days in the week\n* `skip tomorrow` to skip getting matched tomorrow\n  * This is valid until matches go out at 6am\n  * If you issue **skip tomorrow** at 4am on Tuesday, you will not be matched for pairing on Tuesday, but you will be matched for pairing on Wednesday (if Wednesday is in your schedule)\n* `unskip tomorrow` to undo skipping tomorrow\n* `status` to show your current schedule, skip status, and name\n* `unsubscribe` to stop getting matched entirely\n  * FWIW, this also removes you from my database"
+const helpMessage string = "**How to use Pairing Bot:**\n* `subscribe` to start getting matched with other Pairing Bot users for pair programming\n* `schedule monday wednesday friday` to set your weekly pairing schedule\n  * In this example, I've been set to find pairing partners for you on every Monday, Wednesday, and Friday\n  * You can schedule pairing for any combination of days in the week\n* `skip tomorrow` to skip pairing tomorrow\n  * This is valid until matches go out at 6am\n  * If you issue **skip tomorrow** at 4am on Tuesday, you will not be matched for pairing on Tuesday, but you will be matched for pairing on Wednesday (if Wednesday is in your schedule)\n* `unskip tomorrow` to undo skipping tomorrow\n* `status` to show your current schedule, skip status, and name\n* `unsubscribe` to stop getting matched entirely\n  * FWIW, this also removes you from my database"
 const subscribeMessage string = "Yay! You're now subscribed to Pairing Bot!\nCurrently, I'm set to find pair programming partners for you on **Mondays**, **Tuesdays**, **Wednesdays**, and **Thursdays**.\nYou can customize your schedule any time with `schedule`.\n\nThanks for signing up :)"
 const unsubscribeMessage string = "You're unsubscribed!\nI won't find pairing partners for you unless you `subscribe`.\n\nBe well :)"
 const notSubscribedMessage string = "You're not subscribed to Pairing Bot <3"
 
-var writeError = fmt.Sprintf("Something went sideways while writing to the database. You should probably ping %v", maren)
-var readError = fmt.Sprintf("Something went sideways while reading from the database. You should probably ping %v", maren)
+var writeErrorMessage = fmt.Sprintf("Something went sideways while writing to the database. You should probably ping %v", maren)
+var readErrorMessage = fmt.Sprintf("Something went sideways while reading from the database. You should probably ping %v", maren)
 
 // this is my wrong ID, for testing how pairing-bot
 // responds to other users
@@ -100,7 +100,7 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 	doc, err := client.Collection("recursers").Doc(userID).Get(ctx)
 	// this says "if there's an error, and if that error was not document-not-found"
 	if err != nil && grpc.Code(err) != codes.NotFound {
-		response = readError
+		response = readErrorMessage
 		return response, err
 	}
 	// if there's a db entry, that means they were already subscribed to pairing bot
@@ -140,7 +140,7 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 		recurser["schedule"] = newSchedule
 		_, err = client.Collection("recursers").Doc(userID).Set(ctx, recurser, firestore.MergeAll)
 		if err != nil {
-			response = writeError
+			response = writeErrorMessage
 			break
 		}
 		response = "Awesome, your new schedule's been set! You can check it with `status`."
@@ -167,7 +167,7 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 		}
 		_, err = client.Collection("recursers").Doc(userID).Set(ctx, recurser)
 		if err != nil {
-			response = writeError
+			response = writeErrorMessage
 			break
 		}
 		response = subscribeMessage
@@ -179,7 +179,7 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 		}
 		_, err = client.Collection("recursers").Doc(userID).Delete(ctx)
 		if err != nil {
-			response = writeError
+			response = writeErrorMessage
 			break
 		}
 		response = unsubscribeMessage
@@ -192,7 +192,7 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 		recurser["isSkippingTomorrow"] = true
 		_, err = client.Collection("recursers").Doc(userID).Set(ctx, recurser, firestore.MergeAll)
 		if err != nil {
-			response = writeError
+			response = writeErrorMessage
 			break
 		}
 		response = `Tomorrow: cancelled. I feel you. **I will not match you** for pairing tomorrow <3`
@@ -205,7 +205,7 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 		recurser["isSkippingTomorrow"] = false
 		_, err = client.Collection("recursers").Doc(userID).Set(ctx, recurser, firestore.MergeAll)
 		if err != nil {
-			response = writeError
+			response = writeErrorMessage
 			break
 		}
 		response = "Tomorrow: uncancelled! Heckin *yes*! **I will match you** for pairing tomorrow :)"

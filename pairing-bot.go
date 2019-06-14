@@ -251,7 +251,11 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 		for i := range schedule[:len(schedule)-1] {
 			scheduleStr += schedule[i] + "s, "
 		}
-		scheduleStr += "and " + schedule[len(schedule)-1] + "s"
+		if len(schedule) > 1 {
+			scheduleStr += "and " + schedule[len(schedule)-1] + "s"
+		} else if len(schedule) == 1 {
+			scheduleStr += schedule[0]
+		}
 
 		response = fmt.Sprintf("You are %v.\nYou are scheduled for pairing on %v.\nYou %v set to skip pairing tomorrow.", whoami, scheduleStr, skipStr)
 

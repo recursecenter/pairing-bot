@@ -96,9 +96,9 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 	}
 
 	// get the users "document" (database entry) out of firestore
-	// we temporarily keep in in 'doc'
+	// we temporarily keep it in 'doc'
 	doc, err := client.Collection("recursers").Doc(userID).Get(ctx)
-	// this says "if theres and error, and if that error was not document-not-found"
+	// this says "if there's an error, and if that error was not document-not-found"
 	if err != nil && grpc.Code(err) != codes.NotFound {
 		response = readError
 		return response, err
@@ -237,10 +237,10 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 			skipStr = "are not"
 		}
 
-		// make a sorted list of their scheduke
+		// make a sorted list of their schedule
 		var schedule []string
 		for _, day := range daysList {
-			// this line is a little wild sorry. it looks so weird because we
+			// this line is a little wild, sorry. it looks so weird because we
 			// have to do type assertion on both interface types
 			if recurser["schedule"].(map[string]interface{})[strings.ToLower(day)].(bool) {
 				schedule = append(schedule, day)

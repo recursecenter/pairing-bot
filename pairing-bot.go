@@ -24,8 +24,8 @@ const helpMessage string = `This is the help menu`
 const subscribeMessage string = "Yay! You're now subscribed to Pairing Bot!\nCurrently, I'm set to find pair programming partners for you on **Mondays**, **Tuesdays**, **Wednesdays**, and **Thursdays**.\nYou can customize your schedule any time with `schedule`.\n\nThanks for signing up :)"
 const unsubscribeMessage string = "You're unsubscribed!\nI won't find pairing partners for you unless you `subscribe`.\n\nBe well :)"
 
-var writeError = fmt.Sprintf(`Something went sideways while writing to the database. You should probably ping %v`, maren)
-var readError = fmt.Sprintf(`Something went sideways while reading from the database. You should probably ping %v`, maren)
+var writeError = fmt.Sprintf("Something went sideways while writing to the database. You should probably ping %v", maren)
+var readError = fmt.Sprintf("Something went sideways while reading from the database. You should probably ping %v", maren)
 
 // this is my wrong ID, for testing how pairing-bot
 // responds to other users
@@ -214,7 +214,7 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 		}
 
 	case "unsubscribe":
-		if isSubscribed == true {
+		if isSubscribed {
 			_, err = client.Collection("recursers").Doc(userID).Delete(ctx)
 			if err != nil {
 				response = writeError
@@ -230,9 +230,50 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 			response = writeError
 			break
 		}
-		response = "Tomorrow: cancelled. I feel you. I won't match you for pairing tomorrow."
+		response = `Tomorrow: cancelled. I feel you. **I will not match you** for pairing tomorrow <3`
+
 	case "unskip":
+		recurser["isSkippingTomorrow"] = false
+		_, err = client.Collection("recursers").Doc(userID).Set(ctx, recurser, firestore.MergeAll)
+		if err != nil {
+			response = writeError
+			break
+		}
+		response = "Tomorrow: uncancelled! Heckin *yes*! **I will match you** for pairing tomorrow :)"
+
 	case "status":
+		// this particular days list is for sorting and printing the
+		// schedule correctly, since it's stored in a map in all lowercase
+		var daysList = []string{
+			"Monday",
+			"Tuesday",
+			"Wednesday",
+			"Thursday",
+			"Friday",
+			"Saturday",
+			"Sunday"}
+
+		// get their current name
+		whoami := recurser["name"]
+
+		// get skip status and prepare to write a sentence with it
+		var skipStr string
+		if recurser["isSkippingTomorrow"].(bool) {
+			skipStr = "are"
+		} else {
+			skipStr = "are not"
+		}
+
+		// make a sorted list of their scheduke
+		var schedule []string
+		for _, v := range daysList {
+			if recurser["schedule"].(map[string]interface{})[v].(bool) {
+				schedule = append(schedule, v)
+			}
+		}
+
+		response = fmt.Sprintf("You are %v.\nYou are scheduled for pairing on %v.\nYou %v set to skip pairing tomorrow.", whoami, schedule, skipStr)
+
 	case "help":
 		response = helpMessage
 	default:

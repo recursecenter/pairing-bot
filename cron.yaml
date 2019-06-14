@@ -2,4 +2,4 @@ cron:
 - description: "Daily match-making job"
   url: /cron
   schedule: every 1 mins
-  timezone: Ammerica/New_York
+  timezone: America/New_York

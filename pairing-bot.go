@@ -428,11 +428,13 @@ func cron(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// the real thing starts here. setting up database connection
-	responder := json.NewEncoder(w)
-	ctx := context.Background()
-	client, err := firestore.NewClient(ctx, "pairing-bot-242820")
-	if err != nil {
-		log.Panic(err)
-	}
-	pairSetQuery := client.Collection("recursers").Where()
+	/*
+		responder := json.NewEncoder(w)
+		ctx := context.Background()
+		client, err := firestore.NewClient(ctx, "pairing-bot-242820")
+		if err != nil {
+			log.Panic(err)
+		}
+		pairSetQuery := client.Collection("recursers").Where()
+	*/
 }

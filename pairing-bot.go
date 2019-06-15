@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"cloud.google.com/go/firestore"
 	"google.golang.org/grpc"
@@ -419,7 +420,19 @@ func nope(w http.ResponseWriter, r *http.Request) {
 }
 
 func cron(w http.ResponseWriter, r *http.Request) {
+	// Check that the request is originating from within app engine
+	// even though the firewall should have us covered
+	// https://cloud.google.com/appengine/docs/flexible/go/scheduling-jobs-with-cron-yaml#validating_cron_requests
 	if r.Header.Get("X-Appengine-Cron") == "true" {
-		log.Println("The cron job is working")
+		log.Println(time.Now().Weekday())
+		return
 	}
+	// the real thing starts here. setting up database connection
+	responder := json.NewEncoder(w)
+	ctx := context.Background()
+	client, err := firestore.NewClient(ctx, "pairing-bot-242820")
+	if err != nil {
+		log.Panic(err)
+	}
+	pairSetQuery := client.Collection("recursers").Where()
 }

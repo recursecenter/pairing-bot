@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"regexp"
@@ -302,7 +303,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	// you *should* be able to throw any freakin string array at this thing and get back a valid command for dispatch()
+	// you *should* be able to throw any freakin string at this thing and get back a valid command for dispatch()
 	// if there are no commad arguments, cmdArgs will be nil
 	cmd, cmdArgs, err := parseCmd(userReq.Data)
 	if err != nil {
@@ -420,14 +421,18 @@ func contains(list []string, cmd string) bool {
 }
 
 func nope(w http.ResponseWriter, r *http.Request) {
+	log.Println("A request came in for '/', which shouldn't be possible")
 	http.NotFound(w, r)
 }
 
+// cron makes matches for pairing, and messages those people to notify them of their match
+// it runs once per day at 6am (it's triggered with app engine's cron service)
 func cron(w http.ResponseWriter, r *http.Request) {
 	// Check that the request is originating from within app engine
 	// even though the firewall should have us covered
 	// https://cloud.google.com/appengine/docs/flexible/go/scheduling-jobs-with-cron-yaml#validating_cron_requests
 	if r.Header.Get("X-Appengine-Cron") != "true" {
+		log.Println("A request for came in for '/cron' from outside app engine, which shouldn't be possible.")
 		http.NotFound(w, r)
 		return
 	}
@@ -438,12 +443,16 @@ func cron(w http.ResponseWriter, r *http.Request) {
 		log.Panic(err)
 	}
 	var recursersList []map[string]interface{}
+	// this gets the time from system time, which is UTC
+	// on app engine (and most other places). This works
+	// fine for us in NYC, but might not if pairing bot
+	// were ever running in another time zone
 	today := strings.ToLower(time.Now().Weekday().String())
 
 	// ok this is how we have to get all the recursers. it's weird.
 	// this query returns an iterator, and then we have to use firestore
 	// magic to iterate across the results of the query and store them
-	// into our 'recursers' variable which is a []map[string]interface{}
+	// into our 'recursersList' variable which is a slice of map[string]interface{}
 	iter := client.Collection("recursers").Where("isSkippingTomorrow", "==", false).Where("schedule."+today, "==", true).Documents(ctx)
 	for {
 		doc, err := iter.Next()
@@ -456,4 +465,19 @@ func cron(w http.ResponseWriter, r *http.Request) {
 		recursersList = append(recursersList, doc.Data())
 	}
 	log.Println(recursersList)
+	recursersList = shuffle(recursersList)
+	log.Println(recursersList)
+}
+
+// this shuffles our recursers.
+// TODO: source of randomness is time, but this runs at the
+// same time each day. Is that ok?
+func shuffle(slice []map[string]interface{}) []map[string]interface{} {
+	r := rand.New(rand.NewSource(time.Now().Unix()))
+	ret := make([]map[string]interface{}, len(slice))
+	perm := r.Perm(len(slice))
+	for i, randIndex := range perm {
+		ret[i] = slice[randIndex]
+	}
+	return ret
 }

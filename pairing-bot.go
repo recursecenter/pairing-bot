@@ -424,7 +424,7 @@ func cron(w http.ResponseWriter, r *http.Request) {
 	// even though the firewall should have us covered
 	// https://cloud.google.com/appengine/docs/flexible/go/scheduling-jobs-with-cron-yaml#validating_cron_requests
 	if r.Header.Get("X-Appengine-Cron") == "true" {
-		log.Println(time.Now().Weekday())
+		log.Println(time.Now())
 		return
 	}
 	// the real thing starts here. setting up database connection
@@ -435,6 +435,7 @@ func cron(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Panic(err)
 		}
+		today := strings.ToLower(time.Now().Weekday().String())
 		pairSetQuery := client.Collection("recursers").Where()
 	*/
 }

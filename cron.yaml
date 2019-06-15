@@ -1,5 +1,5 @@
 cron:
 - description: "Daily match-making job"
   url: /cron
-  schedule: every 1 mins
+  schedule: every day 06:00
   timezone: America/New_York

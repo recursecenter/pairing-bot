@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/firestore"
+	"google.golang.org/api/iterator"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 )
@@ -436,12 +437,23 @@ func cron(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Panic(err)
 	}
-
+	var recursers []map[string]interface{}
 	today := strings.ToLower(time.Now().Weekday().String())
-	matchQuery := client.Collection("recursers").Where("isSkippingTomorrow", "==", false).Where("schedule."+today, "==", true).Documents(ctx)
-	doc, err := matchQuery.GetAll()
-	if err != nil {
-		log.Panic(err)
+
+	// ok this is how we have to get all the recursers. it's weird.
+	// this query returns an iterator, and then we have to use firestore
+	// magic to iterate across the results of the query and store them
+	// into our 'recursers' variable which is a []map[string]interface{}
+	iter := client.Collection("recursers").Where("isSkippingTomorrow", "==", false).Where("schedule."+today, "==", true).Documents(ctx)
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			log.Panic(err)
+		}
+		recursers = append(recursers, doc.Data())
 	}
-	fmt.Println(doc)
+	log.Println(recursers)
 }

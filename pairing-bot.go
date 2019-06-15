@@ -438,7 +438,7 @@ func cron(w http.ResponseWriter, r *http.Request) {
 	}
 
 	today := strings.ToLower(time.Now().Weekday().String())
-	matchQuery := client.Collection("recursers").Where("isSkippingTomorrow", "==", false).Where(today, "==", true).Documents(ctx)
+	matchQuery := client.Collection("recursers").Where("isSkippingTomorrow", "==", false).Where("schedule."+today, "==", true).Documents(ctx)
 	doc, err := matchQuery.GetAll()
 	if err != nil {
 		log.Panic(err)

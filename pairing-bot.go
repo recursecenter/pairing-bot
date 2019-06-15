@@ -152,6 +152,9 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 			break
 		}
 
+		// recurser isn't really a type, because we're using maps
+		// and not struct. but we're using it *as* a type,
+		// and this is the closest thing to a definition that occurs
 		recurser = map[string]interface{}{
 			"id":                 userID,
 			"name":               userName,
@@ -423,19 +426,22 @@ func cron(w http.ResponseWriter, r *http.Request) {
 	// Check that the request is originating from within app engine
 	// even though the firewall should have us covered
 	// https://cloud.google.com/appengine/docs/flexible/go/scheduling-jobs-with-cron-yaml#validating_cron_requests
-	if r.Header.Get("X-Appengine-Cron") == "true" {
-		log.Println(time.Now())
+	if r.Header.Get("X-Appengine-Cron") != "true" {
+		http.NotFound(w, r)
 		return
 	}
 	// the real thing starts here. setting up database connection
-	/*
-		responder := json.NewEncoder(w)
-		ctx := context.Background()
-		client, err := firestore.NewClient(ctx, "pairing-bot-242820")
-		if err != nil {
-			log.Panic(err)
-		}
-		today := strings.ToLower(time.Now().Weekday().String())
-		pairSetQuery := client.Collection("recursers").Where()
-	*/
+	ctx := context.Background()
+	client, err := firestore.NewClient(ctx, "pairing-bot-242820")
+	if err != nil {
+		log.Panic(err)
+	}
+
+	today := strings.ToLower(time.Now().Weekday().String())
+	matchQuery := client.Collection("recursers").Where("isSkippingTomorrow", "==", false).Where(today, "==", true).Documents(ctx)
+	doc, err := matchQuery.GetAll()
+	if err != nil {
+		log.Panic(err)
+	}
+	fmt.Println(doc)
 }

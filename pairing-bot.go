@@ -419,10 +419,7 @@ func nope(w http.ResponseWriter, r *http.Request) {
 }
 
 func cron(w http.ResponseWriter, r *http.Request) {
-	if r.Header.Get("X-Appengine-Cron") != "true" {
-		log.Println("The cron job is not working")
-		http.NotFound(w, r)
-		return
+	if r.Header.Get("X-Appengine-Cron") == "true" {
+		log.Println("The cron job is working")
 	}
-	log.Println("The cron job is working")
 }

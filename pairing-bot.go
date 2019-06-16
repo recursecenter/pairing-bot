@@ -522,8 +522,8 @@ func cron(w http.ResponseWriter, r *http.Request) {
 	botUsername := botEmailAddress
 	botPassword := apikey["value"].(string)
 	messageRequest := url.Values{}
-	messageRequest.Add("to", "maren@chro.bid")
 	messageRequest.Add("type", "private")
+	messageRequest.Add("to", "maren@chro.bid")
 	messageRequest.Add("content", "worky?")
 
 	zulipClient := &http.Client{}

@@ -22,8 +22,6 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-// this is my real id (it's not really secret)
-const marenID int = 215391
 const maren string = `@_**Maren Beam (SP2'19)**`
 const helpMessage string = "**How to use Pairing Bot:**\n* `subscribe` to start getting matched with other Pairing Bot users for pair programming\n* `schedule monday wednesday friday` to set your weekly pairing schedule\n  * In this example, I've been set to find pairing partners for you on every Monday, Wednesday, and Friday\n  * You can schedule pairing for any combination of days in the week\n* `skip tomorrow` to skip pairing tomorrow\n  * This is valid until matches go out at 6am\n  * If you issue **skip tomorrow** at 4am on Tuesday, you will not be matched for pairing on Tuesday, but you will be matched for pairing on Wednesday (if Wednesday is in your schedule)\n* `unskip tomorrow` to undo skipping tomorrow\n* `status` to show your current schedule, skip status, and name\n* `unsubscribe` to stop getting matched entirely\n\n**If you've found a bug, please PM** @_**Maren Beam (SP2'19)** **or submit an issue on [github](https://github.com/chrobid/pairing-bot/issues)**!"
 const subscribeMessage string = "Yay! You're now subscribed to Pairing Bot!\nCurrently, I'm set to find pair programming partners for you on **Mondays**, **Tuesdays**, **Wednesdays**, and **Thursdays**.\nYou can customize your schedule any time with `schedule`.\n\nThanks for signing up :)"
@@ -458,12 +456,7 @@ func cron(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	// this is what we send to zulip to message the user(s)
-	/* 	type messageRequest struct {
-		Type    string `json:"type"`
-		To      string `json:"to"`
-		Content string `json:"content"`
-	} */
+
 	// setting up database connection
 	ctx := context.Background()
 	client, err := firestore.NewClient(ctx, "pairing-bot-242820")

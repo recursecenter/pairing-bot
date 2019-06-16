@@ -450,7 +450,6 @@ func cron(w http.ResponseWriter, r *http.Request) {
 	type messageRequest struct {
 		Type    string `json:"type"`
 		To      string `json:"to"`
-		Subject string `json:"subject,omitempty"`
 		Content string `json:"content"`
 	}
 	// setting up database connection
@@ -529,6 +528,7 @@ func cron(w http.ResponseWriter, r *http.Request) {
 
 	requestBody, err := json.Marshal(matchMessage)
 	if err != nil {
+		log.Println("json marshal error")
 		log.Fatal(err)
 	}
 	zulipClient := &http.Client{}
@@ -536,13 +536,15 @@ func cron(w http.ResponseWriter, r *http.Request) {
 	req.SetBasicAuth(botUsername, botPassword)
 	resp, err := zulipClient.Do(req)
 	if err != nil {
+		log.Println("zulipClient.Do error")
 		log.Fatal(err)
 	}
 	respBodyText, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		log.Println("read response body error")
 		log.Println(err)
 	}
-	log.Println(respBodyText)
+	log.Println(string(respBodyText))
 }
 
 // this shuffles our recursers.

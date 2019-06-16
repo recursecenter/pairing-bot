@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/http"
@@ -28,6 +30,8 @@ const subscribeMessage string = "Yay! You're now subscribed to Pairing Bot!\nCur
 const unsubscribeMessage string = "You're unsubscribed!\nI won't find pairing partners for you unless you `subscribe`.\n\nBe well :)"
 const notSubscribedMessage string = "You're not subscribed to Pairing Bot <3"
 const oddOneOutMessage string = `OK this is awkward -- there were an odd number of people in the match-set today, which means that one person couldn't get paired. Unfortunately, it was you :( I'm really sorry! I promise it's not personal, it was very much random. Hopefully this doesn't happen again too soon. Enjoy your day <3`
+const botEmailAddress = "pairing-bot@recurse.zulipchat.com"
+const zulipAPIURL = "https://recurse.zulipchat.com/api/v1/messages"
 
 var writeErrorMessage = fmt.Sprintf("Something went sideways while writing to the database. You should probably ping %v", maren)
 var readErrorMessage = fmt.Sprintf("Something went sideways while reading from the database. You should probably ping %v", maren)
@@ -71,7 +75,7 @@ func sanityCheck(ctx context.Context, client *firestore.Client, w http.ResponseW
 	// this was manually put into the database before deployment
 	doc, err := client.Collection("botauth").Doc("token").Get(ctx)
 	if err != nil {
-		log.Println("Something weird happend trying to read the auth token from the database")
+		log.Println("Something weird happened trying to read the auth token from the database")
 		return userReq, err
 	}
 	token := doc.Data()
@@ -442,13 +446,21 @@ func cron(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	// the real thing starts here. setting up database connection
+	// this is what we send to zulip to message the user(s)
+	type messageRequest struct {
+		Type    string `json:"type"`
+		To      string `json:"to"`
+		Subject string `json:"subject,omitempty"`
+		Content string `json:"content"`
+	}
+	// setting up database connection
 	ctx := context.Background()
 	client, err := firestore.NewClient(ctx, "pairing-bot-242820")
 	if err != nil {
 		log.Panic(err)
 	}
 	var recursersList []map[string]interface{}
+	var skippersList []map[string]interface{}
 	// this gets the time from system time, which is UTC
 	// on app engine (and most other places). This works
 	// fine for us in NYC, but might not if pairing bot
@@ -470,8 +482,67 @@ func cron(w http.ResponseWriter, r *http.Request) {
 		}
 		recursersList = append(recursersList, doc.Data())
 	}
+
+	// get everyone who was set to skip today and set them back to isSkippingTomorrow = false
+	iter = client.Collection("recursers").Where("isSkippingTomorrow", "==", true).Documents(ctx)
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			log.Panic(err)
+		}
+		skippersList = append(skippersList, doc.Data())
+	}
+
+	for i := range skippersList {
+		skippersList[i]["isSkippingTomorrow"] = false
+		_, err = client.Collection("recursers").Doc(skippersList[i]["id"].(string)).Set(ctx, skippersList[i], firestore.MergeAll)
+		if err != nil {
+			log.Println(err)
+		}
+	}
+
+	// shuffle our recursers. This will not error if the list is empty
 	recursersList = shuffle(recursersList)
 
+	// if for some reason there's no matches today, we're done
+	if len(recursersList) == 0 {
+		return
+	}
+
+	// standalone test request to myself
+	// gotta get our api key
+	doc, err := client.Collection("apiauth").Doc("key").Get(ctx)
+	if err != nil {
+		log.Panic(err)
+	}
+	apikey := doc.Data()
+
+	var matchMessage messageRequest
+	botUsername := botEmailAddress
+	botPassword := apikey["value"].(string)
+	matchMessage.To = "maren@chro.bid"
+	matchMessage.Type = "private"
+	matchMessage.Content = "hihi hopefully this works"
+
+	requestBody, err := json.Marshal(matchMessage)
+	if err != nil {
+		log.Fatal(err)
+	}
+	zulipClient := &http.Client{}
+	req, err := http.NewRequest("POST", zulipAPIURL, bytes.NewBuffer(requestBody))
+	req.SetBasicAuth(botUsername, botPassword)
+	resp, err := zulipClient.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+	respBodyText, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Println(err)
+	}
+	log.Println(respBodyText)
 }
 
 // this shuffles our recursers.

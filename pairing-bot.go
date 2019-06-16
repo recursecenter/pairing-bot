@@ -48,9 +48,11 @@ type incomingJSON struct {
 	Token   string `json:"token"`
 	Trigger string `json:"trigger"`
 	Message struct {
-		SenderID       int    `json:"sender_id"`
-		SenderEmail    string `json:"sender_email"`
-		SenderFullName string `json:"sender_full_name"`
+		SenderID         int    `json:"sender_id"`
+		DisplayRecipient string `json:"display_recipient"`
+		RecipientType    string `json:"recipient_type"`
+		SenderEmail      string `json:"sender_email"`
+		SenderFullName   string `json:"sender_full_name"`
 	} `json:"message"`
 }
 
@@ -60,6 +62,10 @@ type incomingJSON struct {
 // messaged the bot, but doesn't send a response
 type botResponse struct {
 	Message string `json:"content"`
+}
+
+type botNoResponse struct {
+	Message bool `json:"response_not_required"`
 }
 
 func sanityCheck(ctx context.Context, client *firestore.Client, w http.ResponseWriter, r *http.Request) (incomingJSON, error) {
@@ -314,6 +320,9 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+
+	log.Println(userReq)
+	return
 	// you *should* be able to throw any freakin string at this thing and get back a valid command for dispatch()
 	// if there are no commad arguments, cmdArgs will be nil
 	cmd, cmdArgs, err := parseCmd(userReq.Data)

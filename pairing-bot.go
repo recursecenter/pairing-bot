@@ -529,7 +529,7 @@ func cron(w http.ResponseWriter, r *http.Request) {
 	zulipClient := &http.Client{}
 	req, err := http.NewRequest("POST", zulipAPIURL, strings.NewReader(messageRequest.Encode()))
 	req.SetBasicAuth(botUsername, botPassword)
-	req.Header.Set("content-type", "x-www-form-urlencoded")
+	req.Header.Set("content-type", "application/x-www-form-urlencoded")
 	resp, err := zulipClient.Do(req)
 	if err != nil {
 		log.Println("zulipClient.Do error")

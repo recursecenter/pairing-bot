@@ -48,11 +48,11 @@ type incomingJSON struct {
 	Token   string `json:"token"`
 	Trigger string `json:"trigger"`
 	Message struct {
-		SenderID         int    `json:"sender_id"`
-		DisplayRecipient string `json:"display_recipient"`
-		RecipientType    int    `json:"recipient_type"`
-		SenderEmail      string `json:"sender_email"`
-		SenderFullName   string `json:"sender_full_name"`
+		SenderID         int      `json:"sender_id"`
+		DisplayRecipient []string `json:"display_recipient"`
+		RecipientType    int      `json:"recipient_type"`
+		SenderEmail      string   `json:"sender_email"`
+		SenderFullName   string   `json:"sender_full_name"`
 	} `json:"message"`
 }
 

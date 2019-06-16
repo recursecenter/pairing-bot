@@ -508,6 +508,7 @@ func cron(w http.ResponseWriter, r *http.Request) {
 
 	// if for some reason there's no matches today, we're done
 	if len(recursersList) == 0 {
+		log.Println("No one was signed up to pair today -- so their were no matches")
 		return
 	}
 
@@ -526,6 +527,7 @@ func cron(w http.ResponseWriter, r *http.Request) {
 	if len(recursersList)%2 != 0 {
 		recurser := recursersList[len(recursersList)-1]
 		recursersList = recursersList[:len(recursersList)-1]
+		log.Println("Someone was the odd-one-out today")
 		messageRequest := url.Values{}
 		messageRequest.Add("type", "private")
 		messageRequest.Add("to", recurser["email"].(string))

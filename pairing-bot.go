@@ -29,7 +29,8 @@ const helpMessage string = "**How to use Pairing Bot:**\n* `subscribe` to start 
 const subscribeMessage string = "Yay! You're now subscribed to Pairing Bot!\nCurrently, I'm set to find pair programming partners for you on **Mondays**, **Tuesdays**, **Wednesdays**, and **Thursdays**.\nYou can customize your schedule any time with `schedule`.\n\nThanks for signing up :)"
 const unsubscribeMessage string = "You're unsubscribed!\nI won't find pairing partners for you unless you `subscribe`.\n\nBe well :)"
 const notSubscribedMessage string = "You're not subscribed to Pairing Bot <3"
-const oddOneOutMessage string = `OK this is awkward -- there were an odd number of people in the match-set today, which means that one person couldn't get paired. Unfortunately, it was you :( I'm really sorry! I promise it's not personal, it was very much random. Hopefully this doesn't happen again too soon. Enjoy your day <3`
+const oddOneOutMessage string = `OK this is awkward.\nThere were an odd number of people in the match-set today, which means that one person couldn't get paired. Unfortunately, it was you -- I'm really sorry :(\nI promise it's not personal, it was very much random. Hopefully this doesn't happen again too soon. Enjoy your day! <3`
+const matchedMessage = `Morning y'all! You've been matched for pairing today :)\n\nHave fun!`
 const botEmailAddress = "pairing-bot@recurse.zulipchat.com"
 const zulipAPIURL = "https://recurse.zulipchat.com/api/v1/messages"
 
@@ -494,7 +495,6 @@ func cron(w http.ResponseWriter, r *http.Request) {
 		}
 		skippersList = append(skippersList, doc.Data())
 	}
-
 	for i := range skippersList {
 		skippersList[i]["isSkippingTomorrow"] = false
 		_, err = client.Collection("recursers").Doc(skippersList[i]["id"].(string)).Set(ctx, skippersList[i], firestore.MergeAll)
@@ -511,36 +511,57 @@ func cron(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// standalone test request to myself
-	// gotta get our api key
+	// message the peeps!
 	doc, err := client.Collection("apiauth").Doc("key").Get(ctx)
 	if err != nil {
 		log.Panic(err)
 	}
 	apikey := doc.Data()
-
 	botUsername := botEmailAddress
 	botPassword := apikey["value"].(string)
-	messageRequest := url.Values{}
-	messageRequest.Add("type", "private")
-	messageRequest.Add("to", "maren@chro.bid")
-	messageRequest.Add("content", "worky?")
-
 	zulipClient := &http.Client{}
-	req, err := http.NewRequest("POST", zulipAPIURL, strings.NewReader(messageRequest.Encode()))
-	req.SetBasicAuth(botUsername, botPassword)
-	req.Header.Set("content-type", "application/x-www-form-urlencoded")
-	resp, err := zulipClient.Do(req)
-	if err != nil {
-		log.Println("zulipClient.Do error")
-		log.Fatal(err)
+
+	// if there's an odd number today, message the last person in the list
+	// and tell them they don't get a match today, then knock them off the list
+	if len(recursersList)%2 != 0 {
+		recurser := recursersList[len(recursersList)-1]
+		recursersList = recursersList[:len(recursersList)-1]
+		messageRequest := url.Values{}
+		messageRequest.Add("type", "private")
+		messageRequest.Add("to", recurser["email"].(string))
+		messageRequest.Add("content", oddOneOutMessage)
+		req, err := http.NewRequest("POST", zulipAPIURL, strings.NewReader(messageRequest.Encode()))
+		req.SetBasicAuth(botUsername, botPassword)
+		req.Header.Set("content-type", "application/x-www-form-urlencoded")
+		resp, err := zulipClient.Do(req)
+		if err != nil {
+			log.Fatal(err)
+		}
+		respBodyText, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			log.Println(err)
+		}
+		log.Println(string(respBodyText))
 	}
-	respBodyText, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Println("read response body error")
-		log.Println(err)
+
+	for i := 0; i < len(recursersList); i += 2 {
+		messageRequest := url.Values{}
+		messageRequest.Add("type", "private")
+		messageRequest.Add("to", recursersList[i]["email"].(string)+", "+recursersList[i+1]["email"].(string))
+		messageRequest.Add("content", matchedMessage)
+		req, err := http.NewRequest("POST", zulipAPIURL, strings.NewReader(messageRequest.Encode()))
+		req.SetBasicAuth(botUsername, botPassword)
+		req.Header.Set("content-type", "application/x-www-form-urlencoded")
+		resp, err := zulipClient.Do(req)
+		if err != nil {
+			log.Fatal(err)
+		}
+		respBodyText, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			log.Println(err)
+		}
+		log.Println(string(respBodyText))
 	}
-	log.Println(string(respBodyText))
 }
 
 // this shuffles our recursers.

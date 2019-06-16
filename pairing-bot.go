@@ -165,6 +165,7 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 		recurser = map[string]interface{}{
 			"id":                 userID,
 			"name":               userName,
+			"email":              userEmail,
 			"isSkippingTomorrow": false,
 			"schedule": map[string]interface{}{
 				"monday":    true,

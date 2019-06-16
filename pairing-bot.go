@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -10,6 +9,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"strconv"
@@ -447,11 +447,11 @@ func cron(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// this is what we send to zulip to message the user(s)
-	type messageRequest struct {
+	/* 	type messageRequest struct {
 		Type    string `json:"type"`
 		To      string `json:"to"`
 		Content string `json:"content"`
-	}
+	} */
 	// setting up database connection
 	ctx := context.Background()
 	client, err := firestore.NewClient(ctx, "pairing-bot-242820")
@@ -519,20 +519,15 @@ func cron(w http.ResponseWriter, r *http.Request) {
 	}
 	apikey := doc.Data()
 
-	var matchMessage messageRequest
 	botUsername := botEmailAddress
 	botPassword := apikey["value"].(string)
-	matchMessage.To = "maren@chro.bid"
-	matchMessage.Type = "private"
-	matchMessage.Content = "hihi hopefully this works"
+	messageRequest := url.Values{}
+	messageRequest.Add("to", "maren@chro.bid")
+	messageRequest.Add("type", "private")
+	messageRequest.Add("content", "worky?")
 
-	requestBody, err := json.Marshal(matchMessage)
-	if err != nil {
-		log.Println("json marshal error")
-		log.Fatal(err)
-	}
 	zulipClient := &http.Client{}
-	req, err := http.NewRequest("POST", zulipAPIURL, bytes.NewBuffer(requestBody))
+	req, err := http.NewRequest("POST", zulipAPIURL, strings.NewReader(messageRequest.Encode()))
 	req.SetBasicAuth(botUsername, botPassword)
 	resp, err := zulipClient.Do(req)
 	if err != nil {

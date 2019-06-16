@@ -30,7 +30,7 @@ const subscribeMessage string = "Yay! You're now subscribed to Pairing Bot!\nCur
 const unsubscribeMessage string = "You're unsubscribed!\nI won't find pairing partners for you unless you `subscribe`.\n\nBe well :)"
 const notSubscribedMessage string = "You're not subscribed to Pairing Bot <3"
 const oddOneOutMessage string = `OK this is awkward.\nThere were an odd number of people in the match-set today, which means that one person couldn't get paired. Unfortunately, it was you -- I'm really sorry :(\nI promise it's not personal, it was very much random. Hopefully this doesn't happen again too soon. Enjoy your day! <3`
-const matchedMessage = `Morning y'all! You've been matched for pairing today :)\n\nHave fun!`
+const matchedMessage = "Morning y'all! You've been matched for pairing today :)\n\nHave fun!"
 const botEmailAddress = "pairing-bot@recurse.zulipchat.com"
 const zulipAPIURL = "https://recurse.zulipchat.com/api/v1/messages"
 
@@ -300,13 +300,13 @@ func handle(w http.ResponseWriter, r *http.Request) {
 	}
 	// for testing only
 	// this responds uwu and quits if it's not me
-	if userReq.Message.SenderID != marenID {
+	/* if userReq.Message.SenderID != marenID {
 		err = responder.Encode(botResponse{`uwu`})
 		if err != nil {
 			log.Println(err)
 		}
 		return
-	}
+	} */
 	if userReq.Trigger != "private_message" {
 		err = responder.Encode(botResponse{`plz don't @ me i only do pm's <3`})
 		if err != nil {

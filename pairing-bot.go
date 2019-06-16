@@ -27,6 +27,7 @@ const helpMessage string = "**How to use Pairing Bot:**\n* `subscribe` to start 
 const subscribeMessage string = "Yay! You're now subscribed to Pairing Bot!\nCurrently, I'm set to find pair programming partners for you on **Mondays**, **Tuesdays**, **Wednesdays**, and **Thursdays**.\nYou can customize your schedule any time with `schedule`.\n\nThanks for signing up :)"
 const unsubscribeMessage string = "You're unsubscribed!\nI won't find pairing partners for you unless you `subscribe`.\n\nBe well :)"
 const notSubscribedMessage string = "You're not subscribed to Pairing Bot <3"
+const oddOneOutMessage string = `OK this is awkward -- there were an odd number of people in the match-set today, which means that one person couldn't get paired. Unfortunately, it was you :( I'm really sorry! I promise it's not personal, it was very much random. Hopefully this doesn't happen again too soon. Enjoy your day <3`
 
 var writeErrorMessage = fmt.Sprintf("Something went sideways while writing to the database. You should probably ping %v", maren)
 var readErrorMessage = fmt.Sprintf("Something went sideways while reading from the database. You should probably ping %v", maren)
@@ -43,6 +44,7 @@ type incomingJSON struct {
 	Trigger string `json:"trigger"`
 	Message struct {
 		SenderID       int    `json:"sender_id"`
+		SenderEmail    string `json:"sender_email"`
 		SenderFullName string `json:"sender_full_name"`
 	} `json:"message"`
 }
@@ -80,12 +82,13 @@ func sanityCheck(ctx context.Context, client *firestore.Client, w http.ResponseW
 	return userReq, err
 }
 
-func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs []string, userID string, userName string) (string, error) {
+func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs []string, userID string, userEmail string, userName string) (string, error) {
 	var response string
 	var err error
 	var recurser = map[string]interface{}{
 		"id":                 "string",
 		"name":               "string",
+		"email":              "string",
 		"isSkippingTomorrow": false,
 		"schedule": map[string]interface{}{
 			"monday":    false,
@@ -112,9 +115,11 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 
 	// if the user is in the database, get their current state into this map
 	// also assign their zulip name to the name field, just in case it changed
+	// also assign their email, for the same reason
 	if isSubscribed {
 		recurser = doc.Data()
 		recurser["name"] = userName
+		recurser["email"] = userEmail
 	}
 	// here's the actual actions. command input from
 	// the user has already been sanitized, so we can
@@ -310,7 +315,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 	// the tofu and potatoes right here y'all
-	response, err := dispatch(ctx, client, cmd, cmdArgs, strconv.Itoa(userReq.Message.SenderID), userReq.Message.SenderFullName)
+	response, err := dispatch(ctx, client, cmd, cmdArgs, strconv.Itoa(userReq.Message.SenderID), userReq.Message.SenderEmail, userReq.Message.SenderFullName)
 	if err != nil {
 		log.Println(err)
 	}
@@ -464,9 +469,8 @@ func cron(w http.ResponseWriter, r *http.Request) {
 		}
 		recursersList = append(recursersList, doc.Data())
 	}
-	log.Println(recursersList)
 	recursersList = shuffle(recursersList)
-	log.Println(recursersList)
+
 }
 
 // this shuffles our recursers.

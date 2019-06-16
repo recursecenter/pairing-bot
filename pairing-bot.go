@@ -37,10 +37,6 @@ const zulipAPIURL = "https://recurse.zulipchat.com/api/v1/messages"
 var writeErrorMessage = fmt.Sprintf("Something went sideways while writing to the database. You should probably ping %v", maren)
 var readErrorMessage = fmt.Sprintf("Something went sideways while reading from the database. You should probably ping %v", maren)
 
-// this is my wrong ID, for testing how pairing-bot
-// responds to other users
-// const marenID int = 215393
-
 // This is a struct that gets only what
 // we need from the incoming JSON payload
 type incomingJSON struct {
@@ -50,7 +46,6 @@ type incomingJSON struct {
 	Message struct {
 		SenderID         int           `json:"sender_id"`
 		DisplayRecipient []interface{} `json:"display_recipient"`
-		RecipientType    int           `json:"recipient_type"`
 		SenderEmail      string        `json:"sender_email"`
 		SenderFullName   string        `json:"sender_full_name"`
 	} `json:"message"`
@@ -314,15 +309,22 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		return
 	} */
 	if userReq.Trigger != "private_message" {
-		err = responder.Encode(botResponse{`plz don't @ me i only do pm's <3`})
+		err = responder.Encode(botResponse{`plz don't @ me i only respond to pm's <3`})
 		if err != nil {
 			log.Println(err)
 		}
 		return
 	}
-
-	log.Println(userReq)
-	return
+	// if there aren't two 'recipients' (one sender and one receiver),
+	// then don't respond. this stops pairing bot from responding in the group
+	// chat she starts when she matches people
+	if len(userReq.Message.DisplayRecipient) != 2 {
+		err = responder.Encode(botNoResponse{true})
+		if err != nil {
+			log.Println(err)
+		}
+		return
+	}
 	// you *should* be able to throw any freakin string at this thing and get back a valid command for dispatch()
 	// if there are no commad arguments, cmdArgs will be nil
 	cmd, cmdArgs, err := parseCmd(userReq.Data)

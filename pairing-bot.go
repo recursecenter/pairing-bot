@@ -452,7 +452,6 @@ func cron(w http.ResponseWriter, r *http.Request) {
 	// even though the firewall should have us covered
 	// https://cloud.google.com/appengine/docs/flexible/go/scheduling-jobs-with-cron-yaml#validating_cron_requests
 	if r.Header.Get("X-Appengine-Cron") != "true" {
-		log.Println("A request for came in for '/cron' from outside app engine, which shouldn't be possible.")
 		http.NotFound(w, r)
 		return
 	}

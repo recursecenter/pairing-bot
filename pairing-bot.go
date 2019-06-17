@@ -273,7 +273,7 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 			scheduleStr += schedule[0] + "s"
 		}
 
-		response = fmt.Sprintf("You're %v.\nYou're scheduled for pairing on %v.\nYou're%vset to skip pairing tomorrow.", whoami, scheduleStr, skipStr)
+		response = fmt.Sprintf("* You're %v\n* You're scheduled for pairing on %v\n* **You're%vset** to skip pairing tomorrow", whoami, scheduleStr, skipStr)
 
 	case "help":
 		response = helpMessage

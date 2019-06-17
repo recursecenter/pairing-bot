@@ -509,7 +509,7 @@ func cron(w http.ResponseWriter, r *http.Request) {
 
 	// if for some reason there's no matches today, we're done
 	if len(recursersList) == 0 {
-		log.Println("No one was signed up to pair today -- so their were no matches")
+		log.Println("No one was signed up to pair today -- so there were no matches")
 		return
 	}
 

@@ -248,9 +248,9 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 		// get skip status and prepare to write a sentence with it
 		var skipStr string
 		if recurser["isSkippingTomorrow"].(bool) {
-			skipStr = "are"
+			skipStr = " "
 		} else {
-			skipStr = "are not"
+			skipStr = " not "
 		}
 
 		// make a sorted list of their schedule
@@ -273,7 +273,7 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 			scheduleStr += schedule[0] + "s"
 		}
 
-		response = fmt.Sprintf("You are %v.\nYou are scheduled for pairing on %v.\nYou %v set to skip pairing tomorrow.", whoami, scheduleStr, skipStr)
+		response = fmt.Sprintf("You're %v.\nYou're scheduled for pairing on %v.\nYou're%vset to skip pairing tomorrow.", whoami, scheduleStr, skipStr)
 
 	case "help":
 		response = helpMessage

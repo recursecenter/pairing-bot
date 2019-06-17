@@ -316,7 +316,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 	// if there aren't two 'recipients' (one sender and one receiver),
 	// then don't respond. this stops pairing bot from responding in the group
 	// chat she starts when she matches people
-	if len(userReq.Message.DisplayRecipient) != 2 {
+	if len(userReq.Message.DisplayRecipient.(map[string]interface{})) != 2 {
 		err = responder.Encode(botNoResponse{true})
 		if err != nil {
 			log.Println(err)

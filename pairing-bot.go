@@ -441,7 +441,6 @@ func contains(list []string, cmd string) bool {
 }
 
 func nope(w http.ResponseWriter, r *http.Request) {
-	log.Println("A request came in for '/', which shouldn't be possible")
 	http.NotFound(w, r)
 }
 
@@ -449,7 +448,6 @@ func nope(w http.ResponseWriter, r *http.Request) {
 // it runs once per day at 6am (it's triggered with app engine's cron service)
 func cron(w http.ResponseWriter, r *http.Request) {
 	// Check that the request is originating from within app engine
-	// even though the firewall should have us covered
 	// https://cloud.google.com/appengine/docs/flexible/go/scheduling-jobs-with-cron-yaml#validating_cron_requests
 	if r.Header.Get("X-Appengine-Cron") != "true" {
 		http.NotFound(w, r)

@@ -564,6 +564,7 @@ func cron(w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 		}
 		log.Println(string(respBodyText))
+		log.Println("A match went out")
 	}
 }
 

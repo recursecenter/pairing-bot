@@ -4,7 +4,7 @@
 A Zulip bot that partners people for pair programming practice :)
 
 ### How to use Pairing Bot as an end-user
-Pairing Bot interacts through private messages on [Zulip](https://zulipchat.com/)
+Pairing Bot interacts through private messages on [Zulip](https://zulipchat.com/).
 * `subscribe` to start getting matched with other Pairing Bot users for pair programming
 * `schedule monday wednesday friday` to set your weekly pairing schedule
   * In this example, Pairing Bot has been set to find pairing partners for the user on every Monday, Wednesday, and Friday
@@ -21,7 +21,7 @@ Pairing Bot interacts through private messages on [Zulip](https://zulipchat.com/
  * Serverless. RC's instance is currently deployed on [App Engine](https://cloud.google.com/appengine/docs/)
  * [Firestore database](https://cloud.google.com/firestore/docs/)
  * Deployed on pushes to master with [Cloud Build](https://cloud.google.com/cloud-build/docs/)
- * The database must be prepopulated with two pieces of data:  an authentication token (which Zulip issues to a bot when their account is created), and an api key
+ * The database must be prepopulated with two pieces of data:  an authentication token (which Zulip issues to a bot when their account is created), and an api key (which the bot uses to send private messages to Zulip users)
  * Zulip has bot types. Pairing Bot is of type `outgoing webhook`
- * Pair programming matches are made, and the people who've been matched are notified, any time an HTTP `GET` request is issued to `/cron`
+ * Pair programming matches are made, and the people who've been matched are notified, any time an HTTP GET request is issued to `/cron`
 

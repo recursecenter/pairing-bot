@@ -18,7 +18,7 @@ Pairing Bot interacts through private messages on [Zulip](https://zulipchat.com/
   * This removes the user from the database. Since logs are anonymous, after **unsubscribe** Pairing Bot has no record of that user
  
  ### About Pairing Bot's setup and deployment
- * Serverless. RC's instance is currently deployed on [App Engine](https://cloud.google.com/appengine/docs/)
+ * Serverless. RC's instance is currently deployed on [App Engine](https://cloud.google.com/appengine/docs/standard/)
  * [Firestore database](https://cloud.google.com/firestore/docs/)
  * Deployed on pushes to master with [Cloud Build](https://cloud.google.com/cloud-build/docs/)
  * The database must be prepopulated with two pieces of data:  an authentication token (which Zulip issues to a bot when their account is created), and an api key (which the bot uses to send private messages to Zulip users)

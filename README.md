@@ -25,7 +25,7 @@ Pairing Bot interacts through private messages on [Zulip](https://zulipchat.com/
  * Zulip has bot types. Pairing Bot is of type `outgoing webhook`
  * Pair programming matches are made, and the people who've been matched are notified, any time an HTTP GET request is issued to `/cron`
 
-## Pull Requests are welcome, especially from RC community members!
+### Pull Requests are welcome, especially from RC community members!
 Pairing Bot is an [RC community project](https://recurse.zulipchat.com/#narrow/stream/198090-rc-community.20software).
 
 **Your contributions are welcome and encouraged, no matter your prior experience!**

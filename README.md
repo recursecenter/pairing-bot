@@ -17,7 +17,7 @@ Pairing Bot interacts through private messages on [Zulip](https://zulipchat.com/
 * `unsubscribe` to stop getting matched entirely
   * This removes the user from the database. Since logs are anonymous, after **unsubscribe** Pairing Bot has no record of that user
  
- ### About Pairing Bot's setup and deployment
+### About Pairing Bot's setup and deployment
  * Serverless. RC's instance is currently deployed on [App Engine](https://cloud.google.com/appengine/docs/standard/)
  * [Firestore database](https://cloud.google.com/firestore/docs/)
  * Deployed on pushes to master with [Cloud Build](https://cloud.google.com/cloud-build/docs/)
@@ -26,3 +26,9 @@ Pairing Bot interacts through private messages on [Zulip](https://zulipchat.com/
  * Pair programming matches are made, and the people who've been matched are notified, any time an HTTP GET request is issued to `/cron`
  * Development happens in `master`, and the current production code lives in `release`
 
+## Pull Requests are welcome, especially from RC community members!
+Pairing Bot is an [RC community project](https://recurse.zulipchat.com/#narrow/stream/198090-rc-community.20software).
+
+**Your contributions are welcome and encouraged, no matter your prior experience!**
+
+Pairing Bot's source code is heavily commented, so that it's easier for others to contribute. Also, Pairing Bot doesn't use any API wrappers or 3rd party libraries (other than those necessary to interface with Google Cloud Platform utilities), in the hope that having her behavior more frankly exposed helps us learn. 

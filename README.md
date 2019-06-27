@@ -26,7 +26,7 @@ Pairing Bot interacts through private messages on [Zulip](https://zulipchat.com/
  * Pair programming matches are made, and the people who've been matched are notified, any time an HTTP GET request is issued to `/cron`
  * Development happens in `master`, and the current production code lives in `release`
 
-### Pull Requests are welcome, especially from RC community members!
+### Pull requests are welcome, especially from RC community members!
 Pairing Bot is an [RC community project](https://recurse.zulipchat.com/#narrow/stream/198090-rc-community.20software).
 
 **Your contributions are welcome and encouraged, no matter your prior experience!**

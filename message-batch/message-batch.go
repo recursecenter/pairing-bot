@@ -9,11 +9,12 @@ import (
 	"time"
 )
 
-const key = "FAKE_KEY"
+const key = ""
+const layout = "2006-01-02"
 
-type batch struct {
-	ID        int    `json:"id"`
-	StartDate string `json:"start_date"`
+type Batch struct {
+	ID        int       `json:"id"`
+	StartDate time.Time `json:"start_date"`
 }
 
 // Start work on talking to the RC API
@@ -22,19 +23,37 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	robots, err := ioutil.ReadAll(resp.Body)
+
+	respBody, err := ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
-	var batches []batch
-	err = json.Unmarshal(robots, &batches)
-	//fmt.Println(batches, err)
-	layout := "2006-01-02"
-	t, err := time.Parse(layout, batches[0].StartDate)
-	fmt.Println(t, err)
-	batchYear, batchMonth, batchDay := t.Date()
-	thisYear, thisMonth, thisDay := time.Now().Date()
-	isSame := batchYear == thisYear && batchMonth == thisMonth && batchDay == thisDay
-	fmt.Println(isSame)
+
+	var batches []Batch
+	if err := json.Unmarshal(respBody, &batches); err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(batches)
+
+}
+
+func (batch *Batch) UnmarshalJSON(data []byte) error {
+	type Alias Batch
+	aux := &struct {
+		StartDate string `json:"start_date"`
+		*Alias
+	}{
+		Alias: (*Alias)(batch),
+	}
+
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
+	}
+
+	val, err := time.Parse(layout, aux.StartDate)
+	batch.StartDate = val
+
+	return err
 }

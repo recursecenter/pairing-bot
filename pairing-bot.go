@@ -540,6 +540,7 @@ func cron(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Fatal(err)
 		}
+		defer resp.Body.Close()
 		respBodyText, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			log.Println(err)
@@ -559,6 +560,7 @@ func cron(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Fatal(err)
 		}
+		defer resp.Body.Close()
 		respBodyText, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			log.Println(err)

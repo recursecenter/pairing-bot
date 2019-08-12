@@ -538,7 +538,7 @@ func cron(w http.ResponseWriter, r *http.Request) {
 		req.Header.Set("content-type", "application/x-www-form-urlencoded")
 		resp, err := zulipClient.Do(req)
 		if err != nil {
-			log.Fatal(err)
+			log.Panic(err)
 		}
 		defer resp.Body.Close()
 		respBodyText, err := ioutil.ReadAll(resp.Body)
@@ -558,7 +558,7 @@ func cron(w http.ResponseWriter, r *http.Request) {
 		req.Header.Set("content-type", "application/x-www-form-urlencoded")
 		resp, err := zulipClient.Do(req)
 		if err != nil {
-			log.Fatal(err)
+			log.Panic(err)
 		}
 		defer resp.Body.Close()
 		respBodyText, err := ioutil.ReadAll(resp.Body)

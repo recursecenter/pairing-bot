@@ -307,7 +307,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		return
 	} */
 	if userReq.Trigger != "private_message" {
-		err = responder.Encode(botResponse{`plz don't @ me i only respond to pm's <3`})
+		err = responder.Encode(botResponse{"Hi! I'm Pairing Bot (she/her)!\nSend me a PM that says `subscribe` to get started :smiley:\n:pear::robot:\n:octopus::octopus:"})
 		if err != nil {
 			log.Println(err)
 		}

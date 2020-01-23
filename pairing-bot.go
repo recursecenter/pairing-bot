@@ -445,7 +445,7 @@ func nope(w http.ResponseWriter, r *http.Request) {
 }
 
 // cron makes matches for pairing, and messages those people to notify them of their match
-// it runs once per day at 6am (it's triggered with app engine's cron service)
+// it runs once per day at 8am (it's triggered with app engine's cron service)
 func cron(w http.ResponseWriter, r *http.Request) {
 	// Check that the request is originating from within app engine
 	// https://cloud.google.com/appengine/docs/flexible/go/scheduling-jobs-with-cron-yaml#validating_cron_requests

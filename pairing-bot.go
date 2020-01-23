@@ -176,7 +176,7 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 				"tuesday":   true,
 				"wednesday": true,
 				"thursday":  true,
-				"friday":    false,
+				"friday":    true,
 				"saturday":  false,
 				"sunday":    false,
 			},

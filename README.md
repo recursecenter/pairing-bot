@@ -10,8 +10,7 @@ Pairing Bot interacts through private messages on [Zulip](https://zulipchat.com/
   * In this example, Pairing Bot has been set to find pairing partners for the user on every Monday, Wednesday, and Friday
   * The user can schedule pairing for any combination of days in the week
 * `skip tomorrow` to skip pairing tomorrow
-  * This is valid until matches go out at 8am
-  * If the user issues **skip tomorrow** at 4am on Tuesday, they will not be matched for pairing on Tuesday, but they will be matched for pairing on Wednesday (if Wednesday is in their schedule)
+  * This is valid until matches go out at 04:00 UTC
 * `unskip tomorrow` to undo skipping tomorrow
 * `status` to show your current schedule, skip status, and name
 * `unsubscribe` to stop getting matched entirely

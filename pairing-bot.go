@@ -287,7 +287,7 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 func handle(w http.ResponseWriter, r *http.Request) {
 	responder := json.NewEncoder(w)
 	ctx := context.Background()
-	client, err := firestore.NewClient(ctx, "pairing-bot-242820")
+	client, err := firestore.NewClient(ctx, "pairing-bot-284823")
 	if err != nil {
 		log.Panic(err)
 	}
@@ -456,7 +456,7 @@ func cron(w http.ResponseWriter, r *http.Request) {
 
 	// setting up database connection
 	ctx := context.Background()
-	client, err := firestore.NewClient(ctx, "pairing-bot-242820")
+	client, err := firestore.NewClient(ctx, "pairing-bot-284823")
 	if err != nil {
 		log.Panic(err)
 	}

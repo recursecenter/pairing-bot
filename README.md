@@ -28,5 +28,3 @@ Pairing Bot interacts through private messages on [Zulip](https://zulipchat.com/
 Pairing Bot is an [RC community project](https://recurse.zulipchat.com/#narrow/stream/198090-rc-community.20software).
 
 **Your contributions are welcome and encouraged, no matter your prior experience!**
-
-Pairing Bot's source code is heavily commented, so that it's easier for others to contribute. Also, Pairing Bot doesn't use any API wrappers or 3rd party libraries (other than those necessary to interface with Google Cloud Platform utilities), in the hope that having her behavior more frankly exposed helps us learn. 

@@ -1,4 +1,4 @@
 cron:
 - description: "Daily match-making job"
-  url: /cron
+  url: /match
   schedule: every day 04:00

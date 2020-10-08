@@ -20,7 +20,7 @@ Pairing Bot interacts through private messages on [Zulip](https://zulipchat.com/
  * Serverless. RC's instance is currently deployed on [App Engine](https://cloud.google.com/appengine/docs/standard/)
  * [Firestore database](https://cloud.google.com/firestore/docs/)
  * Deployed on pushes to the `main` branch with [Cloud Build](https://cloud.google.com/cloud-build/docs/)
- * The database must be prepopulated with two pieces of data:  an authentication token (which the bot uses to validate incoming webhooks), and an api key (which the bot uses to send private messages to Zulip users)
+ * The database must be prepopulated with two pieces of data:  an authentication token (which the bot uses to validate incoming webhook requests), and an api key (which the bot uses to send private messages to Zulip users)
  * Zulip has bot types. Pairing Bot is of type `outgoing webhook`
  * Pair programming matches are made, and the people who've been matched are notified, any time an HTTP GET request is issued to `/cron`
 

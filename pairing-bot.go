@@ -22,18 +22,21 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-const maren string = `@_**Maren Beam (SP2'19)**`
-const helpMessage string = "**How to use Pairing Bot:**\n* `subscribe` to start getting matched with other Pairing Bot users for pair programming\n* `schedule monday wednesday friday` to set your weekly pairing schedule\n  * In this example, I've been set to find pairing partners for you on every Monday, Wednesday, and Friday\n  * You can schedule pairing for any combination of days in the week\n* `skip tomorrow` to skip pairing tomorrow\n  * This is valid until matches go out at 04:00 UTC\n* `unskip tomorrow` to undo skipping tomorrow\n* `status` to show your current schedule, skip status, and name\n* `unsubscribe` to stop getting matched entirely\n\nIf you've found a bug, please PM @_**Maren Beam (she) (SP2'19)** or [submit an issue on github](https://github.com/thwidge/pairing-bot/issues)!"
-const subscribeMessage string = "Yay! You're now subscribed to Pairing Bot!\nCurrently, I'm set to find pair programming partners for you on **Mondays**, **Tuesdays**, **Wednesdays**, **Thursdays**, and **Fridays**.\nYou can customize your schedule any time with `schedule`.\n\nThanks for signing up :)"
+const owner string = `@_**Maren Beam (SP2'19)**`
+
+const helpMessage string = "**How to use Pairing Bot:**\n* `subscribe` to start getting matched with other Pairing Bot users for pair programming\n* `schedule monday wednesday friday` to set your weekly pairing schedule\n  * In this example, I've been set to find pairing partners for you on every Monday, Wednesday, and Friday\n  * You can schedule pairing for any combination of days in the week\n* `skip tomorrow` to skip pairing tomorrow\n  * This is valid until matches go out at 04:00 UTC\n* `unskip tomorrow` to undo skipping tomorrow\n* `status` to show your current schedule, skip status, and name\n* `unsubscribe` to stop getting matched entirely\n\nIf you've found a bug, please [submit an issue on github](https://github.com/thwidge/pairing-bot/issues)!"
+const subscribeMessage string = "Yay! You're now subscribed to Pairing Bot!\nCurrently, I'm set to find pair programming partners for you on **Mondays**, **Tuesdays**, **Wednesdays**, **Thursdays**, and **Fridays**.\nYou can customize your schedule any time with `schedule` :)"
 const unsubscribeMessage string = "You're unsubscribed!\nI won't find pairing partners for you unless you `subscribe`.\n\nBe well :)"
 const notSubscribedMessage string = "You're not subscribed to Pairing Bot <3"
 const oddOneOutMessage string = "OK this is awkward.\nThere were an odd number of people in the match-set today, which means that one person couldn't get paired. Unfortunately, it was you -- I'm really sorry :(\nI promise it's not personal, it was very much random. Hopefully this doesn't happen again too soon. Enjoy your day! <3"
 const matchedMessage = "Hi you two! You've been matched for pairing :)\n\nHave fun!"
+const offboardedMessage = "Hi! You've been unsubscribed from Pairing Bot.\n\nThis happens at the end of every batch, when everyone is offboarded even if they're still in batch. If you'd like to re-subscribe, just send me a message that says `subscribe`.\n\nBe well! :)"
+
 const botEmailAddress = "pairing-bot@recurse.zulipchat.com"
 const zulipAPIURL = "https://recurse.zulipchat.com/api/v1/messages"
 
-var writeErrorMessage = fmt.Sprintf("Something went sideways while writing to the database. You should probably ping %v", maren)
-var readErrorMessage = fmt.Sprintf("Something went sideways while reading from the database. You should probably ping %v", maren)
+var writeErrorMessage = fmt.Sprintf("Something went sideways while writing to the database. You should probably ping %v", owner)
+var readErrorMessage = fmt.Sprintf("Something went sideways while reading from the database. You should probably ping %v", owner)
 
 // This is a struct that gets only what
 // we need from the incoming JSON payload
@@ -298,9 +301,9 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// for testing only
-	// this responds uwu and quits if it's not me
-	/* if userReq.Message.SenderID != marenID {
-		err = responder.Encode(botResponse{`uwu`})
+	// this responds with a maintenance message and quits if it's not the owner
+	/* if userReq.Message.SenderID != ownerID {
+		err = responder.Encode(botResponse{`pairing bot is down for maintenance`})
 		if err != nil {
 			log.Println(err)
 		}
@@ -345,6 +348,7 @@ func main() {
 	http.HandleFunc("/", nope)
 	http.HandleFunc("/webhooks", handle)
 	http.HandleFunc("/match", match)
+	http.HandleFunc("/endofbatch", endofbatch)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -567,6 +571,78 @@ func match(w http.ResponseWriter, r *http.Request) {
 		}
 		log.Println(string(respBodyText))
 		log.Println("A match went out")
+	}
+}
+
+func endofbatch(w http.ResponseWriter, r *http.Request) {
+	// Check that the request is originating from within app engine
+	// https://cloud.google.com/appengine/docs/flexible/go/scheduling-jobs-with-cron-yaml#validating_cron_requests
+	if r.Header.Get("X-Appengine-Cron") != "true" {
+		http.NotFound(w, r)
+		return
+	}
+
+	// setting up database connection
+	ctx := context.Background()
+	client, err := firestore.NewClient(ctx, "pairing-bot-284823")
+	if err != nil {
+		log.Panic(err)
+	}
+	var recursersList []map[string]interface{}
+
+	// getting all the recursers
+	iter := client.Collection("recursers").Documents(ctx)
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			log.Panic(err)
+		}
+		recursersList = append(recursersList, doc.Data())
+	}
+
+	// message and offboard everyone (delete them from the database)
+	doc, err := client.Collection("apiauth").Doc("key").Get(ctx)
+	if err != nil {
+		log.Panic(err)
+	}
+	apikey := doc.Data()
+	botUsername := botEmailAddress
+	botPassword := apikey["value"].(string)
+	zulipClient := &http.Client{}
+
+	for i := 0; i < len(recursersList); i++ {
+		recurserID := recursersList[i]["id"].(string)
+		messageRequest := url.Values{}
+		var message string
+
+		_, err = client.Collection("recursers").Doc(recurserID).Delete(ctx)
+		if err != nil {
+			log.Println(err)
+			message = fmt.Sprintf("Uh oh, I was trying to offboard you since it's the end of batch, but something went wrong. Consider messaging %v to let them know this happened.", owner)
+		} else {
+			log.Println("A user was offboarded because it's the end of a batch.")
+			message = offboardedMessage
+		}
+
+		messageRequest.Add("type", "private")
+		messageRequest.Add("to", recurserID)
+		messageRequest.Add("content", message)
+		req, err := http.NewRequest("POST", zulipAPIURL, strings.NewReader(messageRequest.Encode()))
+		req.SetBasicAuth(botUsername, botPassword)
+		req.Header.Set("content-type", "application/x-www-form-urlencoded")
+		resp, err := zulipClient.Do(req)
+		if err != nil {
+			log.Panic(err)
+		}
+		defer resp.Body.Close()
+		respBodyText, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			log.Println(err)
+		}
+		log.Println(string(respBodyText))
 	}
 }
 

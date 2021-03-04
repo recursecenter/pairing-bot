@@ -1,9 +1,9 @@
 module github.com/thwidge/pairing-bot
 
-go 1.14
+go 1.15
 
 require (
-	cloud.google.com/go/firestore v1.3.0
-	google.golang.org/api v0.30.0
-	google.golang.org/grpc v1.31.0
+	cloud.google.com/go/firestore v1.5.0
+	google.golang.org/api v0.40.0
+	google.golang.org/grpc v1.36.0
 )

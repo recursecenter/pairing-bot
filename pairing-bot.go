@@ -344,7 +344,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 func main() {
 	http.HandleFunc("/", nope)
 	http.HandleFunc("/webhooks", handle)
-	http.HandleFunc("/cron", cron)
+	http.HandleFunc("/match", match)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -444,9 +444,9 @@ func nope(w http.ResponseWriter, r *http.Request) {
 	http.NotFound(w, r)
 }
 
-// cron makes matches for pairing, and messages those people to notify them of their match
+// "match" makes matches for pairing, and messages those people to notify them of their match
 // it runs once per day at 8am (it's triggered with app engine's cron service)
-func cron(w http.ResponseWriter, r *http.Request) {
+func match(w http.ResponseWriter, r *http.Request) {
 	// Check that the request is originating from within app engine
 	// https://cloud.google.com/appengine/docs/flexible/go/scheduling-jobs-with-cron-yaml#validating_cron_requests
 	if r.Header.Get("X-Appengine-Cron") != "true" {

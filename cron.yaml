@@ -4,4 +4,4 @@ cron:
   schedule: every day 04:00
 - description: "End-of-batch offboarding job that only runs manually"
   url: /endofbatch
-  schedule: every day 999999 hours
+  schedule: every 999999 hours

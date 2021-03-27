@@ -304,15 +304,18 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	// for testing only
-	// this responds with a maintenance message and quits if the request is coming from anyone other than the owner
-	if userReq.Message.SenderID != ownerID {
-		err = responder.Encode(botResponse{`pairing bot is down for maintenance`})
-		if err != nil {
-			log.Println(err)
+
+	/*
+		// for testing only
+		// this responds with a maintenance message and quits if the request is coming from anyone other than the owner
+		if userReq.Message.SenderID != ownerID {
+			err = responder.Encode(botResponse{`pairing bot is down for maintenance`})
+			if err != nil {
+				log.Println(err)
+			}
+			return
 		}
-		return
-	}
+	*/
 
 	if userReq.Trigger != "private_message" {
 		err = responder.Encode(botResponse{"Hi! I'm Pairing Bot (she/her)!\n\nSend me a PM that says `subscribe` to get started :smiley:\n\n:pear::robot:\n:octopus::octopus:"})

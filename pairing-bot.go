@@ -622,7 +622,8 @@ func endofbatch(w http.ResponseWriter, r *http.Request) {
 	zulipClient := &http.Client{}
 
 	for i := 0; i < len(recursersList); i++ {
-		recurserID := recursersList[i]["email"].(string)
+		recurserID := recursersList[i]["id"].(string)
+		recurserEmail := recursersList[i]["email"].(string)
 		messageRequest := url.Values{}
 		var message string
 
@@ -636,7 +637,7 @@ func endofbatch(w http.ResponseWriter, r *http.Request) {
 		}
 
 		messageRequest.Add("type", "private")
-		messageRequest.Add("to", recurserID)
+		messageRequest.Add("to", recurserEmail)
 		messageRequest.Add("content", message)
 		req, err := http.NewRequest("POST", zulipAPIURL, strings.NewReader(messageRequest.Encode()))
 		req.SetBasicAuth(botUsername, botPassword)

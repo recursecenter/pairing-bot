@@ -1,4 +1,7 @@
 cron:
 - description: "Daily match-making job"
-  url: /cron
+  url: /match
   schedule: every day 04:00
+- description: "End-of-batch offboarding job that only runs manually"
+  url: /endofbatch
+  schedule: every day 999999 hours

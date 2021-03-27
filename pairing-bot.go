@@ -619,7 +619,7 @@ func endofbatch(w http.ResponseWriter, r *http.Request) {
 	zulipClient := &http.Client{}
 
 	for i := 0; i < len(recursersList); i++ {
-		recurserID := recursersList[i]["id"].(string)
+		recurserID := recursersList[i]["email"].(string)
 		messageRequest := url.Values{}
 		var message string
 

@@ -578,7 +578,7 @@ func match(w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 		}
 		log.Println(string(respBodyText))
-		log.Println("A match went out")
+		log.Println(recursersList[i]["email"].(string), "was", "matched", "with", recursersList[i+1]["email"].(string))
 	}
 }
 

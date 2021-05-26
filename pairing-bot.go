@@ -659,7 +659,7 @@ func endofbatch(w http.ResponseWriter, r *http.Request) {
 // TODO: source of randomness is time, but this runs at the
 // same time each day. Is that ok?
 func shuffle(slice []map[string]interface{}) []map[string]interface{} {
-	r := rand.New(rand.NewSource(time.Now().Unix()))
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	ret := make([]map[string]interface{}, len(slice))
 	perm := r.Perm(len(slice))
 	for i, randIndex := range perm {

@@ -418,10 +418,10 @@ func parseCmd(cmdStr string) (string, []string, error) {
 		case cmd[0] == "subscribe" || cmd[0] == "unsubscribe" || cmd[0] == "help" || cmd[0] == "status":
 			err = errors.New("the user issued a command with args, but it disallowed args")
 			return "help", nil, err
-		case cmd[0] == "skip" && len(cmd) != 2 && cmd[1] != "tomorrow":
+		case cmd[0] == "skip" && (len(cmd) != 2 || cmd[1] != "tomorrow"):
 			err = errors.New("the user issued SKIP with malformed arguments")
 			return "help", nil, err
-		case cmd[0] == "unskip" && len(cmd) != 2 && cmd[1] != "tomorrow":
+		case cmd[0] == "unskip" && (len(cmd) != 2 || cmd[1] != "tomorrow"):
 			err = errors.New("the user issued UNSKIP with malformed arguments")
 			return "help", nil, err
 		case cmd[0] == "schedule":

@@ -6,6 +6,13 @@ steps:
   - name: 'go'
     path: '/gopath'
 
+- name: 'gcr.io/cloud-builders/go'
+  args: ['test']
+  env: [GOPATH=/gopath']
+  volumes:
+  - name: 'go'
+    path: '/gopath'
+
 - name: 'gcr.io/cloud-builders/gcloud'
   args: ['app','deploy', 'cron.yaml']
   timeout: 600s

@@ -2,7 +2,13 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"io/ioutil"
+	"log"
 	"net/http"
+	"net/url"
+	"strconv"
+	"strings"
 )
 
 // This is a struct that gets only what
@@ -62,19 +68,59 @@ type zulipUserNotification struct {
 }
 
 func (zun *zulipUserNotification) sendUserMessage(ctx context.Context, botPassword, user, message string) error {
+
+	zulipClient := &http.Client{}
+	messageRequest := url.Values{}
+	messageRequest.Add("type", "private")
+	messageRequest.Add("to", user)
+	messageRequest.Add("content", message)
+
+	req, err := http.NewRequest("POST", zun.zulipAPIURL, strings.NewReader(messageRequest.Encode()))
+	if err != nil {
+		return err
+	}
+	req.SetBasicAuth(zun.botUsername, botPassword)
+	req.Header.Set("content-type", "application/x-www-form-urlencoded")
+
+	resp, err := zulipClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	respBodyText, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	log.Println(string(respBodyText))
+
 	return nil
 }
 
 func (zur *zulipUserRequest) validateJSON(ctx context.Context, r *http.Request) error {
-	return nil
+	var userReq incomingJSON
+	// Look at the incoming webhook and slurp up the JSON
+	// Error if the JSON from Zulip itself is bad
+	err := json.NewDecoder(r.Body).Decode(&userReq)
+
+	if err == nil {
+		zur.json = userReq
+	}
+	return err
 }
 
 func (zur *zulipUserRequest) validateAuthCreds(ctx context.Context, tokenFromDB string) bool {
-	return false
+	if zur.json.Token != tokenFromDB {
+		log.Println("Unauthorized interaction attempt")
+		return false
+	}
+	return true
 }
 
 // if the zulip msg is posted in a stream, don't treat it as a command
 func (zur *zulipUserRequest) validateInteractionType(ctx context.Context) *botResponse {
+	if zur.json.Trigger != "private_message" {
+		return &botResponse{"Hi! I'm Pairing Bot (she/her)!\n\nSend me a PM that says `subscribe` to get started :smiley:\n\n:pear::robot:\n:octopus::octopus:"}
+	}
 	return nil
 }
 
@@ -82,15 +128,22 @@ func (zur *zulipUserRequest) validateInteractionType(ctx context.Context) *botRe
 // then don't respond. this stops pairing bot from responding in the group
 // chat she starts when she matches people
 func (zur *zulipUserRequest) ignoreInteractionType(ctx context.Context) *botNoResponse {
+	if len(zur.json.Message.DisplayRecipient.([]interface{})) != 2 {
+		return &botNoResponse{true}
+	}
 	return nil
 }
 
 func (zur *zulipUserRequest) sanitizeUserInput(ctx context.Context) (string, []string, error) {
-	return "", nil, nil
+	return parseCmd(zur.json.Data)
 }
 
 func (zur *zulipUserRequest) extractUserData(ctx context.Context) *UserDataFromJSON {
-	return &UserDataFromJSON{}
+	return &UserDataFromJSON{
+		userID:    strconv.Itoa(zur.json.Message.SenderID),
+		userEmail: zur.json.Message.SenderEmail,
+		userName:  zur.json.Message.SenderFullName,
+	}
 }
 
 // Mock types

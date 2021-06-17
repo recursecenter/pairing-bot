@@ -41,6 +41,8 @@ const zulipAPIURL = "https://recurse.zulipchat.com/api/v1/messages"
 var writeErrorMessage = fmt.Sprintf("Something went sideways while writing to the database. You should probably ping %v", owner)
 var readErrorMessage = fmt.Sprintf("Something went sideways while reading from the database. You should probably ping %v", owner)
 
+var maintenanceMode = false
+
 // This is a struct that gets only what
 // we need from the incoming JSON payload
 type incomingJSON struct {
@@ -304,9 +306,9 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	/*
-		// for testing only
-		// this responds with a maintenance message and quits if the request is coming from anyone other than the owner
+	// for testing only
+	// this responds with a maintenance message and quits if the request is coming from anyone other than the owner
+	if maintenanceMode {
 		if userReq.Message.SenderID != ownerID {
 			err = responder.Encode(botResponse{`pairing bot is down for maintenance`})
 			if err != nil {
@@ -314,7 +316,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 			}
 			return
 		}
-	*/
+	}
 
 	if userReq.Trigger != "private_message" {
 		err = responder.Encode(botResponse{"Hi! I'm Pairing Bot (she/her)!\n\nSend me a PM that says `subscribe` to get started :smiley:\n\n:pear::robot:\n:octopus::octopus:"})
@@ -361,6 +363,12 @@ func main() {
 	if port == "" {
 		port = "8080"
 		log.Printf("Defaulting to port %s", port)
+	}
+
+	if m, ok := os.LookupEnv("PB_MAINT"); ok {
+		if m == "true" {
+			maintenanceMode = true
+		}
 	}
 
 	log.Printf("Listening on port %s", port)

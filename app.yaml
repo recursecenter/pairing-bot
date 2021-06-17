@@ -1,3 +1,3 @@
 runtime: go115
 env_variables:
-  PB_MAINT: "true"
+  PB_MAINT: "false"

@@ -17,8 +17,8 @@ import (
 
 	"cloud.google.com/go/firestore"
 	"google.golang.org/api/iterator"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 const owner string = `@_**Maren Beam (SP2'19)**`
@@ -117,7 +117,7 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 	// we temporarily keep it in 'doc'
 	doc, err := client.Collection("recursers").Doc(userID).Get(ctx)
 	// this says "if there's an error, and if that error was not document-not-found"
-	if err != nil && grpc.Code(err) != codes.NotFound {
+	if err != nil && status.Code(err) != codes.NotFound {
 		response = readErrorMessage
 		return response, err
 	}
@@ -138,7 +138,7 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 	// trust that cmd and cmdArgs only have valid stuff in them
 	switch cmd {
 	case "schedule":
-		if isSubscribed == false {
+		if !isSubscribed {
 			response = notSubscribedMessage
 			break
 		}
@@ -197,7 +197,7 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 		response = subscribeMessage
 
 	case "unsubscribe":
-		if isSubscribed == false {
+		if !isSubscribed {
 			response = notSubscribedMessage
 			break
 		}
@@ -209,7 +209,7 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 		response = unsubscribeMessage
 
 	case "skip":
-		if isSubscribed == false {
+		if !isSubscribed {
 			response = notSubscribedMessage
 			break
 		}
@@ -222,7 +222,7 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 		response = `Tomorrow: cancelled. I feel you. **I will not match you** for pairing tomorrow <3`
 
 	case "unskip":
-		if isSubscribed == false {
+		if !isSubscribed {
 			response = notSubscribedMessage
 			break
 		}
@@ -235,7 +235,7 @@ func dispatch(ctx context.Context, client *firestore.Client, cmd string, cmdArgs
 		response = "Tomorrow: uncancelled! Heckin *yes*! **I will match you** for pairing tomorrow :)"
 
 	case "status":
-		if isSubscribed == false {
+		if !isSubscribed {
 			response = notSubscribedMessage
 			break
 		}
@@ -469,6 +469,9 @@ func match(w http.ResponseWriter, r *http.Request) {
 		messageRequest.Add("to", recurser["email"].(string))
 		messageRequest.Add("content", oddOneOutMessage)
 		req, err := http.NewRequest("POST", zulipAPIURL, strings.NewReader(messageRequest.Encode()))
+		if err != nil {
+			log.Println(err)
+		}
 		req.SetBasicAuth(botUsername, botPassword)
 		req.Header.Set("content-type", "application/x-www-form-urlencoded")
 		resp, err := zulipClient.Do(req)
@@ -489,6 +492,9 @@ func match(w http.ResponseWriter, r *http.Request) {
 		messageRequest.Add("to", recursersList[i]["email"].(string)+", "+recursersList[i+1]["email"].(string))
 		messageRequest.Add("content", matchedMessage)
 		req, err := http.NewRequest("POST", zulipAPIURL, strings.NewReader(messageRequest.Encode()))
+		if err != nil {
+			log.Println(err)
+		}
 		req.SetBasicAuth(botUsername, botPassword)
 		req.Header.Set("content-type", "application/x-www-form-urlencoded")
 		resp, err := zulipClient.Do(req)
@@ -563,6 +569,9 @@ func endofbatch(w http.ResponseWriter, r *http.Request) {
 		messageRequest.Add("to", recurserEmail)
 		messageRequest.Add("content", message)
 		req, err := http.NewRequest("POST", zulipAPIURL, strings.NewReader(messageRequest.Encode()))
+		if err != nil {
+			log.Println(err)
+		}
 		req.SetBasicAuth(botUsername, botPassword)
 		req.Header.Set("content-type", "application/x-www-form-urlencoded")
 		resp, err := zulipClient.Do(req)

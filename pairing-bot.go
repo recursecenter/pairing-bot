@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -34,8 +33,8 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 	// check and authorize the incoming request
 	// observation: we only validate requests for /webhooks, i.e. user input through zulip
 
-	ctx := context.Background()
-	err := pl.ur.validateJSON(ctx, r)
+	ctx := r.Context()
+	err := pl.ur.validateJSON(r)
 	if err != nil {
 		http.NotFound(w, r)
 	}
@@ -90,7 +89,7 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 
 	// the tofu and potatoes right here y'all
 
-	response, err := dispatch(pl, cmd, cmdArgs, userData.userID, userData.userEmail, userData.userName)
+	response, err := dispatch(ctx, pl, cmd, cmdArgs, userData.userID, userData.userEmail, userData.userName)
 	if err != nil {
 		log.Println(err)
 	}
@@ -115,15 +114,12 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := context.Background()
+	ctx := r.Context()
 
 	recursersList, err := pl.rdb.ListPairingTomorrow(ctx)
 	if err != nil {
 		log.Printf("Could not get list of recursers from DB: %s\n", err)
 	}
-	// TODO do we want to return in case of errors here?
-
-	ctx = context.Background()
 
 	skippersList, err := pl.rdb.ListSkippingTomorrow(ctx)
 	if err != nil {
@@ -131,9 +127,6 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// get everyone who was set to skip today and set them back to isSkippingTomorrow = false
-
-	ctx = context.Background()
-
 	for _, skipper := range skippersList {
 		err := pl.rdb.UnsetSkippingTomorrow(ctx, skipper)
 		if err != nil {
@@ -190,7 +183,7 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// getting all the recursers
-	ctx := context.Background()
+	ctx := r.Context()
 	recursersList, err := pl.rdb.GetAllUsers(ctx)
 	if err != nil {
 		log.Panic(err)
@@ -198,13 +191,10 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 
 	// message and offboard everyone (delete them from the database)
 
-	ctx = context.Background()
 	botPassword, err := pl.adb.GetKey(ctx, "apiauth", "key")
 	if err != nil {
 		log.Println("Something weird happened trying to read the auth token from the database")
 	}
-
-	ctx = context.Background() // TODO my use of contexts is definitely wrong
 
 	for i := 0; i < len(recursersList); i++ {
 

@@ -14,11 +14,9 @@ const notSubscribedMessage string = "You're not subscribed to Pairing Bot <3"
 var writeErrorMessage = fmt.Sprintf("Something went sideways while writing to the database. You should probably ping %v", owner)
 var readErrorMessage = fmt.Sprintf("Something went sideways while reading from the database. You should probably ping %v", owner)
 
-func dispatch(pl *PairingLogic, cmd string, cmdArgs []string, userID string, userEmail string, userName string) (string, error) {
+func dispatch(ctx context.Context, pl *PairingLogic, cmd string, cmdArgs []string, userID string, userEmail string, userName string) (string, error) {
 	var response string
 	var err error
-
-	ctx := context.Background()
 
 	rec, err := pl.rdb.GetByUserID(ctx, userID, userEmail, userName)
 	if err != nil {
@@ -54,8 +52,6 @@ func dispatch(pl *PairingLogic, cmd string, cmdArgs []string, userID string, use
 		// put it in the database
 		rec.schedule = newSchedule
 
-		ctx := context.Background()
-
 		err = pl.rdb.Set(ctx, userID, rec)
 
 		if err != nil {
@@ -87,7 +83,6 @@ func dispatch(pl *PairingLogic, cmd string, cmdArgs []string, userID string, use
 			schedule:           defaultSchedule,
 		}
 
-		ctx := context.Background()
 		err = pl.rdb.Set(ctx, userID, newRecurser)
 
 		if err != nil {
@@ -101,8 +96,6 @@ func dispatch(pl *PairingLogic, cmd string, cmdArgs []string, userID string, use
 			response = notSubscribedMessage
 			break
 		}
-
-		ctx := context.Background()
 
 		err := pl.rdb.Delete(ctx, userID)
 
@@ -120,8 +113,6 @@ func dispatch(pl *PairingLogic, cmd string, cmdArgs []string, userID string, use
 
 		rec.isSkippingTomorrow = true
 
-		ctx := context.Background()
-
 		err := pl.rdb.Set(ctx, userID, rec)
 		if err != nil {
 			response = writeErrorMessage
@@ -135,8 +126,6 @@ func dispatch(pl *PairingLogic, cmd string, cmdArgs []string, userID string, use
 			break
 		}
 		rec.isSkippingTomorrow = false
-
-		ctx := context.Background()
 
 		err := pl.rdb.Set(ctx, userID, rec)
 		if err != nil {

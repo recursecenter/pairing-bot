@@ -44,7 +44,7 @@ type botNoResponse struct {
 }
 
 type userRequest interface {
-	validateJSON(ctx context.Context, r *http.Request) error
+	validateJSON(r *http.Request) error
 	validateAuthCreds(ctx context.Context, tokenFromDB string) bool
 	validateInteractionType(ctx context.Context) *botResponse
 	ignoreInteractionType(ctx context.Context) *botNoResponse
@@ -96,7 +96,7 @@ func (zun *zulipUserNotification) sendUserMessage(ctx context.Context, botPasswo
 	return nil
 }
 
-func (zur *zulipUserRequest) validateJSON(ctx context.Context, r *http.Request) error {
+func (zur *zulipUserRequest) validateJSON(r *http.Request) error {
 	var userReq incomingJSON
 	// Look at the incoming webhook and slurp up the JSON
 	// Error if the JSON from Zulip itself is bad
@@ -160,7 +160,7 @@ func (mun *mockUserNotification) sendUserMessage(ctx context.Context, botPasswor
 	return nil
 }
 
-func (mur *mockUserRequest) validateJSON(ctx context.Context, r *http.Request) error {
+func (mur *mockUserRequest) validateJSON(r *http.Request) error {
 	return nil
 }
 

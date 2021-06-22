@@ -14,6 +14,7 @@ import (
 func main() {
 
 	// setting up database connection: 2 clients encapsulated into PairingLogic struct
+
 	ctx := context.Background()
 
 	rc, err := firestore.NewClient(ctx, "pairing-bot-284823")
@@ -22,7 +23,6 @@ func main() {
 	}
 	defer rc.Close()
 
-	// TODO context
 	ac, err := firestore.NewClient(ctx, "pairing-bot-284823")
 	if err != nil {
 		log.Panic(err)

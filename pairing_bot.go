@@ -27,6 +27,8 @@ type PairingLogic struct {
 	un  userNotification
 }
 
+var randSrc = rand.New(rand.NewSource(time.Now().UnixNano()))
+
 func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 	responder := json.NewEncoder(w)
 
@@ -135,7 +137,7 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// shuffle our recursers. This will not error if the list is empty
-	recursersList = shuffle(recursersList)
+	randSrc.Shuffle(len(recursersList), func(i, j int) { recursersList[i] = recursersList[j] })
 
 	// if for some reason there's no matches today, we're done
 	if len(recursersList) == 0 {
@@ -216,15 +218,4 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 			log.Printf("Error when trying to send offboarding message to %s: %s\n", recurserEmail, err)
 		}
 	}
-}
-
-// this shuffles our recursers.
-func shuffle(slice []Recurser) []Recurser {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	ret := make([]Recurser, len(slice))
-	perm := r.Perm(len(slice))
-	for i, randIndex := range perm {
-		ret[i] = slice[randIndex]
-	}
-	return ret
 }

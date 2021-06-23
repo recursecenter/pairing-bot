@@ -75,7 +75,7 @@ func (zun *zulipUserNotification) sendUserMessage(ctx context.Context, botPasswo
 	messageRequest.Add("to", user)
 	messageRequest.Add("content", message)
 
-	req, err := http.NewRequest("POST", zun.zulipAPIURL, strings.NewReader(messageRequest.Encode()))
+	req, err := http.NewRequestWithContext(ctx, "POST", zun.zulipAPIURL, strings.NewReader(messageRequest.Encode()))
 	if err != nil {
 		return err
 	}

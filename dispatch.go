@@ -66,24 +66,7 @@ func dispatch(ctx context.Context, pl *PairingLogic, cmd string, cmdArgs []strin
 			break
 		}
 
-		defaultSchedule := map[string]interface{}{
-			"monday":    true,
-			"tuesday":   true,
-			"wednesday": true,
-			"thursday":  true,
-			"friday":    true,
-			"saturday":  false,
-			"sunday":    false,
-		}
-
-		newRecurser := Recurser{id: userID,
-			name:               userName,
-			email:              userEmail,
-			isSkippingTomorrow: false,
-			schedule:           defaultSchedule,
-		}
-
-		err = pl.rdb.Set(ctx, userID, newRecurser)
+		err = pl.rdb.Set(ctx, userID, rec)
 
 		if err != nil {
 			response = writeErrorMessage

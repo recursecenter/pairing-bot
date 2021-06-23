@@ -44,11 +44,11 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 		log.Println("Something weird happened trying to read the auth token from the database")
 	}
 
-	if !pl.ur.validateAuthCreds(ctx, botAuth) {
+	if !pl.ur.validateAuthCreds(botAuth) {
 		http.NotFound(w, r)
 	}
 
-	intro := pl.ur.validateInteractionType(ctx)
+	intro := pl.ur.validateInteractionType()
 	if intro != nil {
 		err = responder.Encode(intro)
 		if err != nil {
@@ -57,7 +57,7 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ignore := pl.ur.ignoreInteractionType(ctx)
+	ignore := pl.ur.ignoreInteractionType()
 	if ignore != nil {
 		err = responder.Encode(ignore)
 		if err != nil {
@@ -66,7 +66,7 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userData := pl.ur.extractUserData(ctx)
+	userData := pl.ur.extractUserData()
 
 	// for testing only
 	// this responds with a maintenance message and quits if the request is coming from anyone other than the owner
@@ -82,7 +82,7 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 
 	// you *should* be able to throw any string at this thing and get back a valid command for dispatch()
 	// if there are no commad arguments, cmdArgs will be nil
-	cmd, cmdArgs, err := pl.ur.sanitizeUserInput(ctx)
+	cmd, cmdArgs, err := pl.ur.sanitizeUserInput()
 	if err != nil {
 		log.Println(err)
 	}

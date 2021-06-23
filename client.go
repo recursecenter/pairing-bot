@@ -45,11 +45,11 @@ type botNoResponse struct {
 
 type userRequest interface {
 	validateJSON(r *http.Request) error
-	validateAuthCreds(ctx context.Context, tokenFromDB string) bool
-	validateInteractionType(ctx context.Context) *botResponse
-	ignoreInteractionType(ctx context.Context) *botNoResponse
-	sanitizeUserInput(ctx context.Context) (string, []string, error)
-	extractUserData(ctx context.Context) *UserDataFromJSON // does this need an error return value? anything that hasn't been validated previously?
+	validateAuthCreds(tokenFromDB string) bool
+	validateInteractionType() *botResponse
+	ignoreInteractionType() *botNoResponse
+	sanitizeUserInput() (string, []string, error)
+	extractUserData() *UserDataFromJSON // does this need an error return value? anything that hasn't been validated previously?
 }
 
 type userNotification interface {
@@ -108,7 +108,7 @@ func (zur *zulipUserRequest) validateJSON(r *http.Request) error {
 	return err
 }
 
-func (zur *zulipUserRequest) validateAuthCreds(ctx context.Context, tokenFromDB string) bool {
+func (zur *zulipUserRequest) validateAuthCreds(tokenFromDB string) bool {
 	if zur.json.Token != tokenFromDB {
 		log.Println("Unauthorized interaction attempt")
 		return false
@@ -117,7 +117,7 @@ func (zur *zulipUserRequest) validateAuthCreds(ctx context.Context, tokenFromDB 
 }
 
 // if the zulip msg is posted in a stream, don't treat it as a command
-func (zur *zulipUserRequest) validateInteractionType(ctx context.Context) *botResponse {
+func (zur *zulipUserRequest) validateInteractionType() *botResponse {
 	if zur.json.Trigger != "private_message" {
 		return &botResponse{"Hi! I'm Pairing Bot (she/her)!\n\nSend me a PM that says `subscribe` to get started :smiley:\n\n:pear::robot:\n:octopus::octopus:"}
 	}
@@ -127,18 +127,18 @@ func (zur *zulipUserRequest) validateInteractionType(ctx context.Context) *botRe
 // if there aren't two 'recipients' (one sender and one receiver),
 // then don't respond. this stops pairing bot from responding in the group
 // chat she starts when she matches people
-func (zur *zulipUserRequest) ignoreInteractionType(ctx context.Context) *botNoResponse {
+func (zur *zulipUserRequest) ignoreInteractionType() *botNoResponse {
 	if len(zur.json.Message.DisplayRecipient.([]interface{})) != 2 {
 		return &botNoResponse{true}
 	}
 	return nil
 }
 
-func (zur *zulipUserRequest) sanitizeUserInput(ctx context.Context) (string, []string, error) {
+func (zur *zulipUserRequest) sanitizeUserInput() (string, []string, error) {
 	return parseCmd(zur.json.Data)
 }
 
-func (zur *zulipUserRequest) extractUserData(ctx context.Context) *UserDataFromJSON {
+func (zur *zulipUserRequest) extractUserData() *UserDataFromJSON {
 	return &UserDataFromJSON{
 		userID:    strconv.Itoa(zur.json.Message.SenderID),
 		userEmail: zur.json.Message.SenderEmail,
@@ -164,22 +164,22 @@ func (mur *mockUserRequest) validateJSON(r *http.Request) error {
 	return nil
 }
 
-func (mur *mockUserRequest) validateAuthCreds(ctx context.Context, tokenFromDB string) bool {
+func (mur *mockUserRequest) validateAuthCreds(tokenFromDB string) bool {
 	return false
 }
 
-func (mur *mockUserRequest) validateInteractionType(ctx context.Context) *botResponse {
+func (mur *mockUserRequest) validateInteractionType() *botResponse {
 	return nil
 }
 
-func (mur *mockUserRequest) ignoreInteractionType(ctx context.Context) *botNoResponse {
+func (mur *mockUserRequest) ignoreInteractionType() *botNoResponse {
 	return nil
 }
 
-func (mur *mockUserRequest) sanitizeUserInput(ctx context.Context) (string, []string, error) {
+func (mur *mockUserRequest) sanitizeUserInput() (string, []string, error) {
 	return "", nil, nil
 }
 
-func (mur *mockUserRequest) extractUserData(ctx context.Context) *UserDataFromJSON {
+func (mur *mockUserRequest) extractUserData() *UserDataFromJSON {
 	return &UserDataFromJSON{}
 }

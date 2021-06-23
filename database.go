@@ -101,9 +101,9 @@ func (f *FirestoreRecurserDB) GetByUserID(ctx context.Context, userID, userEmail
 	} else {
 		// User is not subscribed, so provide a default recurser struct instead.
 		r = Recurser{
-			id: userID,
-			name: userName,
-			email: userEmail,
+			id:                 userID,
+			name:               userName,
+			email:              userEmail,
 			isSkippingTomorrow: false,
 			schedule: map[string]interface{}{
 				"monday":    true,

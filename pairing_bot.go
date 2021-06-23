@@ -102,10 +102,6 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func nope(w http.ResponseWriter, r *http.Request) {
-	http.NotFound(w, r)
-}
-
 // "match" makes matches for pairing, and messages those people to notify them of their match
 // it runs once per day at 8am (it's triggered with app engine's cron service)
 func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {

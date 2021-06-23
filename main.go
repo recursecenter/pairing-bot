@@ -51,7 +51,7 @@ func main() {
 		un:  un,
 	}
 
-	http.HandleFunc("/", nope)                    // will this handle anything that's not defined?
+	http.HandleFunc("/", http.NotFound)           // will this handle anything that's not defined?
 	http.HandleFunc("/webhooks", pl.handle)       // from zulip
 	http.HandleFunc("/match", pl.match)           // from GCP
 	http.HandleFunc("/endofbatch", pl.endofbatch) // manually triggered

@@ -27,6 +27,8 @@ type PairingLogic struct {
 	un  userNotification
 }
 
+var randSrc = rand.New(rand.NewSource(time.Now().UnixNano()))
+
 func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 	responder := json.NewEncoder(w)
 
@@ -44,11 +46,11 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 		log.Println("Something weird happened trying to read the auth token from the database")
 	}
 
-	if !pl.ur.validateAuthCreds(ctx, botAuth) {
+	if !pl.ur.validateAuthCreds(botAuth) {
 		http.NotFound(w, r)
 	}
 
-	intro := pl.ur.validateInteractionType(ctx)
+	intro := pl.ur.validateInteractionType()
 	if intro != nil {
 		err = responder.Encode(intro)
 		if err != nil {
@@ -57,7 +59,7 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ignore := pl.ur.ignoreInteractionType(ctx)
+	ignore := pl.ur.ignoreInteractionType()
 	if ignore != nil {
 		err = responder.Encode(ignore)
 		if err != nil {
@@ -66,7 +68,7 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userData := pl.ur.extractUserData(ctx)
+	userData := pl.ur.extractUserData()
 
 	// for testing only
 	// this responds with a maintenance message and quits if the request is coming from anyone other than the owner
@@ -82,7 +84,7 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 
 	// you *should* be able to throw any string at this thing and get back a valid command for dispatch()
 	// if there are no commad arguments, cmdArgs will be nil
-	cmd, cmdArgs, err := pl.ur.sanitizeUserInput(ctx)
+	cmd, cmdArgs, err := pl.ur.sanitizeUserInput()
 	if err != nil {
 		log.Println(err)
 	}
@@ -98,10 +100,6 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err)
 	}
-}
-
-func nope(w http.ResponseWriter, r *http.Request) {
-	http.NotFound(w, r)
 }
 
 // "match" makes matches for pairing, and messages those people to notify them of their match
@@ -135,7 +133,7 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// shuffle our recursers. This will not error if the list is empty
-	recursersList = shuffle(recursersList)
+	randSrc.Shuffle(len(recursersList), func(i, j int) { recursersList[i] = recursersList[j] })
 
 	// if for some reason there's no matches today, we're done
 	if len(recursersList) == 0 {
@@ -216,15 +214,4 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 			log.Printf("Error when trying to send offboarding message to %s: %s\n", recurserEmail, err)
 		}
 	}
-}
-
-// this shuffles our recursers.
-func shuffle(slice []Recurser) []Recurser {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	ret := make([]Recurser, len(slice))
-	perm := r.Perm(len(slice))
-	for i, randIndex := range perm {
-		ret[i] = slice[randIndex]
-	}
-	return ret
 }

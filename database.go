@@ -93,17 +93,16 @@ func (f *FirestoreRecurserDB) GetByUserID(ctx context.Context, userID, userEmail
 	// also assign their zulip name to the name field, just in case it changed
 	// also assign their email, for the same reason
 	if isSubscribed {
-		var recurser map[string]interface{}
-		recurser = doc.Data()
+		recurser := doc.Data()
 		recurser["name"] = userName
 		recurser["email"] = userEmail
 		r = MapToStruct(recurser)
 	} else {
 		// User is not subscribed, so provide a default recurser struct instead.
 		r = Recurser{
-			id: userID,
-			name: userName,
-			email: userEmail,
+			id:                 userID,
+			name:               userName,
+			email:              userEmail,
 			isSkippingTomorrow: false,
 			schedule: map[string]interface{}{
 				"monday":    true,

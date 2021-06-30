@@ -134,7 +134,7 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// shuffle our recursers. This will not error if the list is empty
-	randSrc.Shuffle(len(recursersList), func(i, j int) { recursersList[i] = recursersList[j] })
+	randSrc.Shuffle(len(recursersList), func(i, j int) { recursersList[i], recursersList[j] = recursersList[j], recursersList[i] })
 
 	// if for some reason there's no matches today, we're done
 	if len(recursersList) == 0 {

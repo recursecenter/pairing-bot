@@ -115,6 +115,7 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	recursersList, err := pl.rdb.ListPairingTomorrow(ctx)
+	log.Println(recursersList)
 	if err != nil {
 		log.Printf("Could not get list of recursers from DB: %s\n", err)
 	}

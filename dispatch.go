@@ -52,9 +52,7 @@ func dispatch(ctx context.Context, pl *PairingLogic, cmd string, cmdArgs []strin
 		// put it in the database
 		rec.schedule = newSchedule
 
-		err = pl.rdb.Set(ctx, userID, rec)
-
-		if err != nil {
+		if err = pl.rdb.Set(ctx, userID, rec); err != nil {
 			response = writeErrorMessage
 			break
 		}
@@ -66,9 +64,7 @@ func dispatch(ctx context.Context, pl *PairingLogic, cmd string, cmdArgs []strin
 			break
 		}
 
-		err = pl.rdb.Set(ctx, userID, rec)
-
-		if err != nil {
+		if err = pl.rdb.Set(ctx, userID, rec); err != nil {
 			response = writeErrorMessage
 			break
 		}
@@ -80,9 +76,7 @@ func dispatch(ctx context.Context, pl *PairingLogic, cmd string, cmdArgs []strin
 			break
 		}
 
-		err := pl.rdb.Delete(ctx, userID)
-
-		if err != nil {
+		if err := pl.rdb.Delete(ctx, userID); err != nil {
 			response = writeErrorMessage
 			break
 		}
@@ -96,8 +90,7 @@ func dispatch(ctx context.Context, pl *PairingLogic, cmd string, cmdArgs []strin
 
 		rec.isSkippingTomorrow = true
 
-		err := pl.rdb.Set(ctx, userID, rec)
-		if err != nil {
+		if err := pl.rdb.Set(ctx, userID, rec); err != nil {
 			response = writeErrorMessage
 			break
 		}
@@ -110,8 +103,7 @@ func dispatch(ctx context.Context, pl *PairingLogic, cmd string, cmdArgs []strin
 		}
 		rec.isSkippingTomorrow = false
 
-		err := pl.rdb.Set(ctx, userID, rec)
-		if err != nil {
+		if err := pl.rdb.Set(ctx, userID, rec); err != nil {
 			response = writeErrorMessage
 			break
 		}

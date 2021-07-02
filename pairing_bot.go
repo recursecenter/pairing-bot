@@ -30,6 +30,8 @@ type PairingLogic struct {
 var randSrc = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
+	var err error
+
 	responder := json.NewEncoder(w)
 
 	// check and authorize the incoming request
@@ -37,7 +39,7 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
-	if err := pl.ur.validateJSON(r); err != nil {
+	if err = pl.ur.validateJSON(r); err != nil {
 		http.NotFound(w, r)
 	}
 

@@ -185,7 +185,7 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	recursersList, err := pl.rdb.GetAllUsers(ctx)
 	if err != nil {
-		log.Panic(err)
+		log.Printf("Could not get list of recursers from DB: %s\n", err)
 	}
 
 	// message and offboard everyone (delete them from the database)

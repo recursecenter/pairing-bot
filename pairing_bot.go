@@ -36,8 +36,8 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 	// observation: we only validate requests for /webhooks, i.e. user input through zulip
 
 	ctx := r.Context()
-	err := pl.ur.validateJSON(r)
-	if err != nil {
+	
+	if err := pl.ur.validateJSON(r); err != nil {
 		http.NotFound(w, r)
 	}
 
@@ -52,8 +52,7 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 
 	intro := pl.ur.validateInteractionType()
 	if intro != nil {
-		err = responder.Encode(intro)
-		if err != nil {
+		if err = responder.Encode(intro); err != nil {
 			log.Println(err)
 		}
 		return
@@ -61,8 +60,7 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 
 	ignore := pl.ur.ignoreInteractionType()
 	if ignore != nil {
-		err = responder.Encode(ignore)
-		if err != nil {
+		if err = responder.Encode(ignore); err != nil {
 			log.Println(err)
 		}
 		return
@@ -74,8 +72,7 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 	// this responds with a maintenance message and quits if the request is coming from anyone other than the owner
 	if maintenanceMode {
 		if userData.userID != ownerID {
-			err = responder.Encode(botResponse{`pairing bot is down for maintenance`})
-			if err != nil {
+			if err = responder.Encode(botResponse{`pairing bot is down for maintenance`}); err != nil {
 				log.Println(err)
 			}
 			return
@@ -96,8 +93,7 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 
-	err = responder.Encode(botResponse{response})
-	if err != nil {
+	if err = responder.Encode(botResponse{response}); err != nil {
 		log.Println(err)
 	}
 }

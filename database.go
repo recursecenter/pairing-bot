@@ -262,7 +262,6 @@ type FirestoreAPIAuthDB struct {
 func (f *FirestoreAPIAuthDB) GetKey(ctx context.Context, col, doc string) (string, error) {
 	res, err := f.client.Collection(col).Doc(doc).Get(ctx)
 	if err != nil {
-		log.Println("Something weird happened trying to read the auth token from the database")
 		return "", err
 	}
 

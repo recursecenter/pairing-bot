@@ -214,10 +214,7 @@ func (f *FirestoreRecurserDB) UnsetSkippingTomorrow(ctx context.Context, recurse
 	r["isSkippingTomorrow"] = false
 
 	_, err := f.client.Collection("recursers").Doc(r["id"].(string)).Set(ctx, r, firestore.MergeAll)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 // implements RecurserDB

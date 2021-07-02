@@ -36,7 +36,7 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 	// observation: we only validate requests for /webhooks, i.e. user input through zulip
 
 	ctx := r.Context()
-	
+
 	if err := pl.ur.validateJSON(r); err != nil {
 		http.NotFound(w, r)
 	}

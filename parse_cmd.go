@@ -44,7 +44,7 @@ func parseCmd(cmdStr string) (string, []string, error) {
 
 	// Big validation logic -- hellooo darkness my old frieeend
 	switch {
-	// if there's nothing in the command string srray
+	// if there's nothing in the command string array
 	case len(cmd) == 0:
 		err = errors.New("the user-issued command was blank")
 		return "help", nil, err

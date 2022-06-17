@@ -24,7 +24,7 @@ func main() {
 	//We have two pairing bot projects. One for production and one for testing/dev work.
 	if appEnv == "development" {
 		projectId = "pairing-bot-dev"
-		botUsername = "pairing-bot-dev@recurse.zulipchat.com"
+		botUsername = "dev-pairing-bot@recurse.zulipchat.com"
 	}
 
 	rc, err := firestore.NewClient(ctx, projectId)

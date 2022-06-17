@@ -23,7 +23,7 @@ Pairing Bot interacts through private messages on [Zulip](https://zulipchat.com/
  * The database must be prepopulated with two pieces of data:  an authentication token (which the bot uses to validate incoming webhook requests), and an api key (which the bot uses to send private messages to Zulip users)
  * Zulip has bot types. Pairing Bot is of type `outgoing webhook`
  * Pair programming matches are made, and the people who've been matched are notified any time an HTTP GET request is issued to `/cron`
- * Pairing bot has a dev environment where you can test out changes before applying them to the main pairing bot.
+ * Pairing bot has a dev environment where you can test out changes before applying them to the main branch of pairing bot.
 
 ### Pull requests are welcome, especially from RC community members!
 Pairing Bot is an [RC community project](https://recurse.zulipchat.com/#narrow/stream/198090-rc-community.20software).

@@ -17,13 +17,23 @@ func main() {
 
 	ctx := context.Background()
 
-	rc, err := firestore.NewClient(ctx, "pairing-bot-284823")
+	appEnv := os.Getenv("APP_ENV")
+	projectId := "pairing-bot-284823"
+	botUsername := "pairing-bot@recurse.zulipchat.com"
+
+	//We have two pairing bot projects. One for production and one for testing/dev work.
+	if appEnv == "development" {
+		projectId = "pairing-bot-dev"
+		botUsername = "pairing-bot-dev@recurse.zulipchat.com"
+	}
+
+	rc, err := firestore.NewClient(ctx, projectId)
 	if err != nil {
 		log.Panic(err)
 	}
 	defer rc.Close()
 
-	ac, err := firestore.NewClient(ctx, "pairing-bot-284823")
+	ac, err := firestore.NewClient(ctx, projectId)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -40,7 +50,7 @@ func main() {
 	ur := &zulipUserRequest{}
 
 	un := &zulipUserNotification{
-		botUsername: "pairing-bot@recurse.zulipchat.com",
+		botUsername: botUsername,
 		zulipAPIURL: "https://recurse.zulipchat.com/api/v1/messages",
 	}
 

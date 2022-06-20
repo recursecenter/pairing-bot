@@ -39,7 +39,10 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
+	log.Println("Handling a new Zulip request")
+
 	if err = pl.ur.validateJSON(r); err != nil {
+		log.Println(err)
 		http.NotFound(w, r)
 	}
 

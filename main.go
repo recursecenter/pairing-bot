@@ -24,7 +24,7 @@ func main() {
 	log.Printf("Running the app in environment = %s", appEnv)
 
 	//We have two pairing bot projects. One for production and one for testing/dev work.
-	if appEnv == "development" {
+	if appEnv != "production" {
 		projectId = "pairing-bot-dev"
 		botUsername = "dev-pairing-bot@recurse.zulipchat.com"
 		log.Println("Running pairing bot in the testing environment for development")

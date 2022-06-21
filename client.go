@@ -111,6 +111,7 @@ func (zur *zulipUserRequest) validateJSON(r *http.Request) error {
 func (zur *zulipUserRequest) validateAuthCreds(tokenFromDB string) bool {
 	if zur.json.Token != tokenFromDB {
 		log.Println("Unauthorized interaction attempt")
+		log.Println(zur.json.Token)
 		return false
 	}
 	return true

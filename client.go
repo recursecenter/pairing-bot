@@ -85,11 +85,11 @@ func (zsm *zulipStreamMessage) createStreamTopic(ctx context.Context, botPasswor
 	messageRequest.Add("topic", topic)
 	messageRequest.Add("content", message)
 
-	req, err := http.NewRequestWithContext(ctx, "POST", zun.zulipAPIURL, strings.NewReader(messageRequest.Encode()))
+	req, err := http.NewRequestWithContext(ctx, "POST", zsm.zulipAPIURL, strings.NewReader(messageRequest.Encode()))
 	if err != nil {
 		return err
 	}
-	req.SetBasicAuth(zun.botUsername, botPassword)
+	req.SetBasicAuth(zsm.botUsername, botPassword)
 	req.Header.Set("content-type", "application/x-www-form-urlencoded")
 
 	resp, err := zulipClient.Do(req)

@@ -25,7 +25,7 @@ type PairingLogic struct {
 	adb APIAuthDB
 	ur  userRequest
 	un  userNotification
-	sm  streamMesage
+	// sm  streamMesage
 }
 
 var randSrc = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -250,7 +250,7 @@ func (pl *PairingLogic) welcome(w http.ResponseWriter, r *http.Request) {
 
 	//TODO- rename createStreamTopic to something better
 	//ctx context.Context, botPassword, message string, stream string, topic string
-	streamMessageError := pl.sm.createStreamTopic(ctx, botPassword, "Hello, this is a test from the Pairing Bot to see if it can post to streams", "pairing", "[Pairing Bot Test Message] I'm Alive!!!!")
+	streamMessageError := pl.un.createStreamTopic(ctx, botPassword, "Hello, this is a test from the Pairing Bot to see if it can post to streams", "pairing", "[Pairing Bot Test Message] I'm Alive!!!!")
 	if streamMessageError != nil {
 		log.Printf("Error when trying to send welcome message about Pairing Bot %s\n", err)
 	}

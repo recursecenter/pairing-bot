@@ -57,11 +57,17 @@ func main() {
 		zulipAPIURL: "https://recurse.zulipchat.com/api/v1/messages",
 	}
 
+	sm := &zulipStreamMessage{
+		botUsername: botUsername,
+		zulipAPIURL: "https://recurse.zulipchat.com/api/v1/messages",
+	}
+
 	pl := &PairingLogic{
 		rdb: rdb,
 		adb: adb,
 		ur:  ur,
 		un:  un,
+		sm:  sm,
 	}
 
 	http.HandleFunc("/", http.NotFound)           // will this handle anything that's not defined?

@@ -71,7 +71,12 @@ type zulipUserNotification struct {
 	zulipAPIURL string
 }
 
-func (zun *zulipUserNotification) createStreamTopic(ctx context.Context, botPassword, message string, stream string, topic string) error {
+type zulipStreamMessage struct {
+	botUsername string
+	zulipAPIURL string
+}
+
+func (zsm *zulipStreamMessage) createStreamTopic(ctx context.Context, botPassword, message string, stream string, topic string) error {
 	zulipClient := &http.Client{}
 	messageRequest := url.Values{}
 

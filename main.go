@@ -68,6 +68,7 @@ func main() {
 	http.HandleFunc("/webhooks", pl.handle)       // from zulip
 	http.HandleFunc("/match", pl.match)           // from GCP
 	http.HandleFunc("/endofbatch", pl.endofbatch) // manually triggered
+	http.HandleFunc("/welcome", pl.welcome)       // manually triggered
 
 	port := os.Getenv("PORT")
 	if port == "" {

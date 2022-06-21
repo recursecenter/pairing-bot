@@ -25,6 +25,7 @@ type PairingLogic struct {
 	adb APIAuthDB
 	ur  userRequest
 	un  userNotification
+	sm  streamMesage
 }
 
 var randSrc = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -215,5 +216,42 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Printf("Error when trying to send offboarding message to %s: %s\n", recurserEmail, err)
 		}
+	}
+}
+
+func (pl *PairingLogic) welcome(w http.ResponseWriter, r *http.Request) {
+	// Check that the request is originating from within app engine
+	// https://cloud.google.com/appengine/docs/flexible/go/scheduling-jobs-with-cron-yaml#validating_cron_requests
+	if r.Header.Get("X-Appengine-Cron") != "true" {
+		http.NotFound(w, r)
+		return
+	}
+
+	// getting all the recursers nt currently subscribed to pairing bot
+	//TODO- filter out users currently subscribed
+	ctx := r.Context()
+	// recursersList, err := pl.rdb.GetAllUsers(ctx)
+	// if err != nil {
+	// 	log.Printf("Could not get list of recursers from DB: %s\n", err)
+	// }
+
+	//TODO- Need to contact RC API to grab "CurrentlyAtRc" list and then filter based off of that.
+	// Look into starting a thread in 397 Bridge and pinging folks
+
+	// message and offboard everyone (delete them from the database)
+
+	//TODO- Look into hitting the unsubscribe endpoint instead of just deleting from the database so users get notified of the unsubscribe action
+
+	botPassword, err := pl.adb.GetKey(ctx, "apiauth", "key")
+
+	if err != nil {
+		log.Println("Something weird happened trying to read the auth token from the database")
+	}
+
+	//TODO- rename createStreamTopic to something better
+	//ctx context.Context, botPassword, message string, stream string, topic string
+	streamMessageError := pl.sm.createStreamTopic(ctx, botPassword, "Hello, this is a test from the Pairing Bot to see if it can post to streams", "pairing", "[Pairing Bot Test Message] I'm Alive!!!!")
+	if streamMessageError != nil {
+		log.Printf("Error when trying to send welcome message about Pairing Bot %s\n", err)
 	}
 }

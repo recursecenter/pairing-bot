@@ -5,3 +5,6 @@ cron:
 - description: "End-of-batch offboarding job that only runs manually"
   url: /endofbatch
   schedule: every 99999 hours
+- description: "Start of batch message to welcome people to pairing bot"
+  url: /welcome
+  schedule: every 99999 hours

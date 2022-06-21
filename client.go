@@ -56,6 +56,10 @@ type userNotification interface {
 	sendUserMessage(ctx context.Context, botPassword, user, message string) error
 }
 
+type streamMessage interface {
+	createStreamTopic(ctx context.Context, botPassword, message string, stream string, topic string) error
+}
+
 // implements userRequest
 type zulipUserRequest struct {
 	json incomingJSON
@@ -65,6 +69,36 @@ type zulipUserRequest struct {
 type zulipUserNotification struct {
 	botUsername string
 	zulipAPIURL string
+}
+
+func (zun *zulipUserNotification) createStreamTopic(ctx context.Context, botPassword, message string, stream string, topic string) error {
+	zulipClient := &http.Client{}
+	messageRequest := url.Values{}
+
+	messageRequest.Add("type", "stream")
+	messageRequest.Add("to", stream)
+	messageRequest.Add("topic", topic)
+	messageRequest.Add("content", message)
+
+	req, err := http.NewRequestWithContext(ctx, "POST", zun.zulipAPIURL, strings.NewReader(messageRequest.Encode()))
+	if err != nil {
+		return err
+	}
+	req.SetBasicAuth(zun.botUsername, botPassword)
+	req.Header.Set("content-type", "application/x-www-form-urlencoded")
+
+	resp, err := zulipClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	respBodyText, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	log.Println(string(respBodyText))
+
+	return nil
 }
 
 func (zun *zulipUserNotification) sendUserMessage(ctx context.Context, botPassword, user, message string) error {
@@ -158,6 +192,10 @@ type mockUserNotification struct {
 }
 
 func (mun *mockUserNotification) sendUserMessage(ctx context.Context, botPassword, user, message string) error {
+	return nil
+}
+
+func (mun *mockUserNotification) createStreamTopic(ctx context.Context, botPassword, message string, stream string, topic string) error {
 	return nil
 }
 

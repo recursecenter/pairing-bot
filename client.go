@@ -57,7 +57,7 @@ type userNotification interface {
 }
 
 type streamMessage interface {
-	createStreamTopic(ctx context.Context, botPassword, message string, stream string, topic string) error
+	postToTopic(ctx context.Context, botPassword, message string, stream string, topic string) error
 }
 
 // implements userRequest
@@ -76,7 +76,7 @@ type zulipStreamMessage struct {
 	zulipAPIURL string
 }
 
-func (zsm *zulipStreamMessage) createStreamTopic(ctx context.Context, botPassword, message string, stream string, topic string) error {
+func (zsm *zulipStreamMessage) postToTopic(ctx context.Context, botPassword, message string, stream string, topic string) error {
 	zulipClient := &http.Client{}
 	messageRequest := url.Values{}
 
@@ -150,7 +150,6 @@ func (zur *zulipUserRequest) validateJSON(r *http.Request) error {
 func (zur *zulipUserRequest) validateAuthCreds(tokenFromDB string) bool {
 	if zur.json.Token != tokenFromDB {
 		log.Println("Unauthorized interaction attempt")
-		log.Println(zur.json.Token)
 		return false
 	}
 	return true
@@ -200,7 +199,7 @@ func (mun *mockUserNotification) sendUserMessage(ctx context.Context, botPasswor
 	return nil
 }
 
-func (mun *mockUserNotification) createStreamTopic(ctx context.Context, botPassword, message string, stream string, topic string) error {
+func (mun *mockUserNotification) postToTopic(ctx context.Context, botPassword, message string, stream string, topic string) error {
 	return nil
 }
 

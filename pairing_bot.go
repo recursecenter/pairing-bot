@@ -175,6 +175,9 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+//We just need a list of recurser emails, no need to contact zulip.
+//We can query the profiles endpoint and set the scope to current
+
 func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 	// Check that the request is originating from within app engine
 	// https://cloud.google.com/appengine/docs/flexible/go/scheduling-jobs-with-cron-yaml#validating_cron_requests
@@ -219,6 +222,12 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+/*
+Sends out a "Welcome to Pairing Bot" message to 397 Bridge during the second week of RC to introduce people to RC.
+
+We don't send this welcome message during the first week since it's a bit overwhelming with all of the orientation meetings
+and people haven't had time to think too much about their projects.
+*/
 func (pl *PairingLogic) welcome(w http.ResponseWriter, r *http.Request) {
 	// Check that the request is originating from within app engine
 	// https://cloud.google.com/appengine/docs/flexible/go/scheduling-jobs-with-cron-yaml#validating_cron_requests
@@ -227,20 +236,10 @@ func (pl *PairingLogic) welcome(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// getting all the recursers nt currently subscribed to pairing bot
-	//TODO- filter out users currently subscribed
 	ctx := r.Context()
-	// recursersList, err := pl.rdb.GetAllUsers(ctx)
-	// if err != nil {
-	// 	log.Printf("Could not get list of recursers from DB: %s\n", err)
-	// }
 
 	//TODO- Need to contact RC API to grab "CurrentlyAtRc" list and then filter based off of that.
 	// Look into starting a thread in 397 Bridge and pinging folks
-
-	// message and offboard everyone (delete them from the database)
-
-	//TODO- Look into hitting the unsubscribe endpoint instead of just deleting from the database so users get notified of the unsubscribe action
 
 	botPassword, err := pl.adb.GetKey(ctx, "apiauth", "key")
 
@@ -248,9 +247,7 @@ func (pl *PairingLogic) welcome(w http.ResponseWriter, r *http.Request) {
 		log.Println("Something weird happened trying to read the auth token from the database")
 	}
 
-	//TODO- rename createStreamTopic to something better
-	//ctx context.Context, botPassword, message string, stream string, topic string
-	streamMessageError := pl.sm.createStreamTopic(ctx, botPassword, "Hello, this is a test from the Pairing Bot to see if it can post to streams", "pairing", "[Pairing Bot Test Message] I'm Alive!!!!")
+	streamMessageError := pl.sm.postToTopic(ctx, botPassword, "Hello, this is a test from the Pairing Bot to see if it can post to streams", "pairing", "[Pairing Bot Test Message] I'm Alive!!!!")
 	if streamMessageError != nil {
 		log.Printf("Error when trying to send welcome message about Pairing Bot %s\n", err)
 	}

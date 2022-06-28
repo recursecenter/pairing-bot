@@ -3,9 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -236,19 +238,61 @@ func (pl *PairingLogic) welcome(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := r.Context()
+	/*
+		Check that we're in the second week of a batch
+	*/
 
-	//TODO- Need to contact RC API to grab "CurrentlyAtRc" list and then filter based off of that.
-	// Look into starting a thread in 397 Bridge and pinging folks
+	if pl.isSecondWeekOfBatch() {
+		ctx := r.Context()
 
-	botPassword, err := pl.adb.GetKey(ctx, "apiauth", "key")
+		botPassword, err := pl.adb.GetKey(ctx, "apiauth", "key")
 
+		if err != nil {
+			log.Println("Something weird happened trying to read the auth token from the database")
+		}
+
+		streamMessageError := pl.sm.postToTopic(ctx, botPassword, "Hello, this is a test from the Pairing Bot to see if it can post to streams", "pairing", "[Pairing Bot Test Message] I'm Alive!!!!")
+		if streamMessageError != nil {
+			log.Printf("Error when trying to send welcome message about Pairing Bot %s\n", err)
+		}
+	}
+}
+
+func (pl *PairingLogic) isSecondWeekOfBatch() bool {
+	//Make get request to batch endpoint
+
+	resp, err := http.Get("https://www.recurse.com/api/v1/batches?access_token=418303ca6f2d8de46072c5b87814e3dac7280c6530115848dcdc1a68aa92dfa8")
 	if err != nil {
-		log.Println("Something weird happened trying to read the auth token from the database")
+		log.Fatalln(err)
 	}
 
-	streamMessageError := pl.sm.postToTopic(ctx, botPassword, "Hello, this is a test from the Pairing Bot to see if it can post to streams", "pairing", "[Pairing Bot Test Message] I'm Alive!!!!")
-	if streamMessageError != nil {
-		log.Printf("Error when trying to send welcome message about Pairing Bot %s\n", err)
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+
+	var batches []map[string]interface{}
+	json.Unmarshal([]byte(body), &batches)
+
+	fmt.Println(batches)
+
+	today := "2022-06-28"
+
+	var startDay string
+
+	for i := range batches {
+		if !strings.HasPrefix(batches[i]["name"].(string), "Mini") {
+			startDay = batches[i]["start_date"].(string)
+
+			break
+		}
 	}
+
+	todayDate, _ := time.Parse(shortForm, today)
+	startDayDate, _ := time.Parse(shortForm, startDay)
+
+	fmt.Println(todayDate.Sub(startDayDate))
+
+	//Do date math to check if is in second week
+
+	return false
 }

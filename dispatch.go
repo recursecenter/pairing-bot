@@ -52,10 +52,6 @@ func dispatch(ctx context.Context, pl *PairingLogic, cmd string, cmdArgs []strin
 		// put it in the database
 		rec.schedule = newSchedule
 
-		rec.currentlyAtRC = true
-
-		//TODO- check if the user is currently at RC
-
 		if err = pl.rdb.Set(ctx, userID, rec); err != nil {
 			response = writeErrorMessage
 			break
@@ -67,6 +63,9 @@ func dispatch(ctx context.Context, pl *PairingLogic, cmd string, cmdArgs []strin
 			response = "You're already subscribed! Use `schedule` to set your schedule."
 			break
 		}
+
+		//TODO- check if the user is currently at RC
+		rec.currentlyAtRC = true
 
 		if err = pl.rdb.Set(ctx, userID, rec); err != nil {
 			response = writeErrorMessage

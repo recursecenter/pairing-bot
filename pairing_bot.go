@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"math/rand"
@@ -197,30 +196,64 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 
 	// message and offboard everyone (delete them from the database)
 
-	botPassword, err := pl.adb.GetKey(ctx, "apiauth", "key")
+	// botPassword, err := pl.adb.GetKey(ctx, "apiauth", "key")
+	// if err != nil {
+	// 	log.Println("Something weird happened trying to read the auth token from the database")
+	// }
+
+	/*
+
+		Weekly Cron Job: runs every Saturday. The `currentAtRC` status updates Friday midnight.
+
+		1) go through all the recursers in the DB
+		2) Check their "currentlyAtRC" status.  write down the current_date.
+		3) Compare "are they at RC now" vs "were they at RC when the job last ran".
+		4) If last_week = atRC and this_week = noAtRC => unsubscribe
+		5) Edge cases: An alum wants to resubscribe. last_week = notAtRC this_week = notAtRC => don't do anything
+
+	*/
+
+	//TODO, batch the API call since the limit is 50 results per
+
+	resp, err := http.Get("https://www.recurse.com/api/v1/profiles?scope=current&limit=50&role=recurser&access_token=418303ca6f2d8de46072c5b87814e3dac7280c6530115848dcdc1a68aa92dfa8")
 	if err != nil {
-		log.Println("Something weird happened trying to read the auth token from the database")
+		log.Printf("Got the following error while getting the RC batches from the RC API: %s\n", err)
+	}
+
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+
+	//Parse the json response from the API
+	var recursers []map[string]interface{}
+	json.Unmarshal([]byte(body), &recursers)
+
+	var emailsOfPeopleAtRC []string
+
+	for i := range recursers {
+		email := recursers[i]["email"].(string)
+		emailsOfPeopleAtRC = append(emailsOfPeopleAtRC, email)
 	}
 
 	for i := 0; i < len(recursersList); i++ {
 
-		recurserID := recursersList[i].id
-		recurserEmail := recursersList[i].email
-		var message string
+		// recurserID := recursersList[i].id
+		// recurserEmail := recursersList[i].email
+		// var message string
 
-		err = pl.rdb.Delete(ctx, recurserID)
-		if err != nil {
-			log.Println(err)
-			message = fmt.Sprintf("Uh oh, I was trying to offboard you since it's the end of batch, but something went wrong. Consider messaging %v to let them know this happened.", owner)
-		} else {
-			log.Println("A user was offboarded because it's the end of a batch.")
-			message = offboardedMessage
-		}
+		// err = pl.rdb.Delete(ctx, recurserID)
+		// if err != nil {
+		// 	log.Println(err)
+		// 	message = fmt.Sprintf("Uh oh, I was trying to offboard you since it's the end of batch, but something went wrong. Consider messaging %v to let them know this happened.", owner)
+		// } else {
+		// 	log.Println("A user was offboarded because it's the end of a batch.")
+		// 	message = offboardedMessage
+		// }
 
-		err := pl.un.sendUserMessage(ctx, botPassword, recurserEmail, message)
-		if err != nil {
-			log.Printf("Error when trying to send offboarding message to %s: %s\n", recurserEmail, err)
-		}
+		// err := pl.un.sendUserMessage(ctx, botPassword, recurserEmail, message)
+		// if err != nil {
+		// 	log.Printf("Error when trying to send offboarding message to %s: %s\n", recurserEmail, err)
+		// }
 	}
 }
 
@@ -255,6 +288,8 @@ func (pl *PairingLogic) welcome(w http.ResponseWriter, r *http.Request) {
 		if streamMessageError != nil {
 			log.Printf("Error when trying to send welcome message about Pairing Bot %s\n", err)
 		}
+	} else {
+
 	}
 }
 
@@ -268,14 +303,17 @@ func (pl *PairingLogic) isSecondWeekOfBatch() bool {
 
 	body, err := ioutil.ReadAll(resp.Body)
 
+	//Parse the json response from the API
 	var batches []map[string]interface{}
 	json.Unmarshal([]byte(body), &batches)
 
-	var startDay string
+	var batchStart string
 
+	//Loop through the batches until we find the first non-mini batch. Mini batches are only 1 week long, so it doesn't make sense to send a message
+	//1 week after a mini batch has started :joy:
 	for i := range batches {
 		if !strings.HasPrefix(batches[i]["name"].(string), "Mini") {
-			startDay = batches[i]["start_date"].(string)
+			batchStart = batches[i]["start_date"].(string)
 
 			break
 		}
@@ -284,8 +322,16 @@ func (pl *PairingLogic) isSecondWeekOfBatch() bool {
 	const shortForm = "2006-01-02"
 
 	todayDate := time.Now()
-	startDayDate, _ := time.Parse(shortForm, startDay)
-	hoursSinceStartOfBatch := todayDate.Sub(startDayDate).Hours()
+	batchStartDate, _ := time.Parse(shortForm, batchStart)
+
+	if err != nil {
+		log.Printf("Unable to parse the batch start date of: %s. Exiting out of the welcome cron job.", batchStart)
+		return false
+	}
+
+	hoursSinceStartOfBatch := todayDate.Sub(batchStartDate).Hours()
+
+	log.Printf("Hours since start of the batch: %f", hoursSinceStartOfBatch)
 
 	//Has 1 week (168 hours) passed since the start of the batch?
 	return hoursSinceStartOfBatch > 168

@@ -259,11 +259,9 @@ func (pl *PairingLogic) welcome(w http.ResponseWriter, r *http.Request) {
 }
 
 func (pl *PairingLogic) isSecondWeekOfBatch() bool {
-	//Make get request to batch endpoint
-
 	resp, err := http.Get("https://www.recurse.com/api/v1/batches?access_token=418303ca6f2d8de46072c5b87814e3dac7280c6530115848dcdc1a68aa92dfa8")
 	if err != nil {
-		log.Fatalln(err)
+		log.Printf("Got the following error while getting the RC batches from the RC API: %s\n", err)
 	}
 
 	defer resp.Body.Close()
@@ -272,10 +270,6 @@ func (pl *PairingLogic) isSecondWeekOfBatch() bool {
 
 	var batches []map[string]interface{}
 	json.Unmarshal([]byte(body), &batches)
-
-	fmt.Println(batches)
-
-	today := "2022-06-28"
 
 	var startDay string
 
@@ -287,12 +281,12 @@ func (pl *PairingLogic) isSecondWeekOfBatch() bool {
 		}
 	}
 
-	todayDate, _ := time.Parse(shortForm, today)
+	const shortForm = "2006-01-02"
+
+	todayDate := time.Now()
 	startDayDate, _ := time.Parse(shortForm, startDay)
+	hoursSinceStartOfBatch := todayDate.Sub(startDayDate).Hours()
 
-	fmt.Println(todayDate.Sub(startDayDate))
-
-	//Do date math to check if is in second week
-
-	return false
+	//Has 1 week (168 hours) passed since the start of the batch?
+	return hoursSinceStartOfBatch > 168
 }

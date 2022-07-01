@@ -117,3 +117,4 @@ func (ra *RecurseAPI) isSecondWeekOfBatch(accessToken string) bool {
 
 	//Has 1 week (168 hours) passed since the start of the batch?
 	return hoursSinceStartOfBatch > 168
+}

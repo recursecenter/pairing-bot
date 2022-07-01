@@ -71,6 +71,7 @@ type zulipUserNotification struct {
 	zulipAPIURL string
 }
 
+// implements streamMessage
 type zulipStreamMessage struct {
 	botUsername string
 	zulipAPIURL string

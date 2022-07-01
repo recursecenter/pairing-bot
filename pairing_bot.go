@@ -2,12 +2,12 @@ package main
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/http"
-	"strings"
 	"time"
+
+	"golang.org/x/exp/slices"
 )
 
 const owner string = `@_**Maren Beam (SP2'19)**`
@@ -22,11 +22,12 @@ var maintenanceMode = false
 const ownerID = "215391"
 
 type PairingLogic struct {
-	rdb RecurserDB
-	adb APIAuthDB
-	ur  userRequest
-	un  userNotification
-	sm  streamMessage
+	rdb   RecurserDB
+	adb   APIAuthDB
+	ur    userRequest
+	un    userNotification
+	sm    streamMessage
+	rcapi RecurseAPI
 }
 
 var randSrc = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -213,29 +214,37 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 
 	*/
 
-	//TODO, batch the API call since the limit is 50 results per
-
-	resp, err := http.Get("https://www.recurse.com/api/v1/profiles?scope=current&limit=50&role=recurser&access_token=418303ca6f2d8de46072c5b87814e3dac7280c6530115848dcdc1a68aa92dfa8")
+	accessToken, err := pl.adb.GetKey(ctx, "rc-accestoken", "key")
 	if err != nil {
-		log.Printf("Got the following error while getting the RC batches from the RC API: %s\n", err)
+		log.Printf("Something weird happened trying to read the RC API access token from the database: %s", err)
 	}
 
-	defer resp.Body.Close()
+	emailsOfPeopleAtRc := pl.rcapi.getCurrentlyActiveEmails(accessToken)
 
-	body, err := ioutil.ReadAll(resp.Body)
-
-	//Parse the json response from the API
-	var recursers []map[string]interface{}
-	json.Unmarshal([]byte(body), &recursers)
-
-	var emailsOfPeopleAtRC []string
-
-	for i := range recursers {
-		email := recursers[i]["email"].(string)
-		emailsOfPeopleAtRC = append(emailsOfPeopleAtRC, email)
-	}
+	log.Println(emailsOfPeopleAtRc)
 
 	for i := 0; i < len(recursersList); i++ {
+
+		recurser := recursersList[i]
+
+		recurserEmail := recurser.email
+		recurserID := recurser.id
+
+		isAtRCThisWeek := slices.Contains(emailsOfPeopleAtRc, recurserEmail)
+		wasAtRCLastWeek := recursersList[i].currentlyAtRC
+
+		//If they were at RC last week but not this week then we assume they have graduated or otherwise left RC
+		//In that case we remove them from pairing bot so that inactive people do not get matched
+		//If people who have left RC still want to use pairing bot, we give them the option to resubscribe
+		if wasAtRCLastWeek && !isAtRCThisWeek {
+			log.Println("This user has been unsubscribed from pairing bot")
+		}
+
+		recurser.currentlyAtRC = isAtRCThisWeek
+
+		if err = pl.rdb.Set(ctx, recurserID, recurser); err != nil {
+			log.Printf("Error encountered while update currentlyAtRC status for user: %s", recurserEmail)
+		}
 
 		// recurserID := recursersList[i].id
 		// recurserEmail := recursersList[i].email
@@ -271,68 +280,29 @@ func (pl *PairingLogic) welcome(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	/*
-		Check that we're in the second week of a batch
-	*/
+	ctx := r.Context()
 
-	if pl.isSecondWeekOfBatch() {
-		ctx := r.Context()
+	accessToken, err := pl.adb.GetKey(ctx, "rc-accestoken", "key")
+	if err != nil {
+		log.Printf("Something weird happened trying to read the RC API access token from the database: %s", err)
+	}
 
-		botPassword, err := pl.adb.GetKey(ctx, "apiauth", "key")
+	if pl.rcapi.isSecondWeekOfBatch(accessToken) {
+		log.Println("This is the second week of batch!")
 
-		if err != nil {
-			log.Println("Something weird happened trying to read the auth token from the database")
-		}
+		// ctx := r.Context()
 
-		streamMessageError := pl.sm.postToTopic(ctx, botPassword, "Hello, this is a test from the Pairing Bot to see if it can post to streams", "pairing", "[Pairing Bot Test Message] I'm Alive!!!!")
-		if streamMessageError != nil {
-			log.Printf("Error when trying to send welcome message about Pairing Bot %s\n", err)
-		}
+		// botPassword, err := pl.adb.GetKey(ctx, "apiauth", "key")
+
+		// if err != nil {
+		// 	log.Println("Something weird happened trying to read the auth token from the database")
+		// }
+
+		// streamMessageError := pl.sm.postToTopic(ctx, botPassword, "Hello, this is a test from the Pairing Bot to see if it can post to streams", "pairing", "[Pairing Bot Test Message] I'm Alive!!!!")
+		// if streamMessageError != nil {
+		// 	log.Printf("Error when trying to send welcome message about Pairing Bot %s\n", err)
+		// }
 	} else {
-
+		log.Println("This is not the second week of batch")
 	}
-}
-
-func (pl *PairingLogic) isSecondWeekOfBatch() bool {
-	resp, err := http.Get("https://www.recurse.com/api/v1/batches?access_token=418303ca6f2d8de46072c5b87814e3dac7280c6530115848dcdc1a68aa92dfa8")
-	if err != nil {
-		log.Printf("Got the following error while getting the RC batches from the RC API: %s\n", err)
-	}
-
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-
-	//Parse the json response from the API
-	var batches []map[string]interface{}
-	json.Unmarshal([]byte(body), &batches)
-
-	var batchStart string
-
-	//Loop through the batches until we find the first non-mini batch. Mini batches are only 1 week long, so it doesn't make sense to send a message
-	//1 week after a mini batch has started :joy:
-	for i := range batches {
-		if !strings.HasPrefix(batches[i]["name"].(string), "Mini") {
-			batchStart = batches[i]["start_date"].(string)
-
-			break
-		}
-	}
-
-	const shortForm = "2006-01-02"
-
-	todayDate := time.Now()
-	batchStartDate, _ := time.Parse(shortForm, batchStart)
-
-	if err != nil {
-		log.Printf("Unable to parse the batch start date of: %s. Exiting out of the welcome cron job.", batchStart)
-		return false
-	}
-
-	hoursSinceStartOfBatch := todayDate.Sub(batchStartDate).Hours()
-
-	log.Printf("Hours since start of the batch: %f", hoursSinceStartOfBatch)
-
-	//Has 1 week (168 hours) passed since the start of the batch?
-	return hoursSinceStartOfBatch > 168
 }

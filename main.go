@@ -46,6 +46,10 @@ func main() {
 		client: rc,
 	}
 
+	rcapi := RecurseAPI{
+		rcAPIURL: "https://www.recurse.com/api/v1",
+	}
+
 	adb := &FirestoreAPIAuthDB{
 		client: ac,
 	}
@@ -63,11 +67,12 @@ func main() {
 	}
 
 	pl := &PairingLogic{
-		rdb: rdb,
-		adb: adb,
-		ur:  ur,
-		un:  un,
-		sm:  sm,
+		rdb:   rdb,
+		adb:   adb,
+		ur:    ur,
+		un:    un,
+		sm:    sm,
+		rcapi: rcapi,
 	}
 
 	http.HandleFunc("/", http.NotFound)           // will this handle anything that's not defined?

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 )
 
@@ -64,8 +65,12 @@ func dispatch(ctx context.Context, pl *PairingLogic, cmd string, cmdArgs []strin
 			break
 		}
 
-		//TODO- check if the user is currently at RC
-		rec.currentlyAtRC = true
+		accessToken, err := pl.adb.GetKey(ctx, "rc-accestoken", "key")
+		if err != nil {
+			log.Printf("Something weird happened trying to read the RC API access token from the database: %s", err)
+		}
+
+		rec.currentlyAtRC = pl.rcapi.userIsCurrentlyAtRC(accessToken, userEmail)
 
 		if err = pl.rdb.Set(ctx, userID, rec); err != nil {
 			response = writeErrorMessage

@@ -212,7 +212,7 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 
 	*/
 
-	accessToken, err := pl.adb.GetKey(ctx, "rc-accestoken", "key")
+	accessToken, err := pl.adb.GetKey(ctx, "rc-accesstoken", "key")
 	if err != nil {
 		log.Printf("Something weird happened trying to read the RC API access token from the database: %s", err)
 	}
@@ -280,7 +280,7 @@ func (pl *PairingLogic) welcome(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
-	accessToken, err := pl.adb.GetKey(ctx, "rc-accestoken", "key")
+	accessToken, err := pl.adb.GetKey(ctx, "rc-accesstoken", "key")
 	if err != nil {
 		log.Printf("Something weird happened trying to read the RC API access token from the database: %s", err)
 	}

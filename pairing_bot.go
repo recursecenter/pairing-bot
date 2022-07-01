@@ -6,8 +6,6 @@ import (
 	"math/rand"
 	"net/http"
 	"time"
-
-	"golang.org/x/exp/slices"
 )
 
 const owner string = `@_**Maren Beam (SP2'19)**`
@@ -230,7 +228,7 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 		recurserEmail := recurser.email
 		recurserID := recurser.id
 
-		isAtRCThisWeek := slices.Contains(emailsOfPeopleAtRc, recurserEmail)
+		isAtRCThisWeek := contains(emailsOfPeopleAtRc, recurserEmail)
 		wasAtRCLastWeek := recursersList[i].currentlyAtRC
 
 		//If they were at RC last week but not this week then we assume they have graduated or otherwise left RC

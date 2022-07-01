@@ -24,7 +24,7 @@ type Stint struct {
 func (ra *RecurseAPI) userIsCurrentlyAtRC(accessToken string, email string) bool {
 	currentlyAtRC := false
 
-	resp, err := http.Get(ra.rcAPIURL + "/profiles/" + email)
+	resp, err := http.Get(ra.rcAPIURL + "/profiles/" + email + "?access_token=" + accessToken)
 
 	if err != nil {
 		log.Printf("Got the following error while checking if the user was active at RC: %s\n", err)
@@ -38,6 +38,8 @@ func (ra *RecurseAPI) userIsCurrentlyAtRC(accessToken string, email string) bool
 	//Parse the json response from the API
 	profile := RecurserProfile{}
 	json.Unmarshal([]byte(body), &profile)
+
+	log.Println("Recurser Profile: ", profile)
 
 	currentlyAtRC = profile.Stints[0].In_progress
 
@@ -115,4 +117,3 @@ func (ra *RecurseAPI) isSecondWeekOfBatch(accessToken string) bool {
 
 	//Has 1 week (168 hours) passed since the start of the batch?
 	return hoursSinceStartOfBatch > 168
-}

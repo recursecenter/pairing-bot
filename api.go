@@ -18,7 +18,7 @@ type RecurserProfile struct {
 }
 
 func (ra *RecurseAPI) userIsCurrentlyAtRC(accessToken string, email string) bool {
-	emailsOfPeopleAtRC := ra.getCurrentlyActiveEmails(email)
+	emailsOfPeopleAtRC := ra.getCurrentlyActiveEmails(accessToken)
 
 	return contains(emailsOfPeopleAtRC, email)
 }

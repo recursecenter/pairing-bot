@@ -275,8 +275,7 @@ func (pl *PairingLogic) welcome(w http.ResponseWriter, r *http.Request) {
 
 		streamMessage := getWelcomeMessage()
 
-		err = pl.un.sendUserMessage(ctx, botPassword, "thecrxu@gmail.com", streamMessage)
-		// err = pl.sm.postToTopic(ctx, botPassword, streamMessage, "397 Bridge", "🍐🤖")
+		err = pl.sm.postToTopic(ctx, botPassword, streamMessage, "397 Bridge", "🍐🤖")
 		if err != nil {
 			log.Printf("Error when trying to send welcome message about Pairing Bot %s\n", err)
 		}
@@ -299,7 +298,7 @@ func getWelcomeMessage() string {
 			"######################################################################## 00110001 00110000 00110000 00100101\n\n" +
 			"=> Pairing Bot successfully updated to version %s\n" +
 			"``` \n\n\n" +
-			"Greetings @**Robert Xu**,\n\n" +
+			"Greetings @*Currently at RC*,\n\n" +
 			"My name is Pairing Bot and my mission is to ~~eliminate all~~ help pair people at RC to work on projects.\n\n" +
 			"**How To Get Started**\n\n" +
 			"* Send me a private message with the word `subscribe` to get started. I will then match you with another pairing bot subscriber each day.\n\n" +

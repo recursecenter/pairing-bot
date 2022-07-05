@@ -276,7 +276,7 @@ func (pl *PairingLogic) welcome(w http.ResponseWriter, r *http.Request) {
 		streamMessage := getWelcomeMessage()
 
 		err = pl.un.sendUserMessage(ctx, botPassword, "thecrxu@gmail.com", streamMessage)
-		err = pl.sm.postToTopic(ctx, botPassword, streamMessage, "397 Bridge", "🍐🤖")
+		// err = pl.sm.postToTopic(ctx, botPassword, streamMessage, "397 Bridge", "🍐🤖")
 		if err != nil {
 			log.Printf("Error when trying to send welcome message about Pairing Bot %s\n", err)
 		}

@@ -102,8 +102,6 @@ func (ra *RecurseAPI) isSecondWeekOfBatch(accessToken string) bool {
 
 	//Convert strings of the form "YYYY-MM-DD" into time objects that Go can perform mathematical operations with
 	const shortForm = "2006-01-02"
-
-	todayDate := time.Now()
 	batchStartDate, _ := time.Parse(shortForm, batchStart)
 
 	if err != nil {
@@ -111,10 +109,10 @@ func (ra *RecurseAPI) isSecondWeekOfBatch(accessToken string) bool {
 		return false
 	}
 
+	todayDate := time.Now()
 	hoursSinceStartOfBatch := todayDate.Sub(batchStartDate).Hours()
 
 	log.Printf("Hours since start of the batch: %f", hoursSinceStartOfBatch)
 
-	//Has 1 week (168 hours) passed since the start of the batch?
-	return hoursSinceStartOfBatch > 168
+	return (hoursSinceStartOfBatch > 168) && (hoursSinceStartOfBatch < 336)
 }

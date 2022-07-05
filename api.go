@@ -14,40 +14,17 @@ type RecurseAPI struct {
 }
 
 type RecurserProfile struct {
-	Stints []Stint
-}
-
-type Stint struct {
-	In_progress bool
+	Email string
 }
 
 func (ra *RecurseAPI) userIsCurrentlyAtRC(accessToken string, email string) bool {
-	currentlyAtRC := false
+	emailsOfPeopleAtRC := ra.getCurrentlyActiveEmails(email)
 
-	resp, err := http.Get(ra.rcAPIURL + "/profiles/" + email + "?access_token=" + accessToken)
-
-	if err != nil {
-		log.Printf("Got the following error while checking if the user was active at RC: %s\n", err)
-		return currentlyAtRC
-	}
-
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-
-	//Parse the json response from the API
-	profile := RecurserProfile{}
-	json.Unmarshal([]byte(body), &profile)
-
-	log.Println("Recurser Profile: ", profile)
-
-	currentlyAtRC = profile.Stints[0].In_progress
-
-	log.Println("in_progress:", currentlyAtRC)
-
-	return currentlyAtRC
+	return contains(emailsOfPeopleAtRC, email)
 }
 
+//The API endpoint this queries is updated at midnight on the last day (Friday) of a batch.
+//Make sure to only query this endpoint after it has been updated
 func (ra *RecurseAPI) getCurrentlyActiveEmails(accessToken string) []string {
 	//TODO, batch the API call since the limit is 50 results per
 
@@ -61,13 +38,13 @@ func (ra *RecurseAPI) getCurrentlyActiveEmails(accessToken string) []string {
 	body, err := ioutil.ReadAll(resp.Body)
 
 	//Parse the json response from the API
-	var recursers []map[string]interface{}
+	recursers := []RecurserProfile{}
 	json.Unmarshal([]byte(body), &recursers)
 
 	var emailsOfPeopleAtRC []string
 
 	for i := range recursers {
-		email := recursers[i]["email"].(string)
+		email := recursers[i].Email
 		emailsOfPeopleAtRC = append(emailsOfPeopleAtRC, email)
 	}
 

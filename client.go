@@ -200,10 +200,6 @@ func (mun *mockUserNotification) sendUserMessage(ctx context.Context, botPasswor
 	return nil
 }
 
-func (mun *mockUserNotification) postToTopic(ctx context.Context, botPassword, message string, stream string, topic string) error {
-	return nil
-}
-
 func (mur *mockUserRequest) validateJSON(r *http.Request) error {
 	return nil
 }

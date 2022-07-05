@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"math/rand"
 	"net/http"
@@ -175,9 +176,7 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//We just need a list of recurser emails, no need to contact zulip.
-//We can query the profiles endpoint and set the scope to current
-
+//Unsubscribe people from Pairing Bot when their batch is over. They're always welcome to re-subscribe manually!
 func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 	// Check that the request is originating from within app engine
 	// https://cloud.google.com/appengine/docs/flexible/go/scheduling-jobs-with-cron-yaml#validating_cron_requests
@@ -193,24 +192,10 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Could not get list of recursers from DB: %s\n", err)
 	}
 
-	// message and offboard everyone (delete them from the database)
-
-	// botPassword, err := pl.adb.GetKey(ctx, "apiauth", "key")
-	// if err != nil {
-	// 	log.Println("Something weird happened trying to read the auth token from the database")
-	// }
-
-	/*
-
-		Weekly Cron Job: runs every Saturday. The `currentAtRC` status updates Friday midnight.
-
-		1) go through all the recursers in the DB
-		2) Check their "currentlyAtRC" status.  write down the current_date.
-		3) Compare "are they at RC now" vs "were they at RC when the job last ran".
-		4) If last_week = atRC and this_week = noAtRC => unsubscribe
-		5) Edge cases: An alum wants to resubscribe. last_week = notAtRC this_week = notAtRC => don't do anything
-
-	*/
+	botPassword, err := pl.adb.GetKey(ctx, "apiauth", "key")
+	if err != nil {
+		log.Println("Something weird happened trying to read the auth token from the database")
+	}
 
 	accessToken, err := pl.adb.GetKey(ctx, "rc-accesstoken", "key")
 	if err != nil {
@@ -218,8 +203,6 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	emailsOfPeopleAtRc := pl.rcapi.getCurrentlyActiveEmails(accessToken)
-
-	log.Println(emailsOfPeopleAtRc)
 
 	for i := 0; i < len(recursersList); i++ {
 
@@ -235,7 +218,21 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 		//In that case we remove them from pairing bot so that inactive people do not get matched
 		//If people who have left RC still want to use pairing bot, we give them the option to resubscribe
 		if wasAtRCLastWeek && !isAtRCThisWeek {
-			log.Println("This user has been unsubscribed from pairing bot")
+			var message string
+
+			err = pl.rdb.Delete(ctx, recurserID)
+			if err != nil {
+				log.Println(err)
+				message = fmt.Sprintf("Uh oh, I was trying to offboard you since it's the end of batch, but something went wrong. Consider messaging %v to let them know this happened.", owner)
+			} else {
+				log.Println("This user has been unsubscribed from pairing bot: ", recurserEmail)
+				message = offboardedMessage
+			}
+
+			err := pl.un.sendUserMessage(ctx, botPassword, recurserEmail, message)
+			if err != nil {
+				log.Printf("Error when trying to send offboarding message to %s: %s\n", recurserEmail, err)
+			}
 		}
 
 		recurser.currentlyAtRC = isAtRCThisWeek
@@ -244,23 +241,6 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 			log.Printf("Error encountered while update currentlyAtRC status for user: %s", recurserEmail)
 		}
 
-		// recurserID := recursersList[i].id
-		// recurserEmail := recursersList[i].email
-		// var message string
-
-		// err = pl.rdb.Delete(ctx, recurserID)
-		// if err != nil {
-		// 	log.Println(err)
-		// 	message = fmt.Sprintf("Uh oh, I was trying to offboard you since it's the end of batch, but something went wrong. Consider messaging %v to let them know this happened.", owner)
-		// } else {
-		// 	log.Println("A user was offboarded because it's the end of a batch.")
-		// 	message = offboardedMessage
-		// }
-
-		// err := pl.un.sendUserMessage(ctx, botPassword, recurserEmail, message)
-		// if err != nil {
-		// 	log.Printf("Error when trying to send offboarding message to %s: %s\n", recurserEmail, err)
-		// }
 	}
 }
 
@@ -286,21 +266,47 @@ func (pl *PairingLogic) welcome(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if pl.rcapi.isSecondWeekOfBatch(accessToken) {
-		log.Println("This is the second week of batch!")
+		ctx := r.Context()
+		botPassword, err := pl.adb.GetKey(ctx, "apiauth", "key")
 
-		// ctx := r.Context()
+		if err != nil {
+			log.Println("Something weird happened trying to read the auth token from the database")
+		}
 
-		// botPassword, err := pl.adb.GetKey(ctx, "apiauth", "key")
+		streamMessage := getWelcomeMessage()
 
-		// if err != nil {
-		// 	log.Println("Something weird happened trying to read the auth token from the database")
-		// }
-
-		// streamMessageError := pl.sm.postToTopic(ctx, botPassword, "Hello, this is a test from the Pairing Bot to see if it can post to streams", "pairing", "[Pairing Bot Test Message] I'm Alive!!!!")
-		// if streamMessageError != nil {
-		// 	log.Printf("Error when trying to send welcome message about Pairing Bot %s\n", err)
-		// }
+		err = pl.un.sendUserMessage(ctx, botPassword, "thecrxu@gmail.com", streamMessage)
+		err = pl.sm.postToTopic(ctx, botPassword, streamMessage, "397 Bridge", "🍐🤖")
+		if err != nil {
+			log.Printf("Error when trying to send welcome message about Pairing Bot %s\n", err)
+		}
 	} else {
-		log.Println("This is not the second week of batch")
+		log.Println("The welcome cron did not post a message to Zulip since it is not the second week of a batch")
 	}
+}
+
+func getWelcomeMessage() string {
+	today := time.Now()
+	todayFormatted := today.Format("01.02.2006")
+
+	message :=
+		"```Bash\n" +
+			"=> Initializing the Pairing Bot process\n" +
+			"######################################################################## 100%\n" +
+			"=> Loading list of people currently at RC\n" +
+			"######################################################################## 100%\n" +
+			"=> Teaching Pairing Bot how to beep boop beep\n" +
+			"######################################################################## 00110001 00110000 00110000 00100101\n\n" +
+			"=> Pairing Bot successfully updated to version %s\n" +
+			"``` \n\n\n" +
+			"Greetings @**Robert Xu**,\n\n" +
+			"My name is Pairing Bot and my mission is to ~~eliminate all~~ help pair people at RC to work on projects.\n\n" +
+			"**How To Get Started**\n\n" +
+			"* Send me a private message with the word `subscribe` to get started. I will then match you with another pairing bot subscriber each day.\n\n" +
+			"* Don't want to pair each day? You can set your schedule with the command `schedule tuesday friday` and I will only match you with people on those days.\n\n" +
+			"* You can view a full list of my functions by sending me a PM with the message `help`.\n\n" +
+			"**Have feedback/questions about Pairing Bot?**\n\n" +
+			"* Please respond to this topic so I can better fulfill my duties of ~~throwing :pear: parties~~ connecting people together."
+
+	return fmt.Sprintf(message, todayFormatted)
 }

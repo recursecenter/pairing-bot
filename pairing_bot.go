@@ -192,10 +192,10 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Could not get list of recursers from DB: %s\n", err)
 	}
 
-	botPassword, err := pl.adb.GetKey(ctx, "apiauth", "key")
-	if err != nil {
-		log.Println("Something weird happened trying to read the auth token from the database")
-	}
+	// botPassword, err := pl.adb.GetKey(ctx, "apiauth", "key")
+	// if err != nil {
+	// 	log.Println("Something weird happened trying to read the auth token from the database")
+	// }
 
 	accessToken, err := pl.adb.GetKey(ctx, "rc-accesstoken", "key")
 	if err != nil {
@@ -218,21 +218,24 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 		//In that case we remove them from pairing bot so that inactive people do not get matched
 		//If people who have left RC still want to use pairing bot, we give them the option to resubscribe
 		if wasAtRCLastWeek && !isAtRCThisWeek {
-			var message string
+			log.Printf("We would have unsubscribed the user: %s", recurserEmail)
+			// var message string
 
-			err = pl.rdb.Delete(ctx, recurserID)
-			if err != nil {
-				log.Println(err)
-				message = fmt.Sprintf("Uh oh, I was trying to offboard you since it's the end of batch, but something went wrong. Consider messaging %v to let them know this happened.", owner)
-			} else {
-				log.Println("This user has been unsubscribed from pairing bot: ", recurserEmail)
-				message = offboardedMessage
-			}
+			// err = pl.rdb.Delete(ctx, recurserID)
+			// if err != nil {
+			// 	log.Println(err)
+			// 	message = fmt.Sprintf("Uh oh, I was trying to offboard you since it's the end of batch, but something went wrong. Consider messaging %v to let them know this happened.", owner)
+			// } else {
+			// 	log.Println("This user has been unsubscribed from pairing bot: ", recurserEmail)
+			// 	message = offboardedMessage
+			// }
 
-			err := pl.un.sendUserMessage(ctx, botPassword, recurserEmail, message)
-			if err != nil {
-				log.Printf("Error when trying to send offboarding message to %s: %s\n", recurserEmail, err)
-			}
+			// err := pl.un.sendUserMessage(ctx, botPassword, recurserEmail, message)
+			// if err != nil {
+			// 	log.Printf("Error when trying to send offboarding message to %s: %s\n", recurserEmail, err)
+			// }
+		} else {
+			log.Printf("We would NOT have unsubscribed the user: %s", recurserEmail)
 		}
 
 		recurser.currentlyAtRC = isAtRCThisWeek
@@ -266,19 +269,21 @@ func (pl *PairingLogic) welcome(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if pl.rcapi.isSecondWeekOfBatch(accessToken) {
-		ctx := r.Context()
-		botPassword, err := pl.adb.GetKey(ctx, "apiauth", "key")
+		log.Println("the welcome cron would have posted a welcome message to Zulip")
 
-		if err != nil {
-			log.Println("Something weird happened trying to read the auth token from the database")
-		}
+		// ctx := r.Context()
+		// botPassword, err := pl.adb.GetKey(ctx, "apiauth", "key")
 
-		streamMessage := getWelcomeMessage()
+		// if err != nil {
+		// 	log.Println("Something weird happened trying to read the auth token from the database")
+		// }
 
-		err = pl.sm.postToTopic(ctx, botPassword, streamMessage, "397 Bridge", "🍐🤖")
-		if err != nil {
-			log.Printf("Error when trying to send welcome message about Pairing Bot %s\n", err)
-		}
+		// streamMessage := getWelcomeMessage()
+
+		// err = pl.sm.postToTopic(ctx, botPassword, streamMessage, "397 Bridge", "🍐🤖")
+		// if err != nil {
+		// 	log.Printf("Error when trying to send welcome message about Pairing Bot %s\n", err)
+		// }
 	} else {
 		log.Println("The welcome cron did not post a message to Zulip since it is not the second week of a batch")
 	}

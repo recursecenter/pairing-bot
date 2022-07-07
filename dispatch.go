@@ -131,7 +131,8 @@ func dispatch(ctx context.Context, pl *PairingLogic, cmd string, cmdArgs []strin
 			"Thursday",
 			"Friday",
 			"Saturday",
-			"Sunday"}
+			"Sunday",
+		}
 
 		// get their current name
 		whoami := rec.name

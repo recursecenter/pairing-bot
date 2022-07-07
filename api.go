@@ -26,6 +26,7 @@ func (ra *RecurseAPI) userIsCurrentlyAtRC(accessToken string, email string) bool
 //The API endpoint this queries is updated at midnight on the last day (Friday) of a batch.
 //Make sure to only query this endpoint after it has been updated
 func (ra *RecurseAPI) getCurrentlyActiveEmails(accessToken string) []string {
+	var emailsOfPeopleAtRC []string
 	//TODO, batch the API call since the limit is 50 results per
 
 	resp, err := http.Get(ra.rcAPIURL + "/profiles?scope=current&limit=50&role=recurser&access_token=" + accessToken)
@@ -37,11 +38,14 @@ func (ra *RecurseAPI) getCurrentlyActiveEmails(accessToken string) []string {
 
 	body, err := ioutil.ReadAll(resp.Body)
 
+	if err != nil {
+		log.Printf("Unable to get the emails of people currently at RC due to the following error: %s", err)
+		return emailsOfPeopleAtRC
+	}
+
 	//Parse the json response from the API
 	recursers := []RecurserProfile{}
 	json.Unmarshal([]byte(body), &recursers)
-
-	var emailsOfPeopleAtRC []string
 
 	for i := range recursers {
 		email := recursers[i].Email

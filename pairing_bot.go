@@ -21,10 +21,12 @@ var maintenanceMode = false
 const ownerID = "215391"
 
 type PairingLogic struct {
-	rdb RecurserDB
-	adb APIAuthDB
-	ur  userRequest
-	un  userNotification
+	rdb   RecurserDB
+	adb   APIAuthDB
+	ur    userRequest
+	un    userNotification
+	sm    streamMessage
+	rcapi RecurseAPI
 }
 
 var randSrc = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -39,7 +41,10 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
+	log.Println("Handling a new Zulip request")
+
 	if err = pl.ur.validateJSON(r); err != nil {
+		log.Println(err)
 		http.NotFound(w, r)
 	}
 
@@ -171,6 +176,7 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+//Unsubscribe people from Pairing Bot when their batch is over. They're always welcome to re-subscribe manually!
 func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 	// Check that the request is originating from within app engine
 	// https://cloud.google.com/appengine/docs/flexible/go/scheduling-jobs-with-cron-yaml#validating_cron_requests
@@ -186,31 +192,125 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Could not get list of recursers from DB: %s\n", err)
 	}
 
-	// message and offboard everyone (delete them from the database)
+	// botPassword, err := pl.adb.GetKey(ctx, "apiauth", "key")
+	// if err != nil {
+	// 	log.Println("Something weird happened trying to read the auth token from the database")
+	// }
 
-	botPassword, err := pl.adb.GetKey(ctx, "apiauth", "key")
+	accessToken, err := pl.adb.GetKey(ctx, "rc-accesstoken", "key")
 	if err != nil {
-		log.Println("Something weird happened trying to read the auth token from the database")
+		log.Printf("Something weird happened trying to read the RC API access token from the database: %s", err)
 	}
+
+	emailsOfPeopleAtRc := pl.rcapi.getCurrentlyActiveEmails(accessToken)
 
 	for i := 0; i < len(recursersList); i++ {
 
-		recurserID := recursersList[i].id
-		recurserEmail := recursersList[i].email
-		var message string
+		recurser := recursersList[i]
 
-		err = pl.rdb.Delete(ctx, recurserID)
-		if err != nil {
-			log.Println(err)
-			message = fmt.Sprintf("Uh oh, I was trying to offboard you since it's the end of batch, but something went wrong. Consider messaging %v to let them know this happened.", owner)
+		recurserEmail := recurser.email
+		recurserID := recurser.id
+
+		isAtRCThisWeek := contains(emailsOfPeopleAtRc, recurserEmail)
+		wasAtRCLastWeek := recursersList[i].currentlyAtRC
+
+		//If they were at RC last week but not this week then we assume they have graduated or otherwise left RC
+		//In that case we remove them from pairing bot so that inactive people do not get matched
+		//If people who have left RC still want to use pairing bot, we give them the option to resubscribe
+		if wasAtRCLastWeek && !isAtRCThisWeek {
+			log.Printf("We would have unsubscribed the user: %s", recurserEmail)
+			// var message string
+
+			// err = pl.rdb.Delete(ctx, recurserID)
+			// if err != nil {
+			// 	log.Println(err)
+			// 	message = fmt.Sprintf("Uh oh, I was trying to offboard you since it's the end of batch, but something went wrong. Consider messaging %v to let them know this happened.", owner)
+			// } else {
+			// 	log.Println("This user has been unsubscribed from pairing bot: ", recurserEmail)
+			// 	message = offboardedMessage
+			// }
+
+			// err := pl.un.sendUserMessage(ctx, botPassword, recurserEmail, message)
+			// if err != nil {
+			// 	log.Printf("Error when trying to send offboarding message to %s: %s\n", recurserEmail, err)
+			// }
 		} else {
-			log.Println("A user was offboarded because it's the end of a batch.")
-			message = offboardedMessage
+			log.Printf("We would NOT have unsubscribed the user: %s", recurserEmail)
 		}
 
-		err := pl.un.sendUserMessage(ctx, botPassword, recurserEmail, message)
-		if err != nil {
-			log.Printf("Error when trying to send offboarding message to %s: %s\n", recurserEmail, err)
+		recurser.currentlyAtRC = isAtRCThisWeek
+
+		if err = pl.rdb.Set(ctx, recurserID, recurser); err != nil {
+			log.Printf("Error encountered while update currentlyAtRC status for user: %s", recurserEmail)
 		}
+
 	}
+}
+
+/*
+Sends out a "Welcome to Pairing Bot" message to 397 Bridge during the second week of RC to introduce people to RC.
+
+We don't send this welcome message during the first week since it's a bit overwhelming with all of the orientation meetings
+and people haven't had time to think too much about their projects.
+*/
+func (pl *PairingLogic) welcome(w http.ResponseWriter, r *http.Request) {
+	// Check that the request is originating from within app engine
+	// https://cloud.google.com/appengine/docs/flexible/go/scheduling-jobs-with-cron-yaml#validating_cron_requests
+	if r.Header.Get("X-Appengine-Cron") != "true" {
+		http.NotFound(w, r)
+		return
+	}
+
+	ctx := r.Context()
+
+	accessToken, err := pl.adb.GetKey(ctx, "rc-accesstoken", "key")
+	if err != nil {
+		log.Printf("Something weird happened trying to read the RC API access token from the database: %s", err)
+	}
+
+	if pl.rcapi.isSecondWeekOfBatch(accessToken) {
+		log.Println("the welcome cron would have posted a welcome message to Zulip")
+
+		// ctx := r.Context()
+		// botPassword, err := pl.adb.GetKey(ctx, "apiauth", "key")
+
+		// if err != nil {
+		// 	log.Println("Something weird happened trying to read the auth token from the database")
+		// }
+
+		// streamMessage := getWelcomeMessage()
+
+		// err = pl.sm.postToTopic(ctx, botPassword, streamMessage, "397 Bridge", "🍐🤖")
+		// if err != nil {
+		// 	log.Printf("Error when trying to send welcome message about Pairing Bot %s\n", err)
+		// }
+	} else {
+		log.Println("The welcome cron did not post a message to Zulip since it is not the second week of a batch")
+	}
+}
+
+func getWelcomeMessage() string {
+	today := time.Now()
+	todayFormatted := today.Format("01.02.2006")
+
+	message :=
+		"```Bash\n" +
+			"=> Initializing the Pairing Bot process\n" +
+			"######################################################################## 100%%\n" +
+			"=> Loading list of people currently at RC\n" +
+			"######################################################################## 100%%\n" +
+			"=> Teaching Pairing Bot how to beep boop beep\n" +
+			"######################################################################## 00110001 00110000 00110000 00100101\n\n" +
+			"=> Pairing Bot successfully updated to version %s\n" +
+			"``` \n\n\n" +
+			"Greetings @*Currently at RC*,\n\n" +
+			"My name is Pairing Bot and my mission is to ~~eliminate all~~ help pair people at RC to work on projects.\n\n" +
+			"**How To Get Started**\n\n" +
+			"* Send me a private message with the word `subscribe` to get started. I will then match you with another pairing bot subscriber each day.\n\n" +
+			"* Don't want to pair each day? You can set your schedule with the command `schedule tuesday friday` and I will only match you with people on those days.\n\n" +
+			"* You can view a full list of my functions by sending me a PM with the message `help`.\n\n" +
+			"**Have feedback/questions about Pairing Bot?**\n\n" +
+			"* Please respond to this topic so I can better fulfill my duties of ~~throwing :pear: parties~~ connecting people together."
+
+	return fmt.Sprintf(message, todayFormatted)
 }

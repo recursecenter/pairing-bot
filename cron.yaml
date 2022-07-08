@@ -4,4 +4,7 @@ cron:
   schedule: every day 04:00
 - description: "End-of-batch offboarding job that only runs manually"
   url: /endofbatch
-  schedule: every 99999 hours
+  schedule: every saturday 16:00
+- description: "Start of batch (during the 2nd week) message to welcome people to pairing bot"
+  url: /welcome
+  schedule: every tuesday 18:00

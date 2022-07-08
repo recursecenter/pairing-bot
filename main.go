@@ -17,13 +17,26 @@ func main() {
 
 	ctx := context.Background()
 
-	rc, err := firestore.NewClient(ctx, "pairing-bot-284823")
+	appEnv := os.Getenv("APP_ENV")
+	projectId := "pairing-bot-284823"
+	botUsername := "pairing-bot@recurse.zulipchat.com"
+
+	log.Printf("Running the app in environment = %s", appEnv)
+
+	//We have two pairing bot projects. One for production and one for testing/dev work.
+	if appEnv != "production" {
+		projectId = "pairing-bot-dev"
+		botUsername = "dev-pairing-bot@recurse.zulipchat.com"
+		log.Println("Running pairing bot in the testing environment for development")
+	}
+
+	rc, err := firestore.NewClient(ctx, projectId)
 	if err != nil {
 		log.Panic(err)
 	}
 	defer rc.Close()
 
-	ac, err := firestore.NewClient(ctx, "pairing-bot-284823")
+	ac, err := firestore.NewClient(ctx, projectId)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -33,6 +46,10 @@ func main() {
 		client: rc,
 	}
 
+	rcapi := RecurseAPI{
+		rcAPIURL: "https://www.recurse.com/api/v1",
+	}
+
 	adb := &FirestoreAPIAuthDB{
 		client: ac,
 	}
@@ -40,21 +57,29 @@ func main() {
 	ur := &zulipUserRequest{}
 
 	un := &zulipUserNotification{
-		botUsername: "pairing-bot@recurse.zulipchat.com",
+		botUsername: botUsername,
+		zulipAPIURL: "https://recurse.zulipchat.com/api/v1/messages",
+	}
+
+	sm := &zulipStreamMessage{
+		botUsername: botUsername,
 		zulipAPIURL: "https://recurse.zulipchat.com/api/v1/messages",
 	}
 
 	pl := &PairingLogic{
-		rdb: rdb,
-		adb: adb,
-		ur:  ur,
-		un:  un,
+		rdb:   rdb,
+		adb:   adb,
+		ur:    ur,
+		un:    un,
+		sm:    sm,
+		rcapi: rcapi,
 	}
 
 	http.HandleFunc("/", http.NotFound)           // will this handle anything that's not defined?
 	http.HandleFunc("/webhooks", pl.handle)       // from zulip
 	http.HandleFunc("/match", pl.match)           // from GCP
 	http.HandleFunc("/endofbatch", pl.endofbatch) // manually triggered
+	http.HandleFunc("/welcome", pl.welcome)       // manually triggered
 
 	port := os.Getenv("PORT")
 	if port == "" {

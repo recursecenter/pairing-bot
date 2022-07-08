@@ -26,6 +26,7 @@ import (
 // 		"saturday":  false,
 // 		"sunday":    false,
 // 	},
+//  "currentlyAtRC":      false,
 // }
 
 type Recurser struct {
@@ -35,6 +36,7 @@ type Recurser struct {
 	isSkippingTomorrow bool
 	schedule           map[string]interface{}
 	isSubscribed       bool
+	currentlyAtRC      bool
 }
 
 func (r *Recurser) ConvertToMap() map[string]interface{} {
@@ -44,6 +46,7 @@ func (r *Recurser) ConvertToMap() map[string]interface{} {
 		"email":              r.email,
 		"isSkippingTomorrow": r.isSkippingTomorrow,
 		"schedule":           r.schedule,
+		"currentlyAtRC":      r.currentlyAtRC,
 	}
 }
 
@@ -54,6 +57,7 @@ func MapToStruct(m map[string]interface{}) Recurser {
 		email:              m["email"].(string),
 		isSkippingTomorrow: m["isSkippingTomorrow"].(bool),
 		schedule:           m["schedule"].(map[string]interface{}),
+		currentlyAtRC:      m["currentlyAtRC"].(bool),
 	}
 }
 
@@ -112,6 +116,7 @@ func (f *FirestoreRecurserDB) GetByUserID(ctx context.Context, userID, userEmail
 				"saturday":  false,
 				"sunday":    false,
 			},
+			currentlyAtRC: true,
 		}
 	}
 	// now put the data from the recurser map into a Recurser struct

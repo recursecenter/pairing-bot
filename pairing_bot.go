@@ -204,6 +204,8 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 
 	emailsOfPeopleAtRc := pl.rcapi.getCurrentlyActiveEmails(accessToken)
 
+	log.Println("These are the emails of people currently at rc: ", emailsOfPeopleAtRc)
+
 	for i := 0; i < len(recursersList); i++ {
 
 		recurser := recursersList[i]
@@ -213,6 +215,8 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 
 		isAtRCThisWeek := contains(emailsOfPeopleAtRc, recurserEmail)
 		wasAtRCLastWeek := recursersList[i].currentlyAtRC
+
+		log.Printf("User: %s was at RC last week: %t and is at RC this week: %t", recurserEmail, wasAtRCLastWeek, isAtRCThisWeek)
 
 		//If they were at RC last week but not this week then we assume they have graduated or otherwise left RC
 		//In that case we remove them from pairing bot so that inactive people do not get matched

@@ -93,8 +93,9 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 
-	// the tofu and potatoes right here y'all
+	log.Printf("The user: %s issued the following request to Pairing Bot: %s", userData.userEmail, cmd)
 
+	// the tofu and potatoes right here y'all
 	response, err := dispatch(ctx, pl, cmd, cmdArgs, userData.userID, userData.userEmail, userData.userName)
 	if err != nil {
 		log.Println(err)
@@ -162,7 +163,6 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Printf("Error when trying to send oddOneOut message to %s: %s\n", recurser.email, err)
 		}
-
 	}
 
 	for i := 0; i < len(recursersList); i += 2 {
@@ -174,6 +174,10 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 		}
 		log.Println(recursersList[i].email, "was", "matched", "with", recursersList[i+1].email)
 	}
+
+	numRecursersPairedUp := len(recursersList)
+
+	log.Printf("Pairing Bot paired up %d recursers today", numRecursersPairedUp)
 }
 
 //Unsubscribe people from Pairing Bot when their batch is over. They're always welcome to re-subscribe manually!

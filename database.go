@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log"
 	"strings"
 	"time"
 
@@ -278,4 +279,61 @@ type MockAPIAuthDB struct{}
 
 func (f *MockAPIAuthDB) GetKey(ctx context.Context, col, doc string) (string, error) {
 	return "", nil
+}
+
+type PairingsDB interface {
+	SetKey(ctx context.Context, col string, doc string) error
+	GetKey(ctx context.Context, col string, doc string) (int, error)
+	SetNumPairings(ctx context.Context, day string, numPairings int) error
+	GetTotalPairingsDuringLastWeek(ctx context.Context) (int, error)
+}
+
+// implements RecurserDB
+type FirestorePairingsDB struct {
+	client *firestore.Client
+}
+
+func (f *FirestorePairingsDB) SetKey(ctx context.Context, col string, doc string, value int) error {
+	_, err := f.client.Collection(col).Doc(doc).Set(ctx, map[string]int{
+		"value": value,
+	})
+	return err
+}
+
+func (f *FirestorePairingsDB) GetKey(ctx context.Context, col string, doc string) (int, error) {
+	res, err := f.client.Collection(col).Doc(doc).Get(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	token := res.Data()
+	return token["value"].(int), nil
+}
+
+func (f *FirestorePairingsDB) SetNumPairings(ctx context.Context, day string, numPairings int) error {
+	return f.SetKey(ctx, "pairings", day, numPairings)
+}
+
+func (f *FirestorePairingsDB) GetTotalPairingsDuringLastWeek(ctx context.Context) (int, error) {
+
+	totalPairings := 0
+
+	iter := f.client.Collection("pairings").Documents(ctx)
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return 0, err
+		}
+
+		dailyPairings := doc.Data()["value"].(int)
+
+		totalPairings += dailyPairings
+	}
+
+	log.Println(totalPairings)
+
+	return totalPairings, nil
 }

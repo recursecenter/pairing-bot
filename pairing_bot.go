@@ -23,6 +23,7 @@ const ownerID = "215391"
 type PairingLogic struct {
 	rdb   RecurserDB
 	adb   APIAuthDB
+	pdb   PairingsDB
 	ur    userRequest
 	un    userNotification
 	sm    streamMessage
@@ -253,6 +254,18 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 		}
 
 	}
+}
+
+func (pl *PairingLogic) checkin(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	numPairings, err := pl.pdb.GetTotalPairingsDuringLastWeek(ctx)
+
+	if err != nil {
+		log.Println("Total Pairings: ", numPairings)
+	}
+
+	pl.pdb.SetNumPairings(ctx, "monday", 5)
 }
 
 /*

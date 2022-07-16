@@ -42,6 +42,12 @@ func main() {
 	}
 	defer ac.Close()
 
+	pc, err := firestore.NewClient(ctx, projectId)
+	if err != nil {
+		log.Panic(err)
+	}
+	defer pc.Close()
+
 	rdb := &FirestoreRecurserDB{
 		client: rc,
 	}
@@ -52,6 +58,10 @@ func main() {
 
 	adb := &FirestoreAPIAuthDB{
 		client: ac,
+	}
+
+	pdb := &FirestorePairingsDB{
+		client: pc,
 	}
 
 	ur := &zulipUserRequest{}
@@ -69,6 +79,7 @@ func main() {
 	pl := &PairingLogic{
 		rdb:   rdb,
 		adb:   adb,
+		pdb:   pdb,
 		ur:    ur,
 		un:    un,
 		sm:    sm,
@@ -77,9 +88,10 @@ func main() {
 
 	http.HandleFunc("/", http.NotFound)           // will this handle anything that's not defined?
 	http.HandleFunc("/webhooks", pl.handle)       // from zulip
-	http.HandleFunc("/match", pl.match)           // from GCP
-	http.HandleFunc("/endofbatch", pl.endofbatch) // manually triggered
-	http.HandleFunc("/welcome", pl.welcome)       // manually triggered
+	http.HandleFunc("/match", pl.match)           // from GCP- daily
+	http.HandleFunc("/endofbatch", pl.endofbatch) // from GCP- weekly
+	http.HandleFunc("/welcome", pl.welcome)       // from GCP- weekly
+	http.HandleFunc("/checkin", pl.checkin)       // from GCP- weekly
 
 	port := os.Getenv("PORT")
 	if port == "" {

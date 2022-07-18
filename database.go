@@ -282,7 +282,7 @@ func (f *MockAPIAuthDB) GetKey(ctx context.Context, col, doc string) (string, er
 }
 
 type PairingsDB interface {
-	SetKey(ctx context.Context, col string, doc string) error
+	SetKey(ctx context.Context, col string, doc string, value int) error
 	GetKey(ctx context.Context, col string, doc string) (int, error)
 	SetNumPairings(ctx context.Context, day string, numPairings int) error
 	GetTotalPairingsDuringLastWeek(ctx context.Context) (int, error)

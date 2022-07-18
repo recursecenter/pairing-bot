@@ -328,6 +328,8 @@ func (f *FirestorePairingsDB) GetTotalPairingsDuringLastWeek(ctx context.Context
 			return 0, err
 		}
 
+		log.Println("This is the value of the current document", doc.Data()["value"])
+
 		dailyPairings := doc.Data()["value"].(int)
 
 		totalPairings += dailyPairings

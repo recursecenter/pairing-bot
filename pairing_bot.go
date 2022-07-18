@@ -259,13 +259,13 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 func (pl *PairingLogic) checkin(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	pl.pdb.SetNumPairings(ctx, "monday", 5)
+
 	numPairings, err := pl.pdb.GetTotalPairingsDuringLastWeek(ctx)
 
 	if err != nil {
 		log.Println("Total Pairings: ", numPairings)
 	}
-
-	pl.pdb.SetNumPairings(ctx, "monday", 5)
 }
 
 /*

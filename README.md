@@ -3,7 +3,7 @@
 
 A Zulip bot that partners people for pair programming practice :)
 
-### How to use Pairing Bot as an end-user
+### Information for Pairing Bot users
 Pairing Bot interacts through private messages on [Zulip](https://zulipchat.com/).
 * `subscribe` to start getting matched with other Pairing Bot users for pair programming
 * `schedule monday wednesday friday` to set your weekly pairing schedule
@@ -16,13 +16,13 @@ Pairing Bot interacts through private messages on [Zulip](https://zulipchat.com/
 * `unsubscribe` to stop getting matched entirely
   * This removes the user from the database. Since logs are anonymous, after **unsubscribe** Pairing Bot has no record of that user
  
-### About Pairing Bot's setup and deployment
- * Serverless. RC's instance is currently deployed on [App Engine](https://cloud.google.com/appengine/docs/standard/)
- * [Firestore database](https://cloud.google.com/firestore/docs/)
+### Information for Pairing Bot admins
+ * Runs in [GCP](https://cloud.google.com/) on [App Engine](https://cloud.google.com/appengine/docs/standard/)
+ * Uses [Firestore](https://cloud.google.com/firestore/docs/) for its database
  * Deployed on pushes to the `main` branch with [Cloud Build](https://cloud.google.com/cloud-build/docs/)
- * The database must be prepopulated with two pieces of data:  an authentication token (which the bot uses to validate incoming webhook requests), and an api key (which the bot uses to send private messages to Zulip users)
- * Zulip has bot types. Pairing Bot is of type `outgoing webhook`
- * Pair programming matches are made, and the people who've been matched are notified any time an HTTP GET request is issued to `/cron`
+ * The database must be prepopulated with two pieces of data:  an authentication token (used to validate incoming requests from Zulip), and an API key (used to talk to the Zulip API).
+ * Zulip bots must have an owner set in Zulip. They may only have one owner at a time. RC Pairing Bot's ownership is given to whoever is working on Pairing Bot at the moment. The current owner is [Robert Xu](https://github.com/RobertXu).
+ * Onboarding, offboarding, and daily pairing matches are all controlled with cron jobs set in [Cloud Scheduler](https://cloud.google.com/scheduler).
  * Pairing bot has a dev environment where you can test out changes before applying them to the main branch of pairing bot.
 
 ### Pull requests are welcome, especially from RC community members!

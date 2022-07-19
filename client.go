@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -78,6 +79,13 @@ type zulipStreamMessage struct {
 }
 
 func (zsm *zulipStreamMessage) postToTopic(ctx context.Context, botPassword, message string, stream string, topic string) error {
+	appEnv := os.Getenv("APP_ENV")
+
+	if appEnv != "production" {
+		log.Println("In the Prod environment Pairing Bot would have posted the following message: ", message)
+		return nil
+	}
+
 	zulipClient := &http.Client{}
 	messageRequest := url.Values{}
 

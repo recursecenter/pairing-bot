@@ -6,6 +6,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -179,6 +180,9 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 	numRecursersPairedUp := len(recursersList)
 
 	log.Printf("Pairing Bot paired up %d recursers today", numRecursersPairedUp)
+
+	dayOfWeek := strings.ToLower(time.Now().Weekday().String())
+	pl.pdb.SetNumPairings(ctx, dayOfWeek, numRecursersPairedUp)
 }
 
 //Unsubscribe people from Pairing Bot when their batch is over. They're always welcome to re-subscribe manually!
@@ -259,13 +263,54 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 func (pl *PairingLogic) checkin(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	pl.pdb.SetNumPairings(ctx, "monday", 5)
-
 	numPairings, err := pl.pdb.GetTotalPairingsDuringLastWeek(ctx)
 
 	if err != nil {
 		log.Println("Total Pairings: ", numPairings)
 	}
+
+	recursersList, err := pl.rdb.GetAllUsers(ctx)
+	if err != nil {
+		log.Printf("Could not get list of recursers from DB: %s\n", err)
+	}
+
+	checkinMessage := getCheckinMessage(numPairings, len(recursersList))
+
+	botPassword, err := pl.adb.GetKey(ctx, "apiauth", "key")
+	if err != nil {
+		log.Println("Something weird happened trying to read the auth token from the database")
+	}
+
+	recurserEmail := "thecrxu@gmail.com"
+
+	err = pl.un.sendUserMessage(ctx, botPassword, recurserEmail, checkinMessage)
+	if err != nil {
+		log.Printf("Error when trying to send offboarding message to %s: %s\n", recurserEmail, err)
+	}
+}
+
+func getCheckinMessage(numPairings int, numRecursers int) string {
+	today := time.Now()
+	todayFormatted := today.Format("January 1, 2006")
+
+	testimonial := "Pairing Bot is the most amazingest bot ever"
+
+	message :=
+		"```Bash\n" +
+			"=> Initializing the Pairing Bot process\n" +
+			"######################################################################## 100%%\n" +
+			"=> Loading recent data for Pairing Bot Usage\n" +
+			"######################################################################## 100%%\n" +
+			"=> Teaching Pairing Bot how to boop beep boop for it is a strange loop\n" +
+			"######################################################################## 00110001 00110000 00110000 00100101\n\n" +
+			"``` \n\n\n" +
+			"**%s Checkin**\n\n" +
+			"* Current number of Recursers subscribed to Pairing Bot: %d\n\n" +
+			"* Number of pairings facilitiated in the last week: %d \n\n" +
+			"**Random Pairing Bot Testimonial**\n\n" +
+			"* %s"
+
+	return fmt.Sprintf(message, todayFormatted, numRecursers, numPairings, testimonial)
 }
 
 /*

@@ -333,7 +333,7 @@ func (f *FirestorePairingsDB) GetTotalPairingsDuringLastWeek(ctx context.Context
 		totalPairings += dailyPairings
 	}
 
-	log.Println(totalPairings)
+	log.Println("Total number of pairings: ", totalPairings)
 
 	return totalPairings, nil
 }

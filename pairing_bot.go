@@ -299,9 +299,9 @@ func getCheckinMessage(numPairings int, numRecursers int) string {
 		"```Bash\n" +
 			"=> Initializing the Pairing Bot process\n" +
 			"######################################################################## 100%%\n" +
-			"=> Loading recent data for Pairing Bot Usage\n" +
+			"=> Loading Pairing Bot Usage Statistics\n" +
 			"######################################################################## 100%%\n" +
-			"=> Teaching Pairing Bot how to boop beep boop for it is a strange loop\n" +
+			"=> Teaching Pairing Bot how to boop beep boop as it is a strange loop\n" +
 			"######################################################################## 00110001 00110000 00110000 00100101\n\n" +
 			"``` \n\n\n" +
 			"**%s Checkin**\n\n" +

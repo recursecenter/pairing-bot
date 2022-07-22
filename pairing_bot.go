@@ -6,7 +6,6 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -181,8 +180,8 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Pairing Bot paired up %d recursers today", numRecursersPairedUp)
 
-	dayOfWeek := strings.ToLower(time.Now().Weekday().String())
-	pl.pdb.SetNumPairings(ctx, dayOfWeek, numRecursersPairedUp)
+	timestamp := time.Now().Unix()
+	pl.pdb.SetNumPairings(ctx, int(timestamp), numRecursersPairedUp)
 }
 
 //Unsubscribe people from Pairing Bot when their batch is over. They're always welcome to re-subscribe manually!

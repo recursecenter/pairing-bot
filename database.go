@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"log"
+	"math/rand"
+	"strconv"
 	"strings"
 	"time"
 
@@ -282,9 +284,7 @@ func (f *MockAPIAuthDB) GetKey(ctx context.Context, col, doc string) (string, er
 }
 
 type PairingsDB interface {
-	SetKey(ctx context.Context, col string, doc string, value int) error
-	GetKey(ctx context.Context, col string, doc string) (int, error)
-	SetNumPairings(ctx context.Context, day string, numPairings int) error
+	SetNumPairings(ctx context.Context, timestamp int, numPairings int) error
 	GetTotalPairingsDuringLastWeek(ctx context.Context) (int, error)
 }
 
@@ -293,32 +293,23 @@ type FirestorePairingsDB struct {
 	client *firestore.Client
 }
 
-func (f *FirestorePairingsDB) SetKey(ctx context.Context, col string, doc string, value int) error {
-	_, err := f.client.Collection(col).Doc(doc).Set(ctx, map[string]int{
-		"value": value,
+func (f *FirestorePairingsDB) SetNumPairings(ctx context.Context, timestamp int, numPairings int) error {
+	timestampAsString := strconv.Itoa(timestamp)
+
+	_, err := f.client.Collection("pairings").Doc(timestampAsString).Set(ctx, map[string]interface{}{
+		"value":     numPairings,
+		"timestamp": timestamp,
 	})
 	return err
-}
-
-func (f *FirestorePairingsDB) GetKey(ctx context.Context, col string, doc string) (int, error) {
-	res, err := f.client.Collection(col).Doc(doc).Get(ctx)
-	if err != nil {
-		return 0, err
-	}
-
-	token := res.Data()
-	return token["value"].(int), nil
-}
-
-func (f *FirestorePairingsDB) SetNumPairings(ctx context.Context, day string, numPairings int) error {
-	return f.SetKey(ctx, "pairings", day, numPairings)
 }
 
 func (f *FirestorePairingsDB) GetTotalPairingsDuringLastWeek(ctx context.Context) (int, error) {
 
 	totalPairings := 0
 
-	iter := f.client.Collection("pairings").Documents(ctx)
+	timestampSevenDaysAgo := time.Now().Add(-7 * 24 * time.Hour).Unix()
+
+	iter := f.client.Collection("pairings").Where("timestamp", ">", timestampSevenDaysAgo).Documents(ctx)
 	for {
 		doc, err := iter.Next()
 		if err == iterator.Done {
@@ -330,10 +321,70 @@ func (f *FirestorePairingsDB) GetTotalPairingsDuringLastWeek(ctx context.Context
 
 		dailyPairings := int(doc.Data()["value"].(int64))
 
+		log.Println("The timestamp is: ", doc.Data()["timestamp"])
+
 		totalPairings += dailyPairings
 	}
 
 	log.Println("Total number of pairings: ", totalPairings)
 
 	return totalPairings, nil
+}
+
+type Feedback struct {
+	content   string
+	email     string
+	timestamp int
+}
+
+type FeedbackDB interface {
+	GetAll(ctx context.Context) ([]Feedback, error)
+	GetRandom(ctx context.Context) (Feedback, error)
+	Insert(ctx context.Context, feedback Feedback) error
+}
+
+// implements RecurserDB
+type FirestoreFeedbackDB struct {
+	client *firestore.Client
+}
+
+func (f *FirestoreFeedbackDB) GetAll(ctx context.Context) ([]Feedback, error) {
+	var allFeedback []Feedback
+
+	iter := f.client.Collection("pairings").Documents(ctx)
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		currentFeedback := Feedback{
+			content:   doc.Data()["content"].(string),
+			email:     doc.Data()["email"].(string),
+			timestamp: int(doc.Data()["timestamp"].(int64)),
+		}
+
+		allFeedback = append(allFeedback, currentFeedback)
+	}
+
+	return allFeedback, nil
+}
+
+func (f *FirestoreFeedbackDB) GetRandomFeedback(ctx context.Context) (Feedback, error) {
+	allFeedback, err := f.GetAll(ctx)
+
+	if err != nil {
+		return Feedback{}, err
+	}
+
+	rand.Seed(time.Now().Unix())
+
+	return allFeedback[rand.Intn(len(allFeedback))], nil
+}
+
+func (f *FirestoreFeedbackDB) Insert(ctx context.Context, feedback Feedback) error {
+	return nil
 }

@@ -169,6 +169,7 @@ func dispatch(ctx context.Context, pl *PairingLogic, cmd string, cmdArgs []strin
 		response = fmt.Sprintf("* You're %v\n* You're scheduled for pairing on **%v**\n* **You're%vset to skip** pairing tomorrow", whoami, scheduleStr, skipStr)
 	case "review":
 		reviewContent := cmdArgs[0]
+
 		currentTimestamp := time.Now().Unix()
 
 		err = pl.revdb.Insert(ctx, Review{

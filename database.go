@@ -386,5 +386,10 @@ func (f *FirestoreReviewDB) GetRandom(ctx context.Context) (Review, error) {
 }
 
 func (f *FirestoreReviewDB) Insert(ctx context.Context, review Review) error {
-	return nil
+	_, _, err := f.client.Collection("reviews").Add(ctx, map[string]interface{}{
+		"content":   review.content,
+		"email":     review.email,
+		"timestamp": review.timestamp,
+	})
+	return err
 }

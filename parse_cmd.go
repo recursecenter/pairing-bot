@@ -22,8 +22,11 @@ func parseCmd(cmdStr string) (string, []string, error) {
 		"schedule",
 		"skip",
 		"unskip",
-		"status"}
+		"status",
+		"review",
+	}
 
+	//This also includes common abbreviations for the days of the week
 	var daysList = []string{
 		"monday",
 		"tuesday",
@@ -31,7 +34,19 @@ func parseCmd(cmdStr string) (string, []string, error) {
 		"thursday",
 		"friday",
 		"saturday",
-		"sunday"}
+		"sunday",
+		"mon",
+		"tu",
+		"tue",
+		"tues",
+		"wed",
+		"th",
+		"thu",
+		"thur",
+		"thurs",
+		"fri",
+		"sat",
+		"sun"}
 
 	// convert the string to a slice
 	// after this, we have a value "cmd" of type []string
@@ -39,8 +54,8 @@ func parseCmd(cmdStr string) (string, []string, error) {
 	space := regexp.MustCompile(`\s+`)
 	cmdStr = space.ReplaceAllString(cmdStr, ` `)
 	cmdStr = strings.TrimSpace(cmdStr)
-	cmdStr = strings.ToLower(cmdStr)
-	cmd := strings.Split(cmdStr, ` `)
+	cmdStrLower := strings.ToLower(cmdStr)
+	cmd := strings.Split(cmdStrLower, ` `)
 
 	// Big validation logic -- hellooo darkness my old frieeend
 	switch {
@@ -51,7 +66,7 @@ func parseCmd(cmdStr string) (string, []string, error) {
 
 	// if there's a valid command and if there's no arguments
 	case contains(cmdList, cmd[0]) && len(cmd) == 1:
-		if cmd[0] == "schedule" || cmd[0] == "skip" || cmd[0] == "unskip" {
+		if cmd[0] == "schedule" || cmd[0] == "skip" || cmd[0] == "unskip" || cmd[0] == "review" {
 			err = &parsingErr{"the user issued a command without args, but it reqired args"}
 			return "help", nil, err
 		}
@@ -69,6 +84,11 @@ func parseCmd(cmdStr string) (string, []string, error) {
 		case cmd[0] == "unskip" && (len(cmd) != 2 || cmd[1] != "tomorrow"):
 			err = &parsingErr{"the user issued UNSKIP with malformed arguments"}
 			return "help", nil, err
+		case cmd[0] == "review":
+			//We manually split the input cmdStr here since the above code converts it to lower case
+			//and we want to presever the user's original formatting/casing
+			reviewArgs := strings.SplitN(cmdStr, " ", 2)
+			return "review", []string{reviewArgs[1]}, err
 		case cmd[0] == "schedule":
 			for _, v := range cmd[1:] {
 				if !contains(daysList, v) {

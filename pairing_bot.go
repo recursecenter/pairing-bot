@@ -24,6 +24,7 @@ type PairingLogic struct {
 	rdb   RecurserDB
 	adb   APIAuthDB
 	pdb   PairingsDB
+	revdb ReviewDB
 	ur    userRequest
 	un    userNotification
 	sm    streamMessage
@@ -255,7 +256,6 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 		if err = pl.rdb.Set(ctx, recurserID, recurser); err != nil {
 			log.Printf("Error encountered while update currentlyAtRC status for user: %s", recurserEmail)
 		}
-
 	}
 }
 
@@ -273,7 +273,12 @@ func (pl *PairingLogic) checkin(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Could not get list of recursers from DB: %s\n", err)
 	}
 
-	checkinMessage := getCheckinMessage(numPairings, len(recursersList))
+	review, err := pl.revdb.GetRandom(ctx)
+	if err != nil {
+		log.Println("Could not get a random review from DB: ", err)
+	}
+
+	checkinMessage := getCheckinMessage(numPairings, len(recursersList), review.content)
 
 	botPassword, err := pl.adb.GetKey(ctx, "apiauth", "key")
 	if err != nil {
@@ -288,11 +293,9 @@ func (pl *PairingLogic) checkin(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getCheckinMessage(numPairings int, numRecursers int) string {
+func getCheckinMessage(numPairings int, numRecursers int, review string) string {
 	today := time.Now()
 	todayFormatted := today.Format("January 1, 2006")
-
-	testimonial := "Pairing Bot is the most amazingest bot ever"
 
 	message :=
 		"```Bash\n" +
@@ -306,10 +309,10 @@ func getCheckinMessage(numPairings int, numRecursers int) string {
 			"**%s Checkin**\n\n" +
 			"* Current number of Recursers subscribed to Pairing Bot: %d\n\n" +
 			"* Number of pairings facilitiated in the last week: %d \n\n" +
-			"**Random Pairing Bot Testimonial**\n\n" +
+			"**Randomly Selected Pairing Bot Review**\n\n" +
 			"* %s"
 
-	return fmt.Sprintf(message, todayFormatted, numRecursers, numPairings, testimonial)
+	return fmt.Sprintf(message, todayFormatted, numRecursers, numPairings, review)
 }
 
 /*

@@ -331,25 +331,25 @@ func (f *FirestorePairingsDB) GetTotalPairingsDuringLastWeek(ctx context.Context
 	return totalPairings, nil
 }
 
-type Feedback struct {
+type Review struct {
 	content   string
 	email     string
 	timestamp int
 }
 
-type FeedbackDB interface {
-	GetAll(ctx context.Context) ([]Feedback, error)
-	GetRandom(ctx context.Context) (Feedback, error)
-	Insert(ctx context.Context, feedback Feedback) error
+type ReviewDB interface {
+	GetAll(ctx context.Context) ([]Review, error)
+	GetRandom(ctx context.Context) (Review, error)
+	Insert(ctx context.Context, review Review) error
 }
 
-// implements RecurserDB
-type FirestoreFeedbackDB struct {
+// implements ReviewDB
+type FirestoreReviewDB struct {
 	client *firestore.Client
 }
 
-func (f *FirestoreFeedbackDB) GetAll(ctx context.Context) ([]Feedback, error) {
-	var allFeedback []Feedback
+func (f *FirestoreReviewDB) GetAll(ctx context.Context) ([]Review, error) {
+	var allReviews []Review
 
 	iter := f.client.Collection("pairings").Documents(ctx)
 	for {
@@ -361,30 +361,30 @@ func (f *FirestoreFeedbackDB) GetAll(ctx context.Context) ([]Feedback, error) {
 			return nil, err
 		}
 
-		currentFeedback := Feedback{
+		currentReview := Review{
 			content:   doc.Data()["content"].(string),
 			email:     doc.Data()["email"].(string),
 			timestamp: int(doc.Data()["timestamp"].(int64)),
 		}
 
-		allFeedback = append(allFeedback, currentFeedback)
+		allReviews = append(allReviews, currentReview)
 	}
 
-	return allFeedback, nil
+	return allReviews, nil
 }
 
-func (f *FirestoreFeedbackDB) GetRandomFeedback(ctx context.Context) (Feedback, error) {
-	allFeedback, err := f.GetAll(ctx)
+func (f *FirestoreReviewDB) GetRandom(ctx context.Context) (Review, error) {
+	allReviews, err := f.GetAll(ctx)
 
 	if err != nil {
-		return Feedback{}, err
+		return Review{}, err
 	}
 
 	rand.Seed(time.Now().Unix())
 
-	return allFeedback[rand.Intn(len(allFeedback))], nil
+	return allReviews[rand.Intn(len(allReviews))], nil
 }
 
-func (f *FirestoreFeedbackDB) Insert(ctx context.Context, feedback Feedback) error {
+func (f *FirestoreReviewDB) Insert(ctx context.Context, review Review) error {
 	return nil
 }

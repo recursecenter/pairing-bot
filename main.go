@@ -48,6 +48,12 @@ func main() {
 	}
 	defer pc.Close()
 
+	revc, err := firestore.NewClient(ctx, projectId)
+	if err != nil {
+		log.Panic(err)
+	}
+	defer revc.Close()
+
 	rdb := &FirestoreRecurserDB{
 		client: rc,
 	}
@@ -62,6 +68,10 @@ func main() {
 
 	pdb := &FirestorePairingsDB{
 		client: pc,
+	}
+
+	revdb := &FirestoreReviewDB{
+		client: revc,
 	}
 
 	ur := &zulipUserRequest{}
@@ -84,6 +94,7 @@ func main() {
 		un:    un,
 		sm:    sm,
 		rcapi: rcapi,
+		revdb: revdb,
 	}
 
 	http.HandleFunc("/", http.NotFound)           // will this handle anything that's not defined?

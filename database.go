@@ -351,7 +351,7 @@ type FirestoreReviewDB struct {
 func (f *FirestoreReviewDB) GetAll(ctx context.Context) ([]Review, error) {
 	var allReviews []Review
 
-	iter := f.client.Collection("pairings").Documents(ctx)
+	iter := f.client.Collection("reviews").Documents(ctx)
 	for {
 		doc, err := iter.Next()
 		if err == iterator.Done {

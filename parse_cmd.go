@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log"
 	"regexp"
 	"strings"
 )
@@ -14,6 +15,8 @@ func (e parsingErr) Error() string {
 }
 
 func parseCmd(cmdStr string) (string, []string, error) {
+	log.Println("The cmdStr is: ", cmdStr)
+
 	var err error
 	var cmdList = []string{
 		"subscribe",
@@ -66,7 +69,7 @@ func parseCmd(cmdStr string) (string, []string, error) {
 
 	// if there's a valid command and if there's no arguments
 	case contains(cmdList, cmd[0]) && len(cmd) == 1:
-		if cmd[0] == "schedule" || cmd[0] == "skip" || cmd[0] == "unskip" || cmd[0] == "review" {
+		if cmd[0] == "schedule" || cmd[0] == "skip" || cmd[0] == "unskip" || cmd[0] == "add-review" {
 			err = &parsingErr{"the user issued a command without args, but it reqired args"}
 			return "help", nil, err
 		}
@@ -88,7 +91,7 @@ func parseCmd(cmdStr string) (string, []string, error) {
 			//We manually split the input cmdStr here since the above code converts it to lower case
 			//and we want to presever the user's original formatting/casing
 			reviewArgs := strings.SplitN(cmdStr, " ", 2)
-			return "review", []string{reviewArgs[1]}, err
+			return "add-review", []string{reviewArgs[1]}, err
 		case cmd[0] == "schedule":
 			for _, v := range cmd[1:] {
 				if !contains(daysList, v) {

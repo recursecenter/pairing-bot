@@ -213,8 +213,6 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 
 	emailsOfPeopleAtRc := pl.rcapi.getCurrentlyActiveEmails(accessToken)
 
-	log.Println("These are the emails of people currently at rc: ", emailsOfPeopleAtRc)
-
 	for i := 0; i < len(recursersList); i++ {
 
 		recurser := recursersList[i]

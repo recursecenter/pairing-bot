@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -48,6 +49,7 @@ type userRequest interface {
 	validateAuthCreds(tokenFromDB string) bool
 	validateInteractionType() *botResponse
 	ignoreInteractionType() *botNoResponse
+	getCommandString() string
 	sanitizeUserInput() (string, []string, error)
 	extractUserData() *UserDataFromJSON // does this need an error return value? anything that hasn't been validated previously?
 }
@@ -78,6 +80,13 @@ type zulipStreamMessage struct {
 }
 
 func (zsm *zulipStreamMessage) postToTopic(ctx context.Context, botPassword, message string, stream string, topic string) error {
+	appEnv := os.Getenv("APP_ENV")
+
+	if appEnv != "production" {
+		log.Println("In the Prod environment Pairing Bot would have posted the following message: ", message)
+		return nil
+	}
+
 	zulipClient := &http.Client{}
 	messageRequest := url.Values{}
 
@@ -176,6 +185,10 @@ func (zur *zulipUserRequest) ignoreInteractionType() *botNoResponse {
 
 func (zur *zulipUserRequest) sanitizeUserInput() (string, []string, error) {
 	return parseCmd(zur.json.Data)
+}
+
+func (zur *zulipUserRequest) getCommandString() string {
+	return zur.json.Data
 }
 
 func (zur *zulipUserRequest) extractUserData() *UserDataFromJSON {

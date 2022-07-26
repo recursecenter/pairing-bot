@@ -23,6 +23,8 @@ const ownerID = "215391"
 type PairingLogic struct {
 	rdb   RecurserDB
 	adb   APIAuthDB
+	pdb   PairingsDB
+	revdb ReviewDB
 	ur    userRequest
 	un    userNotification
 	sm    streamMessage
@@ -86,14 +88,14 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	log.Printf("The user: %s issued the following request to Pairing Bot: %s", userData.userEmail, pl.ur.getCommandString())
+
 	// you *should* be able to throw any string at this thing and get back a valid command for dispatch()
 	// if there are no commad arguments, cmdArgs will be nil
 	cmd, cmdArgs, err := pl.ur.sanitizeUserInput()
 	if err != nil {
 		log.Println(err)
 	}
-
-	log.Printf("The user: %s issued the following request to Pairing Bot: %s", userData.userEmail, cmd)
 
 	// the tofu and potatoes right here y'all
 	response, err := dispatch(ctx, pl, cmd, cmdArgs, userData.userID, userData.userEmail, userData.userName)
@@ -178,6 +180,9 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 	numRecursersPairedUp := len(recursersList)
 
 	log.Printf("Pairing Bot paired up %d recursers today", numRecursersPairedUp)
+
+	timestamp := time.Now().Unix()
+	pl.pdb.SetNumPairings(ctx, int(timestamp), numRecursersPairedUp)
 }
 
 //Unsubscribe people from Pairing Bot when their batch is over. They're always welcome to re-subscribe manually!
@@ -207,8 +212,6 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	emailsOfPeopleAtRc := pl.rcapi.getCurrentlyActiveEmails(accessToken)
-
-	log.Println("These are the emails of people currently at rc: ", emailsOfPeopleAtRc)
 
 	for i := 0; i < len(recursersList); i++ {
 
@@ -251,8 +254,63 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 		if err = pl.rdb.Set(ctx, recurserID, recurser); err != nil {
 			log.Printf("Error encountered while update currentlyAtRC status for user: %s", recurserEmail)
 		}
-
 	}
+}
+
+func (pl *PairingLogic) checkin(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	numPairings, err := pl.pdb.GetTotalPairingsDuringLastWeek(ctx)
+
+	if err != nil {
+		log.Println("Unable to get the total number of pairings durig the last week: : ", err)
+	}
+
+	recursersList, err := pl.rdb.GetAllUsers(ctx)
+	if err != nil {
+		log.Printf("Could not get list of recursers from DB: %s\n", err)
+	}
+
+	review, err := pl.revdb.GetRandom(ctx)
+	if err != nil {
+		log.Println("Could not get a random review from DB: ", err)
+	}
+
+	checkinMessage := getCheckinMessage(numPairings, len(recursersList), review.content)
+
+	botPassword, err := pl.adb.GetKey(ctx, "apiauth", "key")
+	if err != nil {
+		log.Println("Something weird happened trying to read the auth token from the database")
+	}
+
+	recurserEmail := "thecrxu@gmail.com"
+
+	err = pl.un.sendUserMessage(ctx, botPassword, recurserEmail, checkinMessage)
+	if err != nil {
+		log.Printf("Error when trying to send offboarding message to %s: %s\n", recurserEmail, err)
+	}
+}
+
+func getCheckinMessage(numPairings int, numRecursers int, review string) string {
+	today := time.Now()
+	todayFormatted := today.Format("January 2, 2006")
+
+	message :=
+		"```Bash\n" +
+			"=> Initializing the Pairing Bot process\n" +
+			"######################################################################## 100%%\n" +
+			"=> Loading Pairing Bot Usage Statistics\n" +
+			"######################################################################## 100%%\n" +
+			"=> Teaching Pairing Bot how to boop beep boop as it is a strange loop\n" +
+			"######################################################################## 00110001 00110000 00110000 00100101\n\n" +
+			"``` \n\n\n" +
+			"**%s Checkin**\n\n" +
+			"* Current number of Recursers subscribed to Pairing Bot: %d\n\n" +
+			"* Number of pairings facilitiated in the last week: %d \n\n" +
+			"**Randomly Selected Pairing Bot Review**\n\n" +
+			"* %s"
+
+	return fmt.Sprintf(message, todayFormatted, numRecursers, numPairings, review)
 }
 
 /*

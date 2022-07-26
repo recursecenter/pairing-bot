@@ -2,9 +2,12 @@ cron:
 - description: "Daily match-making job"
   url: /match
   schedule: every day 04:00
-- description: "End-of-batch offboarding job that only runs manually"
+- description: "End-of-batch offboarding job that runs weekly"
   url: /endofbatch
   schedule: every saturday 16:00
 - description: "Start of batch (during the 2nd week) message to welcome people to pairing bot"
   url: /welcome
   schedule: every tuesday 18:00
+- description: "Post a weekly checkin for pairing bot to increase :pear: :bot: awareness at RC"
+  url: /checkin
+  schedule: every thursday 18:00

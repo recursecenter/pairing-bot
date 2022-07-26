@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	"log"
+	"math/rand"
+	"strconv"
 	"strings"
 	"time"
 
@@ -278,4 +281,115 @@ type MockAPIAuthDB struct{}
 
 func (f *MockAPIAuthDB) GetKey(ctx context.Context, col, doc string) (string, error) {
 	return "", nil
+}
+
+type PairingsDB interface {
+	SetNumPairings(ctx context.Context, timestamp int, numPairings int) error
+	GetTotalPairingsDuringLastWeek(ctx context.Context) (int, error)
+}
+
+// implements RecurserDB
+type FirestorePairingsDB struct {
+	client *firestore.Client
+}
+
+func (f *FirestorePairingsDB) SetNumPairings(ctx context.Context, timestamp int, numPairings int) error {
+	timestampAsString := strconv.Itoa(timestamp)
+
+	_, err := f.client.Collection("pairings").Doc(timestampAsString).Set(ctx, map[string]interface{}{
+		"value":     numPairings,
+		"timestamp": timestamp,
+	})
+	return err
+}
+
+func (f *FirestorePairingsDB) GetTotalPairingsDuringLastWeek(ctx context.Context) (int, error) {
+
+	totalPairings := 0
+
+	timestampSevenDaysAgo := time.Now().Add(-7 * 24 * time.Hour).Unix()
+
+	iter := f.client.Collection("pairings").Where("timestamp", ">", timestampSevenDaysAgo).Documents(ctx)
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return 0, err
+		}
+
+		dailyPairings := int(doc.Data()["value"].(int64))
+
+		log.Println("The timestamp is: ", doc.Data()["timestamp"])
+
+		totalPairings += dailyPairings
+	}
+
+	log.Println("Total number of pairings: ", totalPairings)
+
+	return totalPairings, nil
+}
+
+type Review struct {
+	content   string
+	email     string
+	timestamp int
+}
+
+type ReviewDB interface {
+	GetAll(ctx context.Context) ([]Review, error)
+	GetRandom(ctx context.Context) (Review, error)
+	Insert(ctx context.Context, review Review) error
+}
+
+// implements ReviewDB
+type FirestoreReviewDB struct {
+	client *firestore.Client
+}
+
+func (f *FirestoreReviewDB) GetAll(ctx context.Context) ([]Review, error) {
+	var allReviews []Review
+
+	iter := f.client.Collection("reviews").Documents(ctx)
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		currentReview := Review{
+			content:   doc.Data()["content"].(string),
+			email:     doc.Data()["email"].(string),
+			timestamp: int(doc.Data()["timestamp"].(int64)),
+		}
+
+		allReviews = append(allReviews, currentReview)
+	}
+
+	return allReviews, nil
+}
+
+func (f *FirestoreReviewDB) GetRandom(ctx context.Context) (Review, error) {
+	allReviews, err := f.GetAll(ctx)
+
+	if err != nil {
+		return Review{}, err
+	}
+
+	rand.Seed(time.Now().Unix())
+
+	return allReviews[rand.Intn(len(allReviews))], nil
+}
+
+func (f *FirestoreReviewDB) Insert(ctx context.Context, review Review) error {
+	_, _, err := f.client.Collection("reviews").Add(ctx, map[string]interface{}{
+		"content":   review.content,
+		"email":     review.email,
+		"timestamp": review.timestamp,
+	})
+	return err
 }

@@ -293,7 +293,7 @@ func (pl *PairingLogic) checkin(w http.ResponseWriter, r *http.Request) {
 
 func getCheckinMessage(numPairings int, numRecursers int, review string) string {
 	today := time.Now()
-	todayFormatted := today.Format("January 1, 2006")
+	todayFormatted := today.Format("January 2, 2006")
 
 	message :=
 		"```Bash\n" +

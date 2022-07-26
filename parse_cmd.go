@@ -29,27 +29,27 @@ func parseCmd(cmdStr string) (string, []string, error) {
 		"add-review",
 	}
 
-	//This also includes common abbreviations for the days of the week
-	var daysList = []string{
-		"monday",
-		"tuesday",
-		"wednesday",
-		"thursday",
-		"friday",
-		"saturday",
-		"sunday",
-		"mon",
-		"tu",
-		"tue",
-		"tues",
-		"wed",
-		"th",
-		"thu",
-		"thur",
-		"thurs",
-		"fri",
-		"sat",
-		"sun"}
+	//This contains the days of the week and common abbreviations
+	//so users can more easily set their schedules
+	dayAbbrevMap := map[string]string{
+		"monday":    "monday",
+		"mon":       "monday",
+		"tuesday":   "tuesday",
+		"tu":        "tuesday",
+		"tue":       "tuesday",
+		"wednesday": "wednesday",
+		"wed":       "wednesday",
+		"thursday":  "thursday",
+		"th":        "thursday",
+		"thu":       "thursday",
+		"thurs":     "thursday",
+		"friday":    "friday",
+		"fri":       "friday",
+		"saturday":  "saturday",
+		"sat":       "saturday",
+		"sunday":    "sunday",
+		"sun":       "sunday",
+	}
 
 	// convert the string to a slice
 	// after this, we have a value "cmd" of type []string
@@ -93,13 +93,18 @@ func parseCmd(cmdStr string) (string, []string, error) {
 			reviewArgs := strings.SplitN(cmdStr, " ", 2)
 			return "add-review", []string{reviewArgs[1]}, err
 		case cmd[0] == "schedule":
-			for _, v := range cmd[1:] {
-				if !contains(daysList, v) {
+			var userSchedule []string
+
+			for _, day := range cmd[1:] {
+				if fullDayName, ok := dayAbbrevMap[day]; ok {
+					userSchedule = append(userSchedule, fullDayName)
+				} else {
 					err = &parsingErr{"the user issued SCHEDULE with malformed arguments"}
 					return "help", nil, err
 				}
 			}
-			fallthrough
+
+			return "schedule", userSchedule, err
 		default:
 			return cmd[0], cmd[1:], err
 		}

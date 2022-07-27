@@ -181,8 +181,10 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Pairing Bot paired up %d recursers today", numRecursersPairedUp)
 
+	numPairings := numRecursersPairedUp / 2
+
 	timestamp := time.Now().Unix()
-	pl.pdb.SetNumPairings(ctx, int(timestamp), numRecursersPairedUp)
+	pl.pdb.SetNumPairings(ctx, int(timestamp), numPairings)
 }
 
 //Unsubscribe people from Pairing Bot when their batch is over. They're always welcome to re-subscribe manually!

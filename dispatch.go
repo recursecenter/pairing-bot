@@ -190,7 +190,7 @@ func dispatch(ctx context.Context, pl *PairingLogic, cmd string, cmdArgs []strin
 		numReviews := 5
 
 		if len(cmdArgs) > 0 {
-			numReviews, _ = strconv.Atoi(cmdArgs[1])
+			numReviews, _ = strconv.Atoi(cmdArgs[0])
 		}
 
 		lastN, err := pl.revdb.GetLastN(ctx, numReviews)

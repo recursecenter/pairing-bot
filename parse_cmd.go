@@ -91,7 +91,7 @@ func parseCmd(cmdStr string) (string, []string, error) {
 			return "help", nil, err
 		case cmd[0] == "get-reviews":
 			if len(cmd) > 1 {
-				if _, err := strconv.Atoi(cmd[1]); err != nil || len(cmd) > 2 {
+				if n, err := strconv.Atoi(cmd[1]); err != nil || len(cmd) > 2 || n < 0 {
 					err = &parsingErr{"the user issued GET-REVIEWS with malformed arguments"}
 					return "help", nil, err
 				}

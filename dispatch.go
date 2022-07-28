@@ -195,8 +195,8 @@ func dispatch(ctx context.Context, pl *PairingLogic, cmd string, cmdArgs []strin
 
 		lastN, err := pl.revdb.GetLastN(ctx, numReviews)
 		if err != nil {
-			log.Println("Encountered an error when trying to save a review: ", err)
-			response = writeErrorMessage
+			log.Printf("Encountered an error when trying to fetch the last %v reviews: %v", numReviews, err)
+			response = readErrorMessage
 			break
 		}
 

@@ -337,7 +337,7 @@ type Review struct {
 
 type ReviewDB interface {
 	GetAll(ctx context.Context) ([]Review, error)
-	GetLastFive(ctx context.Context) ([]Review, error)
+	GetLastN(ctx context.Context, n int) ([]Review, error)
 	GetRandom(ctx context.Context) (Review, error)
 	Insert(ctx context.Context, review Review) error
 }
@@ -372,10 +372,10 @@ func (f *FirestoreReviewDB) GetAll(ctx context.Context) ([]Review, error) {
 	return allReviews, nil
 }
 
-func (f *FirestoreReviewDB) GetLastFive(ctx context.Context) ([]Review, error) {
+func (f *FirestoreReviewDB) GetLastN(ctx context.Context, n int) ([]Review, error) {
 	var lastFive []Review
 
-	iter := f.client.Collection("reviews").OrderBy("timestamp", firestore.Desc).Limit(5).Documents(ctx)
+	iter := f.client.Collection("reviews").OrderBy("timestamp", firestore.Desc).Limit(n).Documents(ctx)
 	for {
 		doc, err := iter.Next()
 		if err == iterator.Done {

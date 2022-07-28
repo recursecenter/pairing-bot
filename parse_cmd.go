@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -79,7 +80,7 @@ func parseCmd(cmdStr string) (string, []string, error) {
 	// if there's a valid command and there's some arguments
 	case contains(cmdList, cmd[0]) && len(cmd) > 1:
 		switch {
-		case cmd[0] == "subscribe" || cmd[0] == "unsubscribe" || cmd[0] == "help" || cmd[0] == "status" || cmd[0] == "get-reviews":
+		case cmd[0] == "subscribe" || cmd[0] == "unsubscribe" || cmd[0] == "help" || cmd[0] == "status":
 			err = &parsingErr{"the user issued a command with args, but it disallowed args"}
 			return "help", nil, err
 		case cmd[0] == "skip" && (len(cmd) != 2 || cmd[1] != "tomorrow"):
@@ -88,6 +89,14 @@ func parseCmd(cmdStr string) (string, []string, error) {
 		case cmd[0] == "unskip" && (len(cmd) != 2 || cmd[1] != "tomorrow"):
 			err = &parsingErr{"the user issued UNSKIP with malformed arguments"}
 			return "help", nil, err
+		case cmd[0] == "get-reviews":
+			if len(cmd) > 1 {
+				if _, err := strconv.Atoi(cmd[1]); err != nil || len(cmd) > 2 {
+					err = &parsingErr{"the user issued GET-REVIEWS with malformed arguments"}
+					return "help", nil, err
+				}
+			}
+			return "get-reviews", cmd[1:], err
 		case cmd[0] == "add-review":
 			//We manually split the input cmdStr here since the above code converts it to lower case
 			//and we want to presever the user's original formatting/casing

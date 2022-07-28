@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -27,6 +28,7 @@ func parseCmd(cmdStr string) (string, []string, error) {
 		"unskip",
 		"status",
 		"add-review",
+		"get-reviews",
 	}
 
 	//This contains the days of the week and common abbreviations
@@ -87,6 +89,14 @@ func parseCmd(cmdStr string) (string, []string, error) {
 		case cmd[0] == "unskip" && (len(cmd) != 2 || cmd[1] != "tomorrow"):
 			err = &parsingErr{"the user issued UNSKIP with malformed arguments"}
 			return "help", nil, err
+		case cmd[0] == "get-reviews":
+			if len(cmd) > 1 {
+				if n, err := strconv.Atoi(cmd[1]); err != nil || len(cmd) > 2 || n < 0 {
+					err = &parsingErr{"the user issued GET-REVIEWS with malformed arguments"}
+					return "help", nil, err
+				}
+			}
+			return "get-reviews", cmd[1:], err
 		case cmd[0] == "add-review":
 			//We manually split the input cmdStr here since the above code converts it to lower case
 			//and we want to presever the user's original formatting/casing

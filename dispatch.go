@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -186,7 +187,13 @@ func dispatch(ctx context.Context, pl *PairingLogic, cmd string, cmdArgs []strin
 
 		response = "Thank you for sharing your review with pairing bot!"
 	case "get-reviews":
-		lastFive, err := pl.revdb.GetLastFive(ctx)
+		numReviews := 5
+
+		if len(cmdArgs) > 0 {
+			numReviews, _ = strconv.Atoi(cmdArgs[1])
+		}
+
+		lastN, err := pl.revdb.GetLastN(ctx, numReviews)
 		if err != nil {
 			log.Println("Encountered an error when trying to save a review: ", err)
 			response = writeErrorMessage
@@ -194,8 +201,8 @@ func dispatch(ctx context.Context, pl *PairingLogic, cmd string, cmdArgs []strin
 		}
 
 		response = "Here are some reviews of pairing bot:\n"
-		for _, rev := range lastFive {
-			response += rev.email + " said \"" + rev.content + "\"!\n"
+		for _, rev := range lastN {
+			response += "* \"" + rev.content + "\"!\n"
 		}
 	case "help":
 		response = helpMessage

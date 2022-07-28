@@ -285,11 +285,10 @@ func (pl *PairingLogic) checkin(w http.ResponseWriter, r *http.Request) {
 		log.Println("Something weird happened trying to read the auth token from the database")
 	}
 
-	recurserEmail := "thecrxu@gmail.com"
+	err = pl.sm.postToTopic(ctx, botPassword, checkinMessage, "checkins", "Pairing Bot")
 
-	err = pl.un.sendUserMessage(ctx, botPassword, recurserEmail, checkinMessage)
 	if err != nil {
-		log.Printf("Error when trying to send offboarding message to %s: %s\n", recurserEmail, err)
+		log.Printf("Error when trying to submit Pairing Bot checkins stream message: %s\n", err)
 	}
 }
 

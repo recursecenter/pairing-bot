@@ -29,6 +29,7 @@ func parseCmd(cmdStr string) (string, []string, error) {
 		"status",
 		"add-review",
 		"get-reviews",
+		"cookie",
 	}
 
 	//This contains the days of the week and common abbreviations
@@ -80,7 +81,7 @@ func parseCmd(cmdStr string) (string, []string, error) {
 	// if there's a valid command and there's some arguments
 	case contains(cmdList, cmd[0]) && len(cmd) > 1:
 		switch {
-		case cmd[0] == "subscribe" || cmd[0] == "unsubscribe" || cmd[0] == "help" || cmd[0] == "status":
+		case cmd[0] == "subscribe" || cmd[0] == "unsubscribe" || cmd[0] == "help" || cmd[0] == "cookie" || cmd[0] == "status":
 			err = &parsingErr{"the user issued a command with args, but it disallowed args"}
 			return "help", nil, err
 		case cmd[0] == "skip" && (len(cmd) != 2 || cmd[1] != "tomorrow"):

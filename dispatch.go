@@ -226,7 +226,7 @@ func getCookieClubMessage() string {
 			"\n :cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie:" +
 			"\n [Super Thick Chocolate Chip Cookies by Stella Parks](https://www.seriouseats.com/super-thick-chocolate-chip-cookie-recipe)" +
 			"\n :cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie:" +
-			"\n ```spoiler Ingredients" +
+			"\n```spoiler Ingredients" +
 			"\n * 4 ounces unsalted American butter (about 1/2 cup; 113g), softened to about 65°F (18°C)" +
 			"\n * 4 ounces light brown sugar (about 1/2 cup, firmly packed; 113g)" +
 			"\n * 3 1/2 ounces white sugar, preferably well toasted (about 1/2 cup; 100g)" +
@@ -241,7 +241,7 @@ func getCookieClubMessage() string {
 			"\n * 8 1/2 ounces raw walnut pieces or lightly toasted pecan pieces (shy 1 3/4 cups; 240g)" +
 			"```" +
 			"\n :cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie::cookie:" +
-			"\n ```spoiler Directions" +
+			"\n```spoiler Directions" +
 			"\n 1. To Prepare the Dough: Combine butter, light brown sugar, white sugar, vanilla extract, salt, baking powder, baking soda, and nutmeg in the bowl of a stand mixer fitted with a paddle attachment." +
 			"\n 1. Mix on low to moisten, then increase speed to medium and beat until soft, fluffy, and pale, about 8 minutes; halfway through, pause to scrape bowl and beater with a flexible spatula. With mixer running, add eggs one at a time, letting each incorporate fully before adding the next. Reduce speed to low, then add the flour all at once. When flour is incorporated, add chocolate chips and nuts and keep mixing until dough is homogeneous." +
 			"\n 1. Divide dough into 8 equal portions (about 6 ounces/170g each) and round each into a smooth ball. Wrap in plastic and refrigerate at least 12 hours before baking; if well protected from air, the dough can be kept in the fridge up to 1 week (see Make Ahead and Storage)." +

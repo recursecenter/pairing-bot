@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -61,7 +62,9 @@ func (ra *RecurseAPI) getCurrentlyActiveEmails(accessToken string) []string {
 func (ra *RecurseAPI) getCurrentlyActiveEmailsWithOffset(accessToken string, offset int, limit int) []string {
 	var emailsOfPeopleAtRC []string
 
-	resp, err := http.Get(ra.rcAPIURL + "/profiles?scope=current&limit=50&role=recurser&access_token=" + accessToken)
+	endpointString := fmt.Sprintf("/profiles?scope=current&offset=%vlimit=%v&role=recurser&access_token=%v", offset, limit, accessToken)
+
+	resp, err := http.Get(ra.rcAPIURL + endpointString)
 	if err != nil {
 		log.Printf("Got the following error while getting the RC batches from the RC API: %s\n", err)
 	}

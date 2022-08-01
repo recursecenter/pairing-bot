@@ -265,7 +265,7 @@ func (pl *PairingLogic) checkin(w http.ResponseWriter, r *http.Request) {
 	numPairings, err := pl.pdb.GetTotalPairingsDuringLastWeek(ctx)
 
 	if err != nil {
-		log.Println("Unable to get the total number of pairings durig the last week: : ", err)
+		log.Println("Unable to get the total number of pairings during the last week: : ", err)
 	}
 
 	recursersList, err := pl.rdb.GetAllUsers(ctx)

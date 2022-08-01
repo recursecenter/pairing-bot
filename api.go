@@ -62,7 +62,7 @@ func (ra *RecurseAPI) getCurrentlyActiveEmails(accessToken string) []string {
 func (ra *RecurseAPI) getCurrentlyActiveEmailsWithOffset(accessToken string, offset int, limit int) []string {
 	var emailsOfPeopleAtRC []string
 
-	endpointString := fmt.Sprintf("/profiles?scope=current&offset=%vlimit=%v&role=recurser&access_token=%v", offset, limit, accessToken)
+	endpointString := fmt.Sprintf("/profiles?scope=current&offset=%v&limit=%v&role=recurser&access_token=%v", offset, limit, accessToken)
 
 	resp, err := http.Get(ra.rcAPIURL + endpointString)
 	if err != nil {

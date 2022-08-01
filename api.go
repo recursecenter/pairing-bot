@@ -28,7 +28,7 @@ func (ra *RecurseAPI) userIsCurrentlyAtRC(accessToken string, email string) bool
 func (ra *RecurseAPI) getCurrentlyActiveEmails(accessToken string) []string {
 	var emailsOfPeopleAtRC []string
 	offset := 0
-	limit := 25
+	limit := 50
 	apiHasMoreResults := true
 
 	for apiHasMoreResults {
@@ -43,10 +43,9 @@ func (ra *RecurseAPI) getCurrentlyActiveEmails(accessToken string) []string {
 			apiHasMoreResults = true
 			offset += limit
 
-			log.Println("We had more than limit results")
+			log.Println("We reached the limit of results from the Profiles API and need to make another query")
 		} else {
 			apiHasMoreResults = false
-			log.Println("We did not have more than the limit results")
 		}
 	}
 

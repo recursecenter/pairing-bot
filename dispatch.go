@@ -9,7 +9,17 @@ import (
 	"time"
 )
 
-const helpMessage string = "**How to use Pairing Bot:**\n* `subscribe` to start getting matched with other Pairing Bot users for pair programming\n* `schedule monday wednesday friday` to set your weekly pairing schedule\n  * In this example, I've been set to find pairing partners for you on every Monday, Wednesday, and Friday\n  * You can schedule pairing for any combination of days in the week\n* `skip tomorrow` to skip pairing tomorrow\n  * This is valid until matches go out at 04:00 UTC\n* `unskip tomorrow` to undo skipping tomorrow\n* `status` to show your current schedule, skip status, and name\n* `add-review {review_content}` to share a publicly viewable review about Pairing Bot\n* `get-reviews` to get recent reviews of Pairing Bot\n* `unsubscribe` to stop getting matched entirely\n\nIf you've found a bug, please [submit an issue on github](https://github.com/thwidge/pairing-bot/issues)!"
+const helpMessage string = "**How to use Pairing Bot:**\n" +
+	"* `subscribe` to start getting matched with other Pairing Bot users for pair programming\n" +
+	"* `schedule mon wed friday` to set your weekly pairing schedule\n  * In this example, I've been set to find pairing partners for you on every Monday, Wednesday, and Friday\n  * You can schedule pairing for any combination of days in the week\n" +
+	"* `skip tomorrow` to skip pairing tomorrow\n  * This is valid until matches go out at 04:00 UTC\n" +
+	"* `unskip tomorrow` to undo skipping tomorrow\n" +
+	"* `status` to show your current schedule, skip status, and name\n" +
+	"* `add-review {review_content}` to share a publicly viewable review about Pairing Bot\n" +
+	"* `get-reviews` to get recent reviews of Pairing Bot\n  * You can specify the number of reviews to view by specifying `get reviews {num_reviews}`\n" +
+	"* `cookie` only use this command if you like :cookie::cookie::cookie:\n" +
+	"* `unsubscribe` to stop getting matched entirely\n\n" +
+	"If you've found a bug, please [submit an issue on github](https://github.com/thwidge/pairing-bot/issues)!"
 const subscribeMessage string = "Yay! You're now subscribed to Pairing Bot!\nCurrently, I'm set to find pair programming partners for you on **Mondays**, **Tuesdays**, **Wednesdays**, **Thursdays**, and **Fridays**.\nYou can customize your schedule any time with `schedule` :)"
 const unsubscribeMessage string = "You're unsubscribed!\nI won't find pairing partners for you unless you `subscribe`.\n\nBe well :)"
 const notSubscribedMessage string = "You're not subscribed to Pairing Bot <3"

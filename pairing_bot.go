@@ -91,7 +91,7 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 	log.Printf("The user: %s issued the following request to Pairing Bot: %s", userData.userEmail, pl.ur.getCommandString())
 
 	// you *should* be able to throw any string at this thing and get back a valid command for dispatch()
-	// if there are no commad arguments, cmdArgs will be nil
+	// if there are no command arguments, cmdArgs will be nil
 	cmd, cmdArgs, err := pl.ur.sanitizeUserInput()
 	if err != nil {
 		log.Println(err)
@@ -265,7 +265,7 @@ func (pl *PairingLogic) checkin(w http.ResponseWriter, r *http.Request) {
 	numPairings, err := pl.pdb.GetTotalPairingsDuringLastWeek(ctx)
 
 	if err != nil {
-		log.Println("Unable to get the total number of pairings durig the last week: : ", err)
+		log.Println("Unable to get the total number of pairings during the last week: : ", err)
 	}
 
 	recursersList, err := pl.rdb.GetAllUsers(ctx)

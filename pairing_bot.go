@@ -227,6 +227,12 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 
 		log.Printf("User: %s was at RC last week: %t and is at RC this week: %t", recurserEmail, wasAtRCLastWeek, isAtRCThisWeek)
 
+		recurser.currentlyAtRC = isAtRCThisWeek
+
+		if err = pl.rdb.Set(ctx, recurserID, recurser); err != nil {
+			log.Printf("Error encountered while update currentlyAtRC status for user: %s", recurserEmail)
+		}
+
 		//If they were at RC last week but not this week then we assume they have graduated or otherwise left RC
 		//In that case we remove them from pairing bot so that inactive people do not get matched
 		//If people who have left RC still want to use pairing bot, we give them the option to resubscribe
@@ -239,6 +245,7 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 				message = fmt.Sprintf("Uh oh, I was trying to offboard you since it's the end of batch, but something went wrong. Consider messaging %v to let them know this happened.", owner)
 			} else {
 				log.Println("This user has been unsubscribed from pairing bot: ", recurserEmail)
+
 				message = offboardedMessage
 			}
 
@@ -246,14 +253,6 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				log.Printf("Error when trying to send offboarding message to %s: %s\n", recurserEmail, err)
 			}
-		} else {
-			log.Printf("We would NOT have unsubscribed the user: %s", recurserEmail)
-		}
-
-		recurser.currentlyAtRC = isAtRCThisWeek
-
-		if err = pl.rdb.Set(ctx, recurserID, recurser); err != nil {
-			log.Printf("Error encountered while update currentlyAtRC status for user: %s", recurserEmail)
 		}
 	}
 }

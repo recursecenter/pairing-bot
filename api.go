@@ -36,7 +36,7 @@ func (ra *RecurseAPI) getCurrentlyActiveEmails(accessToken string) []string {
 
 		emailsOfPeopleAtRC = append(emailsOfPeopleAtRC, emailsStartingFromOffset...)
 
-		log.Println("The API returned this many profiles from the offset", len(emailsStartingFromOffset))
+		log.Printf("The API returned %v profiles from the offset of %v", len(emailsStartingFromOffset), offset)
 
 		//The API limits respones to 50 total profiles. Keep querying the API until there are no more Recurser Profiles remaining
 		if len(emailsStartingFromOffset) == limit {
@@ -50,6 +50,7 @@ func (ra *RecurseAPI) getCurrentlyActiveEmails(accessToken string) []string {
 	}
 
 	log.Println("The API returned this many TOTAL profiles", len(emailsOfPeopleAtRC))
+	log.Println("Here are the emails of people currently at RC", emailsOfPeopleAtRC)
 
 	return emailsOfPeopleAtRC
 }

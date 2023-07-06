@@ -1,5 +1,4 @@
-runtime: go115
+runtime: go120
 env_variables:
   PB_MAINT: "false"
   APP_ENV: "production"
-  

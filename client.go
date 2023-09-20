@@ -167,7 +167,7 @@ func (zur *zulipUserRequest) validateAuthCreds(tokenFromDB string) bool {
 
 // if the zulip msg is posted in a stream, don't treat it as a command
 func (zur *zulipUserRequest) validateInteractionType() *botResponse {
-	if zur.json.Trigger != "private_message" {
+	if zur.json.Trigger != "direct_message" {
 		return &botResponse{"Hi! I'm Pairing Bot (she/her)!\n\nSend me a PM that says `subscribe` to get started :smiley:\n\n:pear::robot:\n:octopus::octopus:"}
 	}
 	return nil

@@ -16,9 +16,9 @@ Pairing Bot interacts through private messages on [Zulip](https://zulipchat.com/
 * `unsubscribe` to stop getting matched entirely
   * This removes the user from the database. Since logs are anonymous, after **unsubscribe** Pairing Bot has no record of that user
 * `add-review` to add a publicly viewable review to help other users learn about Pairing Bot.
-* `get-reviews` to view the 5 most recent reviews for Pairing Bot. You can pass in an integer param to specify the number of reviews to get back. 
+* `get-reviews` to view the 5 most recent reviews for Pairing Bot. You can pass in an integer param to specify the number of reviews to get back.
 * `cookie` to get the most amazing cookie recipe!
- 
+
 ### Information for Pairing Bot admins
  * Runs in [GCP](https://cloud.google.com/) on [App Engine](https://cloud.google.com/appengine/docs/standard/)
  * Uses [Firestore](https://cloud.google.com/firestore/docs/) for its database
@@ -34,9 +34,9 @@ Pairing Bot interacts through private messages on [Zulip](https://zulipchat.com/
    * A separate Zulip Bot (Pairing Bot [Test Version]) that you can send commands to.
    * A separate GC Project with its database, logging and cron job setup.
    * A `dev` branch in Github that automatically deploys pushed changes to the GCP project.
- * How to Make Changes to Pairing Bot  
+ * How to Make Changes to Pairing Bot
    * Contact one of the maintainers of Pairing Bot to learn about the project and gain project permissions.
-   * Make your code changes on the `dev` branch and push to this Github repo. 
+   * Make your code changes on the `dev` branch and push to this Github repo.
    * Check the CloudBuild tab in Google Cloud to make sure that the Pairing Bot project built successfully.
    * Test out your changes with the Pairing Bot [Test Version]
    * Check the Logs in Google Cloud to make sure your change did not introduce any errors.

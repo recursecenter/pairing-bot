@@ -19,7 +19,7 @@ const helpMessage string = "**How to use Pairing Bot:**\n" +
 	"* `get-reviews` to get recent reviews of Pairing Bot\n  * You can specify the number of reviews to view by specifying `get reviews {num_reviews}`\n" +
 	"* `cookie` only use this command if you like :cookie::cookie::cookie:\n" +
 	"* `unsubscribe` to stop getting matched entirely\n\n" +
-	"If you've found a bug, please [submit an issue on github](https://github.com/thwidge/pairing-bot/issues)!"
+	"If you've found a bug, please [submit an issue on github](https://github.com/stillgreenmoss/pairing-bot/issues)!"
 const subscribeMessage string = "Yay! You're now subscribed to Pairing Bot!\nCurrently, I'm set to find pair programming partners for you on **Mondays**, **Tuesdays**, **Wednesdays**, **Thursdays**, and **Fridays**.\nYou can customize your schedule any time with `schedule` :)"
 const unsubscribeMessage string = "You're unsubscribed!\nI won't find pairing partners for you unless you `subscribe`.\n\nBe well :)"
 const notSubscribedMessage string = "You're not subscribed to Pairing Bot <3"

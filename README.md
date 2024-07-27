@@ -24,7 +24,7 @@ Pairing Bot interacts through private messages on [Zulip](https://zulipchat.com/
  * Uses [Firestore](https://cloud.google.com/firestore/docs/) for its database
  * Deployed on pushes to the `main` branch with [Cloud Build](https://cloud.google.com/cloud-build/docs/)
  * The database must be prepopulated with two pieces of data:  an authentication token (used to validate incoming requests from Zulip), and an API key (used to talk to the Zulip API).
- * Zulip bots must have an owner set in Zulip. They may only have one owner at a time. RC Pairing Bot's ownership is given to whoever is working on Pairing Bot at the moment. The current owner is [Robert Xu](https://github.com/RobertXu).
+ * Zulip bots must have an owner set in Zulip. They may only have one owner at a time. RC Pairing Bot's ownership is given to whoever is working on Pairing Bot at the moment. The current owner is [Maren Beam](https://www.recurse.com/directory/2907-maren-beam).
  * Onboarding, offboarding, and daily pairing matches are all controlled with cron jobs set in [Cloud Scheduler](https://cloud.google.com/scheduler).
 
 ### Information for People Looking to Work On Pairing Bot
@@ -46,5 +46,3 @@ Pairing Bot interacts through private messages on [Zulip](https://zulipchat.com/
 Pairing Bot is an [RC community project](https://recurse.zulipchat.com/#narrow/stream/198090-rc-community.20software).
 
 **Your contributions are welcome and encouraged, no matter your prior experience!**
-.  
-

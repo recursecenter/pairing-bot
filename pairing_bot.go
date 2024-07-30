@@ -109,7 +109,7 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 }
 
 // "match" makes matches for pairing, and messages those people to notify them of their match
-// it runs once per day at 8am (it's triggered with app engine's cron service)
+// it runs once per day (it's triggered with app engine's cron service)
 func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 	// Check that the request is originating from within app engine
 	// https://cloud.google.com/appengine/docs/flexible/go/scheduling-jobs-with-cron-yaml#validating_cron_requests
@@ -187,7 +187,7 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 	pl.pdb.SetNumPairings(ctx, int(timestamp), numPairings)
 }
 
-//Unsubscribe people from Pairing Bot when their batch is over. They're always welcome to re-subscribe manually!
+// Unsubscribe people from Pairing Bot when their batch is over. They're always welcome to re-subscribe manually!
 func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 	// Check that the request is originating from within app engine
 	// https://cloud.google.com/appengine/docs/flexible/go/scheduling-jobs-with-cron-yaml#validating_cron_requests

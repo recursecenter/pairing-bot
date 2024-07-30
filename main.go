@@ -12,6 +12,10 @@ import (
 
 // It's alive! The application starts here.
 func main() {
+	// Log the date and time (to the second),
+	// in UTC regardles of local time zone,
+	// and the file:line (without the full path- we don't have directories.)
+	log.SetFlags(log.Ldate | log.Ltime | log.LUTC | log.Lshortfile)
 
 	// setting up database connection: 2 clients encapsulated into PairingLogic struct
 

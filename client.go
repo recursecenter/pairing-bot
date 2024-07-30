@@ -3,7 +3,8 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
+	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -107,11 +108,14 @@ func (zsm *zulipStreamMessage) postToTopic(ctx context.Context, botPassword, mes
 		return err
 	}
 	defer resp.Body.Close()
-	respBodyText, err := ioutil.ReadAll(resp.Body)
+	respBodyText, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
-	log.Println(string(respBodyText))
+	log.Printf("zulip response: %d %s\n", resp.StatusCode, string(respBodyText))
+	if resp.StatusCode >= 400 {
+		return fmt.Errorf("error response from Zulip: status: %s", resp.Status)
+	}
 
 	return nil
 }
@@ -136,11 +140,14 @@ func (zun *zulipUserNotification) sendUserMessage(ctx context.Context, botPasswo
 		return err
 	}
 	defer resp.Body.Close()
-	respBodyText, err := ioutil.ReadAll(resp.Body)
+	respBodyText, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
-	log.Println(string(respBodyText))
+	log.Printf("zulip response: %d %s\n", resp.StatusCode, string(respBodyText))
+	if resp.StatusCode >= 400 {
+		return fmt.Errorf("error response from Zulip: status: %s", resp.Status)
+	}
 
 	return nil
 }

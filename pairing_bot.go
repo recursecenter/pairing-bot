@@ -161,20 +161,22 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 		recursersList = recursersList[:len(recursersList)-1]
 		log.Println("Someone was the odd-one-out today")
 
-		err := pl.un.sendUserMessage(ctx, botPassword, recurser.email, oddOneOutMessage)
+		err := pl.un.sendUserMessage(ctx, botPassword, []int64{recurser.id}, oddOneOutMessage)
 		if err != nil {
 			log.Printf("Error when trying to send oddOneOut message to %s: %s\n", recurser.email, err)
 		}
 	}
 
 	for i := 0; i < len(recursersList); i += 2 {
+		rc1 := recursersList[i]
+		rc2 := recursersList[i+1]
+		ids := []int64{rc1.id, rc2.id}
 
-		emails := recursersList[i].email + ", " + recursersList[i+1].email
-		err := pl.un.sendUserMessage(ctx, botPassword, emails, matchedMessage)
+		err := pl.un.sendUserMessage(ctx, botPassword, ids, matchedMessage)
 		if err != nil {
-			log.Printf("Error when trying to send matchedMessage to %s: %s\n", emails, err)
+			log.Printf("Error when trying to send matchedMessage to %s and %s: %s\n", rc1.name, rc2.name, err)
 		}
-		log.Println(recursersList[i].email, "was", "matched", "with", recursersList[i+1].email)
+		log.Println(rc1.name, "was", "matched", "with", rc2.name)
 	}
 
 	numRecursersPairedUp := len(recursersList)
@@ -219,18 +221,15 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 
 		recurser := recursersList[i]
 
-		recurserEmail := recurser.email
-		recurserID := recurser.id
-
-		isAtRCThisWeek := contains(idsOfPeopleAtRc, recurserID)
+		isAtRCThisWeek := contains(idsOfPeopleAtRc, recurser.id)
 		wasAtRCLastWeek := recursersList[i].currentlyAtRC
 
-		log.Printf("User: %s was at RC last week: %t and is at RC this week: %t", recurserEmail, wasAtRCLastWeek, isAtRCThisWeek)
+		log.Printf("User: %s was at RC last week: %t and is at RC this week: %t", recurser.name, wasAtRCLastWeek, isAtRCThisWeek)
 
 		recurser.currentlyAtRC = isAtRCThisWeek
 
-		if err = pl.rdb.Set(ctx, recurserID, recurser); err != nil {
-			log.Printf("Error encountered while update currentlyAtRC status for user: %s", recurserEmail)
+		if err = pl.rdb.Set(ctx, recurser.id, recurser); err != nil {
+			log.Printf("Error encountered while update currentlyAtRC status for user: %s (ID %d)", recurser.name, recurser.id)
 		}
 
 		//If they were at RC last week but not this week then we assume they have graduated or otherwise left RC
@@ -239,19 +238,19 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 		if wasAtRCLastWeek && !isAtRCThisWeek {
 			var message string
 
-			err = pl.rdb.Delete(ctx, recurserID)
+			err = pl.rdb.Delete(ctx, recurser.id)
 			if err != nil {
 				log.Println(err)
 				message = fmt.Sprintf("Uh oh, I was trying to offboard you since it's the end of batch, but something went wrong. Consider messaging %v to let them know this happened.", owner)
 			} else {
-				log.Println("This user has been unsubscribed from pairing bot: ", recurserEmail)
+				log.Printf("This user has been unsubscribed from pairing bot: %s (ID: %d)", recurser.name, recurser.id)
 
 				message = offboardedMessage
 			}
 
-			err := pl.un.sendUserMessage(ctx, botPassword, recurserEmail, message)
+			err := pl.un.sendUserMessage(ctx, botPassword, []int64{recurser.id}, message)
 			if err != nil {
-				log.Printf("Error when trying to send offboarding message to %s: %s\n", recurserEmail, err)
+				log.Printf("Error when trying to send offboarding message to %s (ID %d): %s", recurser.name, recurser.id, err)
 			}
 		}
 	}

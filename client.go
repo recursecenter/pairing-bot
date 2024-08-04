@@ -55,7 +55,7 @@ type userRequest interface {
 }
 
 type userNotification interface {
-	sendUserMessage(ctx context.Context, botPassword, user, message string) error
+	sendUserMessage(ctx context.Context, botPassword string, userIDs []int64, message string) error
 }
 
 type streamMessage interface {
@@ -119,12 +119,14 @@ func (zsm *zulipStreamMessage) postToTopic(ctx context.Context, botPassword, mes
 	return nil
 }
 
-func (zun *zulipUserNotification) sendUserMessage(ctx context.Context, botPassword, user, message string) error {
+func (zun *zulipUserNotification) sendUserMessage(ctx context.Context, botPassword string, userIDs []int64, message string) error {
 
 	zulipClient := &http.Client{}
 	messageRequest := url.Values{}
 	messageRequest.Add("type", "private")
-	messageRequest.Add("to", user)
+	for _, id := range userIDs {
+		messageRequest.Add("to", fmt.Sprintf("%d", id))
+	}
 	messageRequest.Add("content", message)
 
 	req, err := http.NewRequestWithContext(ctx, "POST", zun.zulipAPIURL, strings.NewReader(messageRequest.Encode()))
@@ -215,7 +217,7 @@ type mockUserRequest struct {
 type mockUserNotification struct {
 }
 
-func (mun *mockUserNotification) sendUserMessage(ctx context.Context, botPassword, user, message string) error {
+func (mun *mockUserNotification) sendUserMessage(ctx context.Context, botPassword string, userIDs []int64, message string) error {
 	return nil
 }
 

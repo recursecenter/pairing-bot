@@ -18,7 +18,7 @@ var maintenanceMode = false
 
 // this is the "id" field from zulip, and is a permanent user ID that's not secret
 // Pairing Bot's owner can add their ID here for testing. ctrl+f "ownerID" to see where it's used
-const ownerID = "215391"
+const ownerID = 215391
 
 type PairingLogic struct {
 	rdb   RecurserDB
@@ -88,7 +88,7 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	log.Printf("The user: %s issued the following request to Pairing Bot: %s", userData.userEmail, pl.ur.getCommandString())
+	log.Printf("The user: %s (%d) issued the following request to Pairing Bot: %s", userData.userName, userData.userID, pl.ur.getCommandString())
 
 	// you *should* be able to throw any string at this thing and get back a valid command for dispatch()
 	// if there are no command arguments, cmdArgs will be nil
@@ -98,7 +98,7 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// the tofu and potatoes right here y'all
-	response, err := dispatch(ctx, pl, cmd, cmdArgs, userData.userID, userData.userEmail, userData.userName)
+	response, err := dispatch(ctx, pl, cmd, cmdArgs, int64(userData.userID), userData.userEmail, userData.userName)
 	if err != nil {
 		log.Println(err)
 	}
@@ -213,7 +213,7 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Something weird happened trying to read the RC API access token from the database: %s", err)
 	}
 
-	emailsOfPeopleAtRc := pl.rcapi.getCurrentlyActiveEmails(accessToken)
+	idsOfPeopleAtRc := pl.rcapi.getCurrentlyActiveZulipIds(accessToken)
 
 	for i := 0; i < len(recursersList); i++ {
 
@@ -222,7 +222,7 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 		recurserEmail := recurser.email
 		recurserID := recurser.id
 
-		isAtRCThisWeek := contains(emailsOfPeopleAtRc, recurserEmail)
+		isAtRCThisWeek := contains(idsOfPeopleAtRc, recurserID)
 		wasAtRCLastWeek := recursersList[i].currentlyAtRC
 
 		log.Printf("User: %s was at RC last week: %t and is at RC this week: %t", recurserEmail, wasAtRCLastWeek, isAtRCThisWeek)

@@ -15,31 +15,34 @@ type RecurseAPI struct {
 }
 
 type RecurserProfile struct {
-	Email string
+	Name    string
+	ZulipId int64
+	Email   string
 }
 
-func (ra *RecurseAPI) userIsCurrentlyAtRC(accessToken string, email string) bool {
-	emailsOfPeopleAtRC := ra.getCurrentlyActiveEmails(accessToken)
+func (ra *RecurseAPI) userIsCurrentlyAtRC(accessToken string, id int64) bool {
+	// TODO: Unfortunately this is not a query parameter, but it could be.
+	ids := ra.getCurrentlyActiveZulipIds(accessToken)
 
-	return contains(emailsOfPeopleAtRC, email)
+	return contains(ids, id)
 }
 
 // The profile API endpoint is updated at midnight on the last day (Friday) of a batch.
-func (ra *RecurseAPI) getCurrentlyActiveEmails(accessToken string) []string {
-	var emailsOfPeopleAtRC []string
+func (ra *RecurseAPI) getCurrentlyActiveZulipIds(accessToken string) []int64 {
+	var ids []int64
 	offset := 0
 	limit := 50
 	apiHasMoreResults := true
 
 	for apiHasMoreResults {
-		emailsStartingFromOffset := ra.getCurrentlyActiveEmailsWithOffset(accessToken, offset, limit)
+		idsStartingFromOffset := ra.getCurrentlyActiveZulipIdsWithOffset(accessToken, offset, limit)
 
-		emailsOfPeopleAtRC = append(emailsOfPeopleAtRC, emailsStartingFromOffset...)
+		ids = append(ids, idsStartingFromOffset...)
 
-		log.Printf("The API returned %v profiles from the offset of %v", len(emailsStartingFromOffset), offset)
+		log.Printf("The API returned %v profiles from the offset of %v", len(idsStartingFromOffset), offset)
 
 		//The API limits respones to 50 total profiles. Keep querying the API until there are no more Recurser Profiles remaining
-		if len(emailsStartingFromOffset) == limit {
+		if len(idsStartingFromOffset) == limit {
 			apiHasMoreResults = true
 			offset += limit
 
@@ -49,18 +52,18 @@ func (ra *RecurseAPI) getCurrentlyActiveEmails(accessToken string) []string {
 		}
 	}
 
-	log.Println("The API returned this many TOTAL profiles", len(emailsOfPeopleAtRC))
-	log.Println("Here are the emails of people currently at RC", emailsOfPeopleAtRC)
+	log.Println("The API returned this many TOTAL profiles", len(ids))
+	log.Println("Here are the Zulip IDs of people currently at RC", ids)
 
-	return emailsOfPeopleAtRC
+	return ids
 }
 
 /*
 The RC API limits queries to the profiles endpoint to 50 results. However, there may be more than 50 people currently at RC.
 The RC API takes in an "offset" query param that allows us to grab records beyond that limit of 50 results by performing multiple api calls.
 */
-func (ra *RecurseAPI) getCurrentlyActiveEmailsWithOffset(accessToken string, offset int, limit int) []string {
-	var emailsOfPeopleAtRC []string
+func (ra *RecurseAPI) getCurrentlyActiveZulipIdsWithOffset(accessToken string, offset int, limit int) []int64 {
+	var ids []int64
 
 	endpointString := fmt.Sprintf("/profiles?scope=current&offset=%v&limit=%v&role=recurser&access_token=%v", offset, limit, accessToken)
 
@@ -74,8 +77,8 @@ func (ra *RecurseAPI) getCurrentlyActiveEmailsWithOffset(accessToken string, off
 	body, err := io.ReadAll(resp.Body)
 
 	if err != nil {
-		log.Printf("Unable to get the emails of people currently at RC due to the following error: %s", err)
-		return emailsOfPeopleAtRC
+		log.Printf("Unable to get the Zulip IDs of people currently at RC due to the following error: %s", err)
+		return ids
 	}
 
 	//Parse the json response from the API
@@ -83,11 +86,11 @@ func (ra *RecurseAPI) getCurrentlyActiveEmailsWithOffset(accessToken string, off
 	json.Unmarshal([]byte(body), &recursers)
 
 	for i := range recursers {
-		email := recursers[i].Email
-		emailsOfPeopleAtRC = append(emailsOfPeopleAtRC, email)
+		zid := recursers[i].ZulipId
+		ids = append(ids, zid)
 	}
 
-	return emailsOfPeopleAtRC
+	return ids
 }
 
 func (ra *RecurseAPI) isSecondWeekOfBatch(accessToken string) bool {

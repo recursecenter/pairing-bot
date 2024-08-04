@@ -127,9 +127,9 @@ func parseCmd(cmdStr string) (string, []string, error) {
 	}
 }
 
-func contains(list []string, cmd string) bool {
+func contains[S ~[]E, E comparable](list S, element E) bool {
 	for _, v := range list {
-		if v == cmd {
+		if v == element {
 			return true
 		}
 	}

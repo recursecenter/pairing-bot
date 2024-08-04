@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"strconv"
 	"strings"
 )
 
@@ -28,7 +27,7 @@ type incomingJSON struct {
 }
 
 type UserDataFromJSON struct {
-	userID    string
+	userID    int64
 	userEmail string
 	userName  string
 }
@@ -200,7 +199,7 @@ func (zur *zulipUserRequest) getCommandString() string {
 
 func (zur *zulipUserRequest) extractUserData() *UserDataFromJSON {
 	return &UserDataFromJSON{
-		userID:    strconv.Itoa(zur.json.Message.SenderID),
+		userID:    int64(zur.json.Message.SenderID),
 		userEmail: zur.json.Message.SenderEmail,
 		userName:  zur.json.Message.SenderFullName,
 	}

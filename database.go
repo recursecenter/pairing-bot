@@ -447,8 +447,6 @@ func (f *FirestoreReviewDB) GetRandom(ctx context.Context) (Review, error) {
 		return Review{}, err
 	}
 
-	rand.Seed(time.Now().Unix())
-
 	return allReviews[rand.Intn(len(allReviews))], nil
 }
 

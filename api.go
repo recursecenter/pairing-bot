@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"strings"
@@ -24,7 +24,7 @@ func (ra *RecurseAPI) userIsCurrentlyAtRC(accessToken string, email string) bool
 	return contains(emailsOfPeopleAtRC, email)
 }
 
-//The profile API endpoint is updated at midnight on the last day (Friday) of a batch.
+// The profile API endpoint is updated at midnight on the last day (Friday) of a batch.
 func (ra *RecurseAPI) getCurrentlyActiveEmails(accessToken string) []string {
 	var emailsOfPeopleAtRC []string
 	offset := 0
@@ -56,8 +56,8 @@ func (ra *RecurseAPI) getCurrentlyActiveEmails(accessToken string) []string {
 }
 
 /*
-	The RC API limits queries to the profiles endpoint to 50 results. However, there may be more than 50 people currently at RC.
-	The RC API takes in an "offset" query param that allows us to grab records beyond that limit of 50 results by performing multiple api calls.
+The RC API limits queries to the profiles endpoint to 50 results. However, there may be more than 50 people currently at RC.
+The RC API takes in an "offset" query param that allows us to grab records beyond that limit of 50 results by performing multiple api calls.
 */
 func (ra *RecurseAPI) getCurrentlyActiveEmailsWithOffset(accessToken string, offset int, limit int) []string {
 	var emailsOfPeopleAtRC []string
@@ -71,7 +71,7 @@ func (ra *RecurseAPI) getCurrentlyActiveEmailsWithOffset(accessToken string, off
 
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 
 	if err != nil {
 		log.Printf("Unable to get the emails of people currently at RC due to the following error: %s", err)
@@ -98,7 +98,7 @@ func (ra *RecurseAPI) isSecondWeekOfBatch(accessToken string) bool {
 
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 
 	//Parse the json response from the API
 	var batches []map[string]interface{}

@@ -65,7 +65,8 @@ func MapToStruct(m map[string]interface{}) (Recurser, error) {
 	case uint:
 	case uint8:
 	case uint16:
-	case uint32:
+	case float32:
+	case float64:
 		id = int64(v)
 	case uint64:
 		if v > (1<<31)-1 {

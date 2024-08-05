@@ -39,8 +39,10 @@ type Recurser struct {
 	email              string
 	isSkippingTomorrow bool
 	schedule           map[string]interface{}
-	isSubscribed       bool
-	currentlyAtRC      bool
+
+	// isSubscribed gets ignored in encoding; we only store subscribed individuals.
+	isSubscribed  bool `firestore:-`
+	currentlyAtRC bool
 }
 
 func (r *Recurser) ConvertToMap() map[string]interface{} {

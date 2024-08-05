@@ -45,7 +45,6 @@ type Recurser struct {
 
 func (r *Recurser) ConvertToMap() map[string]interface{} {
 	return map[string]interface{}{
-		"id":                 r.id,
 		"name":               r.name,
 		"email":              r.email,
 		"isSkippingTomorrow": r.isSkippingTomorrow,
@@ -54,44 +53,20 @@ func (r *Recurser) ConvertToMap() map[string]interface{} {
 	}
 }
 
-func MapToStruct(m map[string]interface{}) (Recurser, error) {
-	var id int64
-	switch v := m["id"].(type) {
-	case int:
-	case int8:
-	case int16:
-	case int32:
-	case int64:
-	case uint:
-	case uint8:
-	case uint16:
-	case float32:
-	case float64:
-		id = int64(v)
-	case uint64:
-		if v > (1<<31)-1 {
-			return Recurser{}, fmt.Errorf("ID value exceeds bounds: %d", v)
-		}
-		id = int64(v)
-	case string:
-		var err error
-		id, err = strconv.ParseInt(v, 10, 64)
-		if err != nil {
-			return Recurser{}, fmt.Errorf("invalid ID value: %w", err)
-		}
-	default:
-		return Recurser{}, fmt.Errorf("invalid ID value of type %T: %#v", m["id"], m["id"])
+func parseDoc(doc *firestore.DocumentSnapshot) (Recurser, error) {
+	id, err := strconv.ParseInt(doc.Ref.ID, 10, 64)
+	if err != nil {
+		return Recurser{}, fmt.Errorf("could not encode ID: %s as integer: %w", doc.Ref.ID, err)
+	}
+	var r Recurser
+	err = doc.DataTo(&r)
+	if err != nil {
+		return r, fmt.Errorf("could not decode Firestore data for entry %s: %w", doc.Ref.ID, err)
 	}
 
 	// isSubscribed is missing here because it's not in the map
-	return Recurser{
-		id:                 id,
-		name:               m["name"].(string),
-		email:              m["email"].(string),
-		isSkippingTomorrow: m["isSkippingTomorrow"].(bool),
-		schedule:           m["schedule"].(map[string]interface{}),
-		currentlyAtRC:      m["currentlyAtRC"].(bool),
-	}, nil
+	r.id = id
+	return r, nil
 }
 
 // DB Lookups of Pairing Bot subscribers (= "Recursers")
@@ -130,14 +105,15 @@ func (f *FirestoreRecurserDB) GetByUserID(ctx context.Context, userID int64, use
 	// also assign their zulip name to the name field, just in case it changed
 	// also assign their email, for the same reason
 	if isSubscribed {
-		recurser := doc.Data()
-		recurser["id"] = userID
-		recurser["name"] = userName
-		recurser["email"] = userEmail
-		r, err = MapToStruct(recurser)
+		r, err = parseDoc(doc)
 		if err != nil {
-			return Recurser{}, fmt.Errorf("getting database entry for recurser %s (ID: %d): %w", userName, userID, err)
+			log.Printf("error deserializing database entry with ID: %s: %s", doc.Ref.ID, err)
+			log.Printf("skipping database entry (ID: %s)", doc.Ref.ID)
 		}
+		// Update with the latest data from this user:
+		r.name = userName
+		r.email = userEmail
+		r.id = userID
 	} else {
 		// User is not subscribed, so provide a default recurser struct instead.
 		r = Recurser{
@@ -176,7 +152,7 @@ func (f *FirestoreRecurserDB) GetAllUsers(ctx context.Context) ([]Recurser, erro
 		if err != nil {
 			return nil, err
 		}
-		r, err = MapToStruct(doc.Data())
+		r, err = parseDoc(doc)
 		if err != nil {
 			log.Printf("error deserializing database entry with ID: %s: %s", doc.Ref.ID, err)
 			log.Printf("skipping database entry (ID: %s)", doc.Ref.ID)
@@ -189,7 +165,6 @@ func (f *FirestoreRecurserDB) GetAllUsers(ctx context.Context) ([]Recurser, erro
 }
 
 func (f *FirestoreRecurserDB) Set(ctx context.Context, userID int64, recurser Recurser) error {
-
 	r := recurser.ConvertToMap()
 	_, err := f.client.Collection("recursers").Doc(fmt.Sprintf("%d", userID)).Set(ctx, r, firestore.MergeAll)
 	return err
@@ -224,7 +199,7 @@ func (f *FirestoreRecurserDB) ListPairingTomorrow(ctx context.Context) ([]Recurs
 		if err != nil {
 			return nil, err
 		}
-		r, err = MapToStruct(doc.Data())
+		r, err = parseDoc(doc)
 		if err != nil {
 			log.Printf("error deserializing database entry with ID: %s: %s", doc.Ref.ID, err)
 			log.Printf("skipping database entry (ID: %s)", doc.Ref.ID)
@@ -252,7 +227,7 @@ func (f *FirestoreRecurserDB) ListSkippingTomorrow(ctx context.Context) ([]Recur
 			return nil, err
 		}
 
-		r, err = MapToStruct(doc.Data())
+		r, err = parseDoc(doc)
 		if err != nil {
 			log.Printf("error deserializing database entry with ID: %s: %s", doc.Ref.ID, err)
 			log.Printf("skipping database entry (ID: %s)", doc.Ref.ID)

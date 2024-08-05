@@ -66,7 +66,11 @@ func MapToStruct(m map[string]interface{}) (Recurser, error) {
 	case uint8:
 	case uint16:
 	case uint32:
+		id = int64(v)
 	case uint64:
+		if v > (1<<31)-1 {
+			return Recurser{}, fmt.Errorf("ID value exceeds bounds: %d", v)
+		}
 		id = int64(v)
 	case string:
 		var err error
@@ -130,7 +134,7 @@ func (f *FirestoreRecurserDB) GetByUserID(ctx context.Context, userID int64, use
 		recurser["email"] = userEmail
 		r, err = MapToStruct(recurser)
 		if err != nil {
-			return Recurser{}, fmt.Errorf("getting database entry for recurser %s (ID: %d)", userName, userID)
+			return Recurser{}, fmt.Errorf("getting database entry for recurser %s (ID: %d): %w", userName, userID, err)
 		}
 	} else {
 		// User is not subscribed, so provide a default recurser struct instead.

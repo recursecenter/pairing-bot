@@ -1,0 +1,12 @@
+{
+    "data": "schedule mon wed friday",
+    "token": "fake-zulip-token",
+    "trigger": "direct_message",
+    "message": {
+        "display_recipient": [{"id": 1000}, {"id": 2000}],
+        "sender_id": 1000,
+        "sender_email": "fake-1000@recurse.example.net",
+        "sender_full_name": "Your Name",
+        "subject": ""
+    }
+}

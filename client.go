@@ -124,9 +124,11 @@ func (zun *zulipUserNotification) sendUserMessage(ctx context.Context, botPasswo
 	zulipClient := &http.Client{}
 	messageRequest := url.Values{}
 	messageRequest.Add("type", "private")
+	users := []string{}
 	for _, id := range userIDs {
-		messageRequest.Add("to", fmt.Sprintf("%d", id))
+		users = append(users, fmt.Sprint(id))
 	}
+	messageRequest.Add("to", strings.Join(users, ","))
 	messageRequest.Add("content", message)
 
 	req, err := http.NewRequestWithContext(ctx, "POST", zun.zulipAPIURL, strings.NewReader(messageRequest.Encode()))

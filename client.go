@@ -19,7 +19,7 @@ type incomingJSON struct {
 	Token   string `json:"token"`
 	Trigger string `json:"trigger"`
 	Message struct {
-		SenderID         int         `json:"sender_id"`
+		SenderID         int64       `json:"sender_id"`
 		DisplayRecipient interface{} `json:"display_recipient"`
 		SenderEmail      string      `json:"sender_email"`
 		SenderFullName   string      `json:"sender_full_name"`

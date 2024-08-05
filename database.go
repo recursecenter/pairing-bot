@@ -130,6 +130,7 @@ func (f *FirestoreRecurserDB) GetByUserID(ctx context.Context, userID int64, use
 	// also assign their email, for the same reason
 	if isSubscribed {
 		recurser := doc.Data()
+		recurser["id"] = userID
 		recurser["name"] = userName
 		recurser["email"] = userEmail
 		r, err = MapToStruct(recurser)

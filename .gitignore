@@ -1,5 +1,3 @@
-./pairing_bot
-.*
-TODO.txt
-*.bak
-pairing-bot
+# Compiled binary
+/pairing-bot
+/pairing_bot

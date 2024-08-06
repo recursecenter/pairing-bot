@@ -16,8 +16,7 @@ type RecurseAPI struct {
 
 type RecurserProfile struct {
 	Name    string
-	ZulipId int64
-	Email   string
+	ZulipId int64 `json:"zulip_id"`
 }
 
 func (ra *RecurseAPI) userIsCurrentlyAtRC(accessToken string, id int64) (bool, error) {

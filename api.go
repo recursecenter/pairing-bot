@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"strings"
@@ -15,31 +15,36 @@ type RecurseAPI struct {
 }
 
 type RecurserProfile struct {
-	Email string
+	Name    string
+	ZulipId int64 `json:"zulip_id"`
 }
 
-func (ra *RecurseAPI) userIsCurrentlyAtRC(accessToken string, email string) bool {
-	emailsOfPeopleAtRC := ra.getCurrentlyActiveEmails(accessToken)
+func (ra *RecurseAPI) userIsCurrentlyAtRC(accessToken string, id int64) (bool, error) {
+	// TODO: Unfortunately this is not a query parameter, but it could be.
+	ids, err := ra.getCurrentlyActiveZulipIds(accessToken)
 
-	return contains(emailsOfPeopleAtRC, email)
+	return contains(ids, id), err
 }
 
-//The profile API endpoint is updated at midnight on the last day (Friday) of a batch.
-func (ra *RecurseAPI) getCurrentlyActiveEmails(accessToken string) []string {
-	var emailsOfPeopleAtRC []string
+// The profile API endpoint is updated at midnight on the last day (Friday) of a batch.
+func (ra *RecurseAPI) getCurrentlyActiveZulipIds(accessToken string) ([]int64, error) {
+	var ids []int64
 	offset := 0
 	limit := 50
 	apiHasMoreResults := true
 
 	for apiHasMoreResults {
-		emailsStartingFromOffset := ra.getCurrentlyActiveEmailsWithOffset(accessToken, offset, limit)
+		idsStartingFromOffset, err := ra.getCurrentlyActiveZulipIdsWithOffset(accessToken, offset, limit)
+		if err != nil {
+			return nil, fmt.Errorf("while reading from offset %d: %w", offset, err)
+		}
 
-		emailsOfPeopleAtRC = append(emailsOfPeopleAtRC, emailsStartingFromOffset...)
+		ids = append(ids, idsStartingFromOffset...)
 
-		log.Printf("The API returned %v profiles from the offset of %v", len(emailsStartingFromOffset), offset)
+		log.Printf("The API returned %v profiles from the offset of %v", len(idsStartingFromOffset), offset)
 
 		//The API limits respones to 50 total profiles. Keep querying the API until there are no more Recurser Profiles remaining
-		if len(emailsStartingFromOffset) == limit {
+		if len(idsStartingFromOffset) == limit {
 			apiHasMoreResults = true
 			offset += limit
 
@@ -49,33 +54,42 @@ func (ra *RecurseAPI) getCurrentlyActiveEmails(accessToken string) []string {
 		}
 	}
 
-	log.Println("The API returned this many TOTAL profiles", len(emailsOfPeopleAtRC))
-	log.Println("Here are the emails of people currently at RC", emailsOfPeopleAtRC)
+	log.Println("The API returned this many TOTAL profiles", len(ids))
+	log.Println("Here are the Zulip IDs of people currently at RC", ids)
 
-	return emailsOfPeopleAtRC
+	return ids, nil
 }
 
 /*
-	The RC API limits queries to the profiles endpoint to 50 results. However, there may be more than 50 people currently at RC.
-	The RC API takes in an "offset" query param that allows us to grab records beyond that limit of 50 results by performing multiple api calls.
+The RC API limits queries to the profiles endpoint to 50 results. However, there may be more than 50 people currently at RC.
+The RC API takes in an "offset" query param that allows us to grab records beyond that limit of 50 results by performing multiple api calls.
 */
-func (ra *RecurseAPI) getCurrentlyActiveEmailsWithOffset(accessToken string, offset int, limit int) []string {
-	var emailsOfPeopleAtRC []string
+func (ra *RecurseAPI) getCurrentlyActiveZulipIdsWithOffset(accessToken string, offset int, limit int) ([]int64, error) {
+	var ids []int64
 
 	endpointString := fmt.Sprintf("/profiles?scope=current&offset=%v&limit=%v&role=recurser&access_token=%v", offset, limit, accessToken)
 
 	resp, err := http.Get(ra.rcAPIURL + endpointString)
 	if err != nil {
-		log.Printf("Got the following error while getting the RC batches from the RC API: %s\n", err)
+		return nil, fmt.Errorf("error while getting active RCers from the RC API: %w", err)
+	}
+	if resp.StatusCode >= 400 {
+		err = fmt.Errorf("HTTP error while getting active RCers from the RC API: %s", resp.Status)
+		log.Print(err)
 	}
 
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
-
+	body, bodyErr := io.ReadAll(resp.Body)
+	if bodyErr != nil {
+		log.Printf("Unable to get the Zulip IDs of people currently at RC due to the following error: %s", err)
+	}
+	// Return the first error encountered: the HTTP status error, or the body error.
+	// We've logged both of them in either case.
 	if err != nil {
-		log.Printf("Unable to get the emails of people currently at RC due to the following error: %s", err)
-		return emailsOfPeopleAtRC
+		return nil, err
+	} else if bodyErr != nil {
+		return nil, bodyErr
 	}
 
 	//Parse the json response from the API
@@ -83,11 +97,11 @@ func (ra *RecurseAPI) getCurrentlyActiveEmailsWithOffset(accessToken string, off
 	json.Unmarshal([]byte(body), &recursers)
 
 	for i := range recursers {
-		email := recursers[i].Email
-		emailsOfPeopleAtRC = append(emailsOfPeopleAtRC, email)
+		zid := recursers[i].ZulipId
+		ids = append(ids, zid)
 	}
 
-	return emailsOfPeopleAtRC
+	return ids, nil
 }
 
 func (ra *RecurseAPI) isSecondWeekOfBatch(accessToken string) bool {
@@ -98,7 +112,7 @@ func (ra *RecurseAPI) isSecondWeekOfBatch(accessToken string) bool {
 
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 
 	//Parse the json response from the API
 	var batches []map[string]interface{}

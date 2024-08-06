@@ -27,7 +27,7 @@ const notSubscribedMessage string = "You're not subscribed to Pairing Bot <3"
 var writeErrorMessage = fmt.Sprintf("Something went sideways while writing to the database. You should probably ping %v", owner)
 var readErrorMessage = fmt.Sprintf("Something went sideways while reading from the database. You should probably ping %v", owner)
 
-func dispatch(ctx context.Context, pl *PairingLogic, cmd string, cmdArgs []string, userID string, userEmail string, userName string) (string, error) {
+func dispatch(ctx context.Context, pl *PairingLogic, cmd string, cmdArgs []string, userID int64, userEmail string, userName string) (string, error) {
 	var response string
 	var err error
 
@@ -80,11 +80,19 @@ func dispatch(ctx context.Context, pl *PairingLogic, cmd string, cmdArgs []strin
 		accessToken, err := pl.adb.GetKey(ctx, "rc-accesstoken", "key")
 		if err != nil {
 			log.Printf("Something weird happened trying to read the RC API access token from the database: %s", err)
+			response = writeErrorMessage
+			break
 		}
 
-		rec.currentlyAtRC = pl.rcapi.userIsCurrentlyAtRC(accessToken, userEmail)
+		rec.currentlyAtRC, err = pl.rcapi.userIsCurrentlyAtRC(accessToken, userID)
+		if err != nil {
+			log.Printf("Could not read currently-at-RC data from database: %s", err)
+			response = writeErrorMessage
+			break
+		}
 
 		if err = pl.rdb.Set(ctx, userID, rec); err != nil {
+			log.Printf("Could not update from database: %s", err)
 			response = writeErrorMessage
 			break
 		}

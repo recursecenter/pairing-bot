@@ -202,20 +202,27 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	recursersList, err := pl.rdb.GetAllUsers(ctx)
 	if err != nil {
-		log.Printf("Could not get list of recursers from DB: %s\n", err)
+		log.Println("Could not get list of recursers from DB: ", err)
 	}
 
 	botPassword, err := pl.adb.GetKey(ctx, "apiauth", "key")
 	if err != nil {
-		log.Println("Something weird happened trying to read the auth token from the database")
+		log.Println("Something weird happened trying to read the auth token from the database: ", err)
 	}
 
 	accessToken, err := pl.adb.GetKey(ctx, "rc-accesstoken", "key")
 	if err != nil {
-		log.Printf("Something weird happened trying to read the RC API access token from the database: %s", err)
+		log.Println("Something weird happened trying to read the RC API access token from the database: ", err)
 	}
 
-	idsOfPeopleAtRc := pl.rcapi.getCurrentlyActiveZulipIds(accessToken)
+	idsOfPeopleAtRc, err := pl.rcapi.getCurrentlyActiveZulipIds(accessToken)
+	if err != nil {
+		log.Println("Encountered error while getting currently-active Recursers: ", err)
+		// TODO: https://github.com/recursecenter/pairing-bot/issues/61: Alert here!
+		// Using a FATAL here so it gets called out in the logs.
+		log.Fatal("Aborting end-of-batch processing!")
+		return
+	}
 
 	for i := 0; i < len(recursersList); i++ {
 
@@ -232,9 +239,9 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 			log.Printf("Error encountered while update currentlyAtRC status for user: %s (ID %d)", recurser.name, recurser.id)
 		}
 
-		//If they were at RC last week but not this week then we assume they have graduated or otherwise left RC
-		//In that case we remove them from pairing bot so that inactive people do not get matched
-		//If people who have left RC still want to use pairing bot, we give them the option to resubscribe
+		// If they were at RC last week but not this week then we assume they have graduated or otherwise left RC
+		// In that case we remove them from pairing bot so that inactive people do not get matched
+		// If people who have left RC still want to use pairing bot, we give them the option to resubscribe
 		if wasAtRCLastWeek && !isAtRCThisWeek {
 			var message string
 

@@ -20,22 +20,25 @@ type RecurserProfile struct {
 	Email   string
 }
 
-func (ra *RecurseAPI) userIsCurrentlyAtRC(accessToken string, id int64) bool {
+func (ra *RecurseAPI) userIsCurrentlyAtRC(accessToken string, id int64) (bool, error) {
 	// TODO: Unfortunately this is not a query parameter, but it could be.
-	ids := ra.getCurrentlyActiveZulipIds(accessToken)
+	ids, err := ra.getCurrentlyActiveZulipIds(accessToken)
 
-	return contains(ids, id)
+	return contains(ids, id), err
 }
 
 // The profile API endpoint is updated at midnight on the last day (Friday) of a batch.
-func (ra *RecurseAPI) getCurrentlyActiveZulipIds(accessToken string) []int64 {
+func (ra *RecurseAPI) getCurrentlyActiveZulipIds(accessToken string) ([]int64, error) {
 	var ids []int64
 	offset := 0
 	limit := 50
 	apiHasMoreResults := true
 
 	for apiHasMoreResults {
-		idsStartingFromOffset := ra.getCurrentlyActiveZulipIdsWithOffset(accessToken, offset, limit)
+		idsStartingFromOffset, err := ra.getCurrentlyActiveZulipIdsWithOffset(accessToken, offset, limit)
+		if err != nil {
+			return nil, fmt.Errorf("while reading from offset %d: %w", offset, err)
+		}
 
 		ids = append(ids, idsStartingFromOffset...)
 
@@ -55,30 +58,39 @@ func (ra *RecurseAPI) getCurrentlyActiveZulipIds(accessToken string) []int64 {
 	log.Println("The API returned this many TOTAL profiles", len(ids))
 	log.Println("Here are the Zulip IDs of people currently at RC", ids)
 
-	return ids
+	return ids, nil
 }
 
 /*
 The RC API limits queries to the profiles endpoint to 50 results. However, there may be more than 50 people currently at RC.
 The RC API takes in an "offset" query param that allows us to grab records beyond that limit of 50 results by performing multiple api calls.
 */
-func (ra *RecurseAPI) getCurrentlyActiveZulipIdsWithOffset(accessToken string, offset int, limit int) []int64 {
+func (ra *RecurseAPI) getCurrentlyActiveZulipIdsWithOffset(accessToken string, offset int, limit int) ([]int64, error) {
 	var ids []int64
 
 	endpointString := fmt.Sprintf("/profiles?scope=current&offset=%v&limit=%v&role=recurser&access_token=%v", offset, limit, accessToken)
 
 	resp, err := http.Get(ra.rcAPIURL + endpointString)
 	if err != nil {
-		log.Printf("Got the following error while getting the RC batches from the RC API: %s\n", err)
+		return nil, fmt.Errorf("error while getting active RCers from the RC API: %w", err)
+	}
+	if resp.StatusCode >= 400 {
+		err = fmt.Errorf("HTTP error while getting active RCers from the RC API: %s", resp.Status)
+		log.Print(err)
 	}
 
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
-
-	if err != nil {
+	body, bodyErr := io.ReadAll(resp.Body)
+	if bodyErr != nil {
 		log.Printf("Unable to get the Zulip IDs of people currently at RC due to the following error: %s", err)
-		return ids
+	}
+	// Return the first error encountered: the HTTP status error, or the body error.
+	// We've logged both of them in either case.
+	if err != nil {
+		return nil, err
+	} else if bodyErr != nil {
+		return nil, bodyErr
 	}
 
 	//Parse the json response from the API
@@ -90,7 +102,7 @@ func (ra *RecurseAPI) getCurrentlyActiveZulipIdsWithOffset(accessToken string, o
 		ids = append(ids, zid)
 	}
 
-	return ids
+	return ids, nil
 }
 
 func (ra *RecurseAPI) isSecondWeekOfBatch(accessToken string) bool {

@@ -2,9 +2,10 @@ name: Go
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+      - dev
   pull_request:
-    branches: [ main ]
 
 jobs:
 
@@ -21,5 +22,20 @@ jobs:
     - name: Build
       run: go build -v ./...
 
+    - uses: google-github-actions/setup-gcloud@v2
+      with:
+        version: '>= 486.0.0'
+        install_components: 'cloud-firestore-emulator'
+
+    - name: Start Firestore emulator
+      run: |
+        gcloud emulators firestore start --host-port=[::1]:8410 &
+
+        until curl '[::1]:8410' 2>/dev/null; do
+            sleep 1
+        done
+
     - name: Test
       run: go test -v ./...
+      env:
+        FIRESTORE_EMULATOR_HOST: '[::1]:8410'

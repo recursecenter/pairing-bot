@@ -17,8 +17,6 @@ func main() {
 	// and the file:line (without the full path- we don't have directories.)
 	log.SetFlags(log.Ldate | log.Ltime | log.LUTC | log.Lshortfile)
 
-	// setting up database connection: 2 clients encapsulated into PairingLogic struct
-
 	ctx := context.Background()
 
 	appEnv := os.Getenv("APP_ENV")
@@ -34,32 +32,16 @@ func main() {
 		log.Println("Running pairing bot in the testing environment for development")
 	}
 
-	rc, err := firestore.NewClient(ctx, projectId)
+	// Set up database wrappers. The Firestore client has a connection pool, so
+	// we can share this one DB handle among all the collection helpers.
+	db, err := firestore.NewClient(ctx, projectId)
 	if err != nil {
 		log.Panic(err)
 	}
-	defer rc.Close()
-
-	ac, err := firestore.NewClient(ctx, projectId)
-	if err != nil {
-		log.Panic(err)
-	}
-	defer ac.Close()
-
-	pc, err := firestore.NewClient(ctx, projectId)
-	if err != nil {
-		log.Panic(err)
-	}
-	defer pc.Close()
-
-	revc, err := firestore.NewClient(ctx, projectId)
-	if err != nil {
-		log.Panic(err)
-	}
-	defer revc.Close()
+	defer db.Close()
 
 	rdb := &FirestoreRecurserDB{
-		client: rc,
+		client: db,
 	}
 
 	rcapi := RecurseAPI{
@@ -67,15 +49,15 @@ func main() {
 	}
 
 	adb := &FirestoreAPIAuthDB{
-		client: ac,
+		client: db,
 	}
 
 	pdb := &FirestorePairingsDB{
-		client: pc,
+		client: db,
 	}
 
 	revdb := &FirestoreReviewDB{
-		client: revc,
+		client: db,
 	}
 
 	ur := &zulipUserRequest{}

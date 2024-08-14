@@ -17,7 +17,7 @@ import (
 
 // this is what we send to / receive from Firestore
 // var recurser = map[string]interface{}{
-// 	"id":                 "string",
+// 	"id":                 1234,
 // 	"name":               "string",
 // 	"email":              "string",
 // 	"isSkippingTomorrow": false,
@@ -251,7 +251,16 @@ func (f *FirestoreRecurserDB) UnsetSkippingTomorrow(ctx context.Context, recurse
 	r := recurser.ConvertToMap()
 	r["isSkippingTomorrow"] = false
 
-	_, err := f.client.Collection("recursers").Doc(r["id"].(string)).Set(ctx, r, firestore.MergeAll)
+	// There are two IDs that have to match:
+	//  1. The recurser ID *inside* the document, which is an int64.
+	//  2. The document ID *itself*, which is a string.
+	rID, ok := r["id"].(int64)
+	if !ok {
+		return fmt.Errorf(`recurser's "id" field was not an int64: %+v`, r)
+	}
+
+	docID := strconv.FormatInt(rID, 10)
+	_, err := f.client.Collection("recursers").Doc(docID).Set(ctx, r, firestore.MergeAll)
 	return err
 }
 

@@ -63,14 +63,7 @@ func dispatch(ctx context.Context, pl *PairingLogic, cmd string, cmdArgs []strin
 			break
 		}
 
-		accessToken, err := pl.adb.GetToken(ctx, "rc-accesstoken/key")
-		if err != nil {
-			log.Printf("Something weird happened trying to read the RC API access token from the database: %s", err)
-			response = readErrorMessage
-			break
-		}
-
-		rec.CurrentlyAtRC, err = pl.rcapi.userIsCurrentlyAtRC(accessToken, userID)
+		rec.CurrentlyAtRC, err = pl.recurse.IsCurrentlyAtRC(ctx, userID)
 		if err != nil {
 			log.Printf("Could not read currently-at-RC data from database: %s", err)
 			response = writeErrorMessage

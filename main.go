@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"cloud.google.com/go/firestore"
+	"github.com/recursecenter/pairing-bot/recurse"
 	"github.com/recursecenter/pairing-bot/zulip"
 )
 
@@ -47,10 +48,6 @@ func main() {
 		client: db,
 	}
 
-	rcapi := RecurseAPI{
-		rcAPIURL: "https://www.recurse.com/api/v1",
-	}
-
 	adb := &FirestoreAPIAuthDB{
 		client: db,
 	}
@@ -80,13 +77,26 @@ func main() {
 		panic(err)
 	}
 
+	recurseAccessToken := func(ctx context.Context) (recurse.AccessToken, error) {
+		token, err := adb.GetToken(ctx, "rc-accesstoken/key")
+		if err != nil {
+			return "", err
+		}
+		return recurse.AccessToken(token), nil
+	}
+
+	recurseClient, err := recurse.NewClient(recurseAccessToken)
+	if err != nil {
+		panic(err)
+	}
+
 	pl := &PairingLogic{
 		rdb:   rdb,
 		adb:   adb,
 		pdb:   pdb,
-		rcapi: rcapi,
 		revdb: revdb,
 
+		recurse: recurseClient,
 		zulip:   zulipClient,
 		version: appVersion,
 	}

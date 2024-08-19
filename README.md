@@ -23,7 +23,7 @@ Pairing Bot interacts through private messages on [Zulip](https://zulipchat.com/
 
 ## Information for Pairing Bot admins
 
-![Pairing Bot's interactions with Zulip, Recurse, and the Google Cloud Platform](docs/pairing-bot.excalidraw.svg)
+In addition to the words below, there's an architecture diagram: [docs/pairing-bot.excalidraw.svg](docs/pairing-bot.excalidraw.svg)
 
 ### Deploys
 

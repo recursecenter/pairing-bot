@@ -31,8 +31,6 @@ type PairingLogic struct {
 	rcapi RecurseAPI
 }
 
-var randSrc = rand.New(rand.NewSource(time.Now().UnixNano()))
-
 func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 	var err error
 
@@ -139,8 +137,16 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Reproducible randomness:
+	// - Get and log a random seed
+	// - Run the shuffle using a source derived from that seed
+	// so we can re-run the shuffle later, if needed.
+	// In dev, you should be able to set the seed below to get the same shuffle.
+	seed := rand.Int63()
+	log.Printf("Shuffling %d Recursers using random seed: %d", len(recursersList), seed)
+	randSrc := rand.NewSource(seed)
 	// shuffle our recursers. This will not error if the list is empty
-	randSrc.Shuffle(len(recursersList), func(i, j int) { recursersList[i], recursersList[j] = recursersList[j], recursersList[i] })
+	rand.New(randSrc).Shuffle(len(recursersList), func(i, j int) { recursersList[i], recursersList[j] = recursersList[j], recursersList[i] })
 
 	// if for some reason there's no matches today, we're done
 	if len(recursersList) == 0 {

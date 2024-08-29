@@ -165,11 +165,11 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 	if len(recursersList)%2 != 0 {
 		recurser := recursersList[len(recursersList)-1]
 		recursersList = recursersList[:len(recursersList)-1]
-		log.Println("Someone was the odd-one-out today")
+		log.Printf("%s was the odd-one-out today", recurser.name)
 
 		err := pl.un.sendUserMessage(ctx, botPassword, []int64{recurser.id}, oddOneOutMessage)
 		if err != nil {
-			log.Printf("Error when trying to send oddOneOut message to %s: %s\n", recurser.email, err)
+			log.Printf("Error when trying to send oddOneOut message to %s: %s\n", recurser.name, err)
 		}
 	}
 

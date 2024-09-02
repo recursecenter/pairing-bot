@@ -9,7 +9,7 @@ import (
 	"os"
 
 	"cloud.google.com/go/firestore"
-	"github.com/thwidge/pairing-bot/zulip"
+	"github.com/recursecenter/pairing-bot/zulip"
 )
 
 // It's alive! The application starts here.

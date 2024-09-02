@@ -1,4 +1,4 @@
-module github.com/thwidge/pairing-bot
+module github.com/recursecenter/pairing-bot
 
 go 1.22
 

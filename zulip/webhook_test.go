@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/thwidge/pairing-bot/zulip"
+	"github.com/recursecenter/pairing-bot/zulip"
 )
 
 func TestWebhook(t *testing.T) {

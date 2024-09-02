@@ -12,7 +12,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/thwidge/pairing-bot/zulip"
+	"github.com/recursecenter/pairing-bot/zulip"
 )
 
 func assertEqual[T any](t *testing.T, expected, actual T) {

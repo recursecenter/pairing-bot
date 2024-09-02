@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/thwidge/pairing-bot/zulip"
+	"github.com/recursecenter/pairing-bot/zulip"
 )
 
 const owner string = `@_**Maren Beam (SP2'19)**`

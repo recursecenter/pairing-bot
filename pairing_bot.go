@@ -30,7 +30,8 @@ type PairingLogic struct {
 	revdb ReviewDB
 	rcapi RecurseAPI
 
-	zulip *zulip.Client
+	zulip   *zulip.Client
+	version string
 }
 
 func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {

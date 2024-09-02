@@ -30,6 +30,7 @@ func parseCmd(cmdStr string) (string, []string, error) {
 		"add-review",
 		"get-reviews",
 		"cookie",
+		"version",
 	}
 
 	//This contains the days of the week and common abbreviations
@@ -116,6 +117,8 @@ func parseCmd(cmdStr string) (string, []string, error) {
 			}
 
 			return "schedule", userSchedule, err
+		case cmd[0] == "version":
+			return "version", nil, nil
 		default:
 			return cmd[0], cmd[1:], err
 		}

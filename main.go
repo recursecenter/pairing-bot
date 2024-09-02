@@ -21,6 +21,8 @@ func main() {
 
 	ctx := context.Background()
 
+	appVersion := os.Getenv("GAE_VERSION")
+
 	appEnv := os.Getenv("APP_ENV")
 	projectId := "pairing-bot-284823"
 	botUsername := "pairing-bot@recurse.zulipchat.com"
@@ -98,7 +100,8 @@ func main() {
 		rcapi: rcapi,
 		revdb: revdb,
 
-		zulip: zulipClient,
+		zulip:   zulipClient,
+		version: appVersion,
 	}
 
 	http.HandleFunc("/", http.NotFound)           // will this handle anything that's not defined?

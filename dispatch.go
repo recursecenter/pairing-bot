@@ -226,6 +226,8 @@ func dispatch(ctx context.Context, pl *PairingLogic, cmd string, cmdArgs []strin
 		response = getCookieClubMessage()
 	case "help":
 		response = helpMessage
+	case "version":
+		response = pl.version
 	default:
 		// this won't execute because all input has been sanitized
 		// by parseCmd() and all cases are handled explicitly above

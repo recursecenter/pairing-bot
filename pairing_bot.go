@@ -190,7 +190,9 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 	numPairings := numRecursersPairedUp / 2
 
 	timestamp := time.Now().Unix()
-	pl.pdb.SetNumPairings(ctx, int(timestamp), numPairings)
+	if err := pl.pdb.SetNumPairings(ctx, int(timestamp), numPairings); err != nil {
+		log.Printf("Failed to record today's pairings: %s", err)
+	}
 }
 
 // Unsubscribe people from Pairing Bot when their batch is over. They're always welcome to re-subscribe manually!

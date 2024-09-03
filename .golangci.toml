@@ -1,0 +1,10 @@
+[linters]
+enable = [
+    "asasalint",
+    "bidichk",
+    "bodyclose",
+    "durationcheck",
+    "gocheckcompilerdirectives",
+    "makezero",
+    "tenv",
+]

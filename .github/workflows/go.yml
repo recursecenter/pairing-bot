@@ -8,7 +8,6 @@ on:
   pull_request:
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
     steps:
@@ -21,6 +20,38 @@ jobs:
 
     - name: Build
       run: go build -v ./...
+
+  lint:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read       # Read repo content
+      pull-requests: read  # Read PR base commit
+      checks: write        # Annotate code
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.60
+          # Only report new issues introduced by *this* PR. Requires
+          # `permissons.pull-requests: read`.
+          only-new-issues: true
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.22'
 
     - uses: google-github-actions/setup-gcloud@v2
       with:
@@ -39,3 +70,4 @@ jobs:
       run: go test -v ./...
       env:
         FIRESTORE_EMULATOR_HOST: '[::1]:8410'
+

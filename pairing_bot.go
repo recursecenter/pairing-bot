@@ -17,6 +17,7 @@ const oddOneOutMessage string = "OK this is awkward.\nThere were an odd number o
 const matchedMessage = "Hi you two! You've been matched for pairing :)\n\nHave fun!\n\nNote: In an effort to reduce the frequency of no-show partners, I'll soon start automatically unsubscribing users that I haven't heard from in a while. Please message me back so I know you're an active user (and messages in this chat count!) :heart:"
 const offboardedMessage = "Hi! You've been unsubscribed from Pairing Bot.\n\nThis happens at the end of every batch, and everyone is offboarded even if they're still in batch. If you'd like to re-subscribe, just send me a message that says `subscribe`.\n\nBe well! :)"
 const introMessage = "Hi! I'm Pairing Bot (she/her)!\n\nSend me a PM that says `subscribe` to get started :smiley:\n\n:pear::robot:\n:octopus::octopus:"
+const autoUnsubscribeMessage = ("Hi! I've noticed that it's been a few pairings since I last heard from you. To make sure I only pair active users together, I've automatically unsubscribed you from pairing.\n\nIt's okay though! Send me another `subscribe` message to join back in whenever you like (even now!) :heart:\n\nIf you *are* active and I unsubscribed you anyway, I'm sorry! Please re-subscribe! And then request a non-automated apology from the maintainers :robot:")
 
 // MAX_OPEN_PAIRINGS is the threshold for considering a user to be "inactive".
 // After this many unanswered pairings, the user is automatically unsubscribed.
@@ -167,7 +168,7 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Remove anyone who has been inactive for too many pairings.
-	active, _ := groupByActivity(recursersList)
+	active, inactive := groupByActivity(recursersList)
 
 	// message the peeps!
 
@@ -213,6 +214,18 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 	if err := pl.pdb.SetNumPairings(ctx, int(timestamp), numPairings); err != nil {
 		log.Printf("Failed to record today's pairings: %s", err)
 	}
+
+	for _, r := range inactive {
+		if err := pl.rdb.Delete(ctx, r.id); err != nil {
+			log.Printf("Could not unsubscribe user (%d): %s", r.id, err)
+		}
+
+		if err := pl.zulip.SendUserMessage(ctx, []int64{r.id}, autoUnsubscribeMessage); err != nil {
+			log.Printf("Could not send auto-unsubscribe message to user (%d): %s", r.id, err)
+		}
+	}
+
+	log.Printf("Pairing Bot auto-unsubscribed %d inactive recursers today", len(inactive))
 }
 
 // Unsubscribe people from Pairing Bot when their batch is over. They're always welcome to re-subscribe manually!

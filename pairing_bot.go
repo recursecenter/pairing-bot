@@ -60,7 +60,7 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 	// Respond to all public messages with an introduction. Don't process any
 	// commands in open streams/channels.
 	if hook.Trigger != "direct_message" {
-		if err := responder.Encode(introMessage); err != nil {
+		if err := responder.Encode(zulip.Reply(introMessage)); err != nil {
 			log.Println(err)
 		}
 		return

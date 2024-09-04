@@ -2,12 +2,14 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 
 	"cloud.google.com/go/firestore"
+	"github.com/thwidge/pairing-bot/zulip"
 )
 
 // It's alive! The application starts here.
@@ -60,27 +62,43 @@ func main() {
 		client: db,
 	}
 
-	ur := &zulipUserRequest{}
+	zulipCredentials := func(ctx context.Context) (zulip.Credentials, error) {
+		res, err := db.Collection("apiauth").Doc("key").Get(ctx)
+		if err != nil {
+			return zulip.Credentials{}, err
+		}
 
-	un := &zulipUserNotification{
-		botUsername: botUsername,
-		zulipAPIURL: "https://recurse.zulipchat.com/api/v1/messages",
+		data := res.Data()
+
+		value, ok := data["value"]
+		if !ok {
+			return zulip.Credentials{}, errors.New(`missing key in /apiauth/key: "value"`)
+		}
+
+		password, ok := value.(string)
+		if !ok {
+			return zulip.Credentials{}, fmt.Errorf(`type mismatch in /apiauth/key: expected "value" to be string, got %T`, value)
+		}
+
+		return zulip.Credentials{
+			Username: botUsername,
+			Password: password,
+		}, nil
 	}
 
-	sm := &zulipStreamMessage{
-		botUsername: botUsername,
-		zulipAPIURL: "https://recurse.zulipchat.com/api/v1/messages",
+	zulipClient, err := zulip.NewClient(zulipCredentials)
+	if err != nil {
+		panic(err)
 	}
 
 	pl := &PairingLogic{
 		rdb:   rdb,
 		adb:   adb,
 		pdb:   pdb,
-		ur:    ur,
-		un:    un,
-		sm:    sm,
 		rcapi: rcapi,
 		revdb: revdb,
+
+		zulip: zulipClient,
 	}
 
 	http.HandleFunc("/", http.NotFound)           // will this handle anything that's not defined?

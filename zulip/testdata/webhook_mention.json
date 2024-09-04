@@ -1,0 +1,12 @@
+{
+    "data": "Try messaging @**Pairing Bot!** to join in!",
+    "token": "fake-zulip-token",
+    "trigger": "mention",
+    "message": {
+        "display_recipient": "Stream Channel",
+        "sender_id": 1000,
+        "sender_email": "fake-1000@recurse.example.net",
+        "sender_full_name": "Your Name",
+        "subject": "Subject Topic"
+    }
+}

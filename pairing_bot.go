@@ -7,12 +7,15 @@ import (
 	"math/rand"
 	"net/http"
 	"time"
+
+	"github.com/thwidge/pairing-bot/zulip"
 )
 
 const owner string = `@_**Maren Beam (SP2'19)**`
 const oddOneOutMessage string = "OK this is awkward.\nThere were an odd number of people in the match-set today, which means that one person couldn't get paired. Unfortunately, it was you -- I'm really sorry :(\nI promise it's not personal, it was very much random. Hopefully this doesn't happen again too soon. Enjoy your day! <3"
 const matchedMessage = "Hi you two! You've been matched for pairing :)\n\nHave fun!"
 const offboardedMessage = "Hi! You've been unsubscribed from Pairing Bot.\n\nThis happens at the end of every batch, and everyone is offboarded even if they're still in batch. If you'd like to re-subscribe, just send me a message that says `subscribe`.\n\nBe well! :)"
+const introMessage = "Hi! I'm Pairing Bot (she/her)!\n\nSend me a PM that says `subscribe` to get started :smiley:\n\n:pear::robot:\n:octopus::octopus:"
 
 var maintenanceMode = false
 
@@ -25,10 +28,9 @@ type PairingLogic struct {
 	adb   APIAuthDB
 	pdb   PairingsDB
 	revdb ReviewDB
-	ur    userRequest
-	un    userNotification
-	sm    streamMessage
 	rcapi RecurseAPI
+
+	zulip *zulip.Client
 }
 
 func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
@@ -43,66 +45,66 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("Handling a new Zulip request")
 
-	if err = pl.ur.validateJSON(r); err != nil {
-		log.Println(err)
-		http.NotFound(w, r)
-	}
-
 	botAuth, err := pl.adb.GetKey(ctx, "botauth", "token")
 	if err != nil {
 		log.Println("Something weird happened trying to read the auth token from the database")
 	}
 
-	if !pl.ur.validateAuthCreds(botAuth) {
-		http.NotFound(w, r)
+	hook, err := zulip.ParseWebhook(r.Body, botAuth)
+	if err != nil {
+		log.Println(err)
+		http.NotFound(w, r) // TODO(@jdkaplan): 401 Unauthorized if token mismatch?
+		return
 	}
 
-	intro := pl.ur.validateInteractionType()
-	if intro != nil {
-		if err = responder.Encode(intro); err != nil {
+	// Respond to all public messages with an introduction. Don't process any
+	// commands in open streams/channels.
+	if hook.Trigger != "direct_message" {
+		if err := responder.Encode(introMessage); err != nil {
 			log.Println(err)
 		}
 		return
 	}
 
-	ignore := pl.ur.ignoreInteractionType()
-	if ignore != nil {
-		if err = responder.Encode(ignore); err != nil {
+	// Don't respond to commands sent in pair-making group DMs. We can
+	// distinguish these by checking whether there are exactly two participants
+	// (Pairing Bot + 1).
+	if len(hook.Message.DisplayRecipient.Users) != 2 {
+		if err := responder.Encode(zulip.NoResponse()); err != nil {
 			log.Println(err)
 		}
 		return
 	}
-
-	userData := pl.ur.extractUserData()
 
 	// for testing only
 	// this responds with a maintenance message and quits if the request is coming from anyone other than the owner
-	if maintenanceMode {
-		if userData.userID != ownerID {
-			if err = responder.Encode(botResponse{`pairing bot is down for maintenance`}); err != nil {
-				log.Println(err)
-			}
-			return
+	if maintenanceMode && hook.Message.SenderID != ownerID {
+		if err = responder.Encode(zulip.Reply(`pairing bot is down for maintenance`)); err != nil {
+			log.Println(err)
 		}
+		return
 	}
 
-	log.Printf("The user: %s (%d) issued the following request to Pairing Bot: %s", userData.userName, userData.userID, pl.ur.getCommandString())
+	log.Printf("The user: %s (%d) issued the following request to Pairing Bot: %s", hook.Message.SenderFullName, hook.Message.SenderID, hook.Data)
 
 	// you *should* be able to throw any string at this thing and get back a valid command for dispatch()
 	// if there are no command arguments, cmdArgs will be nil
-	cmd, cmdArgs, err := pl.ur.sanitizeUserInput()
+	cmd, cmdArgs, err := parseCmd(hook.Data)
 	if err != nil {
 		log.Println(err)
+		return
 	}
 
 	// the tofu and potatoes right here y'all
-	response, err := dispatch(ctx, pl, cmd, cmdArgs, int64(userData.userID), userData.userEmail, userData.userName)
+	response, err := dispatch(ctx, pl, cmd, cmdArgs, hook.Message.SenderID, hook.Message.SenderEmail, hook.Message.SenderFullName)
 	if err != nil {
 		log.Println(err)
+		return
 	}
 
-	if err = responder.Encode(botResponse{response}); err != nil {
+	if err = responder.Encode(zulip.Reply(response)); err != nil {
 		log.Println(err)
+		return
 	}
 }
 
@@ -155,10 +157,6 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// message the peeps!
-	botPassword, err := pl.adb.GetKey(ctx, "apiauth", "key")
-	if err != nil {
-		log.Println("Something weird happened trying to read the auth token from the database")
-	}
 
 	// if there's an odd number today, message the last person in the list
 	// and tell them they don't get a match today, then knock them off the list
@@ -167,7 +165,7 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 		recursersList = recursersList[:len(recursersList)-1]
 		log.Printf("%s was the odd-one-out today", recurser.name)
 
-		err := pl.un.sendUserMessage(ctx, botPassword, []int64{recurser.id}, oddOneOutMessage)
+		err := pl.zulip.SendUserMessage(ctx, []int64{recurser.id}, oddOneOutMessage)
 		if err != nil {
 			log.Printf("Error when trying to send oddOneOut message to %s: %s\n", recurser.name, err)
 		}
@@ -178,7 +176,7 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 		rc2 := recursersList[i+1]
 		ids := []int64{rc1.id, rc2.id}
 
-		err := pl.un.sendUserMessage(ctx, botPassword, ids, matchedMessage)
+		err := pl.zulip.SendUserMessage(ctx, ids, matchedMessage)
 		if err != nil {
 			log.Printf("Error when trying to send matchedMessage to %s and %s: %s\n", rc1.name, rc2.name, err)
 		}
@@ -209,11 +207,6 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 	recursersList, err := pl.rdb.GetAllUsers(ctx)
 	if err != nil {
 		log.Println("Could not get list of recursers from DB: ", err)
-	}
-
-	botPassword, err := pl.adb.GetKey(ctx, "apiauth", "key")
-	if err != nil {
-		log.Println("Something weird happened trying to read the auth token from the database: ", err)
 	}
 
 	accessToken, err := pl.adb.GetKey(ctx, "rc-accesstoken", "key")
@@ -261,7 +254,7 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 				message = offboardedMessage
 			}
 
-			err := pl.un.sendUserMessage(ctx, botPassword, []int64{recurser.id}, message)
+			err := pl.zulip.SendUserMessage(ctx, []int64{recurser.id}, message)
 			if err != nil {
 				log.Printf("Error when trying to send offboarding message to %s (ID %d): %s", recurser.name, recurser.id, err)
 			}
@@ -290,14 +283,7 @@ func (pl *PairingLogic) checkin(w http.ResponseWriter, r *http.Request) {
 
 	checkinMessage := getCheckinMessage(numPairings, len(recursersList), review.content)
 
-	botPassword, err := pl.adb.GetKey(ctx, "apiauth", "key")
-	if err != nil {
-		log.Println("Something weird happened trying to read the auth token from the database")
-	}
-
-	err = pl.sm.postToTopic(ctx, botPassword, checkinMessage, "checkins", "Pairing Bot")
-
-	if err != nil {
+	if err := pl.zulip.PostToTopic(ctx, "checkins", "Pairing Bot", checkinMessage); err != nil {
 		log.Printf("Error when trying to submit Pairing Bot checkins stream message: %s\n", err)
 	}
 }
@@ -346,17 +332,7 @@ func (pl *PairingLogic) welcome(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if pl.rcapi.isSecondWeekOfBatch(accessToken) {
-		ctx := r.Context()
-		botPassword, err := pl.adb.GetKey(ctx, "apiauth", "key")
-
-		if err != nil {
-			log.Println("Something weird happened trying to read the auth token from the database")
-		}
-
-		streamMessage := getWelcomeMessage()
-
-		err = pl.sm.postToTopic(ctx, botPassword, streamMessage, "397 Bridge", "🍐🤖")
-		if err != nil {
+		if err := pl.zulip.PostToTopic(ctx, "397 Bridge", "🍐🤖", getWelcomeMessage()); err != nil {
 			log.Printf("Error when trying to send welcome message about Pairing Bot %s\n", err)
 		}
 	}

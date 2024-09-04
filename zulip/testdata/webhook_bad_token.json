@@ -1,0 +1,28 @@
+{
+    "bot_email": "outgoing-bot@localhost",
+    "bot_full_name": "Outgoing webhook test",
+    "data": "@**Outgoing webhook test** Zulip is the world\u2019s most productive group chat!",
+    "message": {
+        "avatar_url": "https://secure.gravatar.com/avatar/1f4f1575bf002ae562fea8fc4b861b09?d=identicon&version=1",
+        "client": "website",
+        "content": "@**Outgoing webhook test** Zulip is the world\u2019s most productive group chat!",
+        "display_recipient": "Verona",
+        "id": 112,
+        "is_me_message": false,
+        "reactions": [],
+        "recipient_id": 20,
+        "rendered_content": "<p><span class=\"user-mention\" data-user-id=\"25\">@Outgoing webhook test</span> Zulip is the world\u2019s most productive group chat!</p>",
+        "sender_email": "iago@zulip.com",
+        "sender_full_name": "Iago",
+        "sender_id": 5,
+        "sender_realm_str": "zulip",
+        "stream_id": 5,
+        "subject": "Verona2",
+        "submessages": [],
+        "timestamp": 1527876931,
+        "topic_links": [],
+        "type": "stream"
+    },
+    "token": "xvOzfurIutdRRVLzpXrIIHXJvNfaJLJ0",
+    "trigger": "mention"
+}

@@ -14,9 +14,13 @@ import (
 
 const owner string = `@_**Maren Beam (SP2'19)**`
 const oddOneOutMessage string = "OK this is awkward.\nThere were an odd number of people in the match-set today, which means that one person couldn't get paired. Unfortunately, it was you -- I'm really sorry :(\nI promise it's not personal, it was very much random. Hopefully this doesn't happen again too soon. Enjoy your day! <3"
-const matchedMessage = "Hi you two! You've been matched for pairing :)\n\nHave fun!"
+const matchedMessage = "Hi you two! You've been matched for pairing :)\n\nHave fun!\n\nNote: In an effort to reduce the frequency of no-show partners, I'll soon start automatically unsubscribing users that I haven't heard from in a while. Please message me back so I know you're an active user (and messages in this chat count!) :heart:"
 const offboardedMessage = "Hi! You've been unsubscribed from Pairing Bot.\n\nThis happens at the end of every batch, and everyone is offboarded even if they're still in batch. If you'd like to re-subscribe, just send me a message that says `subscribe`.\n\nBe well! :)"
 const introMessage = "Hi! I'm Pairing Bot (she/her)!\n\nSend me a PM that says `subscribe` to get started :smiley:\n\n:pear::robot:\n:octopus::octopus:"
+
+// MAX_OPEN_PAIRINGS is the threshold for considering a user to be "inactive".
+// After this many unanswered pairings, the user is automatically unsubscribed.
+const MAX_OPEN_PAIRINGS = 3
 
 var maintenanceMode = false
 
@@ -162,13 +166,16 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Remove anyone who has been inactive for too many pairings.
+	active, _ := groupByActivity(recursersList)
+
 	// message the peeps!
 
 	// if there's an odd number today, message the last person in the list
 	// and tell them they don't get a match today, then knock them off the list
-	if len(recursersList)%2 != 0 {
-		recurser := recursersList[len(recursersList)-1]
-		recursersList = recursersList[:len(recursersList)-1]
+	if len(active)%2 != 0 {
+		recurser := active[len(active)-1]
+		active = active[:len(active)-1]
 		log.Printf("%s was the odd-one-out today", recurser.name)
 
 		err := pl.zulip.SendUserMessage(ctx, []int64{recurser.id}, oddOneOutMessage)
@@ -177,9 +184,9 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	for i := 0; i < len(recursersList); i += 2 {
-		rc1 := &recursersList[i]
-		rc2 := &recursersList[i+1]
+	for i := 0; i < len(active); i += 2 {
+		rc1 := &active[i]
+		rc2 := &active[i+1]
 		ids := []int64{rc1.id, rc2.id}
 
 		err := pl.zulip.SendUserMessage(ctx, ids, matchedMessage)
@@ -196,7 +203,7 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	numRecursersPairedUp := len(recursersList)
+	numRecursersPairedUp := len(active)
 
 	log.Printf("Pairing Bot paired up %d recursers today", numRecursersPairedUp)
 
@@ -395,4 +402,15 @@ func (pl *PairingLogic) resetPairingCount(ctx context.Context, msg zulip.Message
 func (pl *PairingLogic) incrementPairingCount(ctx context.Context, rc *Recurser) error {
 	rc.openPairings++
 	return pl.rdb.Set(ctx, rc.id, *rc)
+}
+
+func groupByActivity(recursers []Recurser) (active, inactive []Recurser) {
+	for _, r := range recursers {
+		if r.openPairings < MAX_OPEN_PAIRINGS {
+			active = append(active, r)
+		} else {
+			inactive = append(inactive, r)
+		}
+	}
+	return active, inactive
 }

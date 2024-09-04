@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -64,6 +65,11 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 		}
 		return
+	}
+
+	// Reset the open pairings count on user activity.
+	if err := pl.resetPairingCount(ctx, hook.Message); err != nil {
+		log.Printf("Could not reset openPairings count for user (%d): %s", hook.Message.SenderID, err)
 	}
 
 	// Don't respond to commands sent in pair-making group DMs. We can
@@ -172,15 +178,22 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for i := 0; i < len(recursersList); i += 2 {
-		rc1 := recursersList[i]
-		rc2 := recursersList[i+1]
+		rc1 := &recursersList[i]
+		rc2 := &recursersList[i+1]
 		ids := []int64{rc1.id, rc2.id}
 
 		err := pl.zulip.SendUserMessage(ctx, ids, matchedMessage)
 		if err != nil {
 			log.Printf("Error when trying to send matchedMessage to %s and %s: %s\n", rc1.name, rc2.name, err)
+			continue
 		}
 		log.Println(rc1.name, "was", "matched", "with", rc2.name)
+
+		for _, rc := range []*Recurser{rc1, rc2} {
+			if err := pl.incrementPairingCount(ctx, rc); err != nil {
+				log.Printf("Error incrementing openPairings for user (%d): %s", rc1.id, err)
+			}
+		}
 	}
 
 	numRecursersPairedUp := len(recursersList)
@@ -363,4 +376,23 @@ func getWelcomeMessage() string {
 			"* See what other recursers have to say about me by using the `get-reviews` command."
 
 	return fmt.Sprintf(message, todayFormatted)
+}
+
+func (pl *PairingLogic) resetPairingCount(ctx context.Context, msg zulip.Message) error {
+	rec, err := pl.rdb.GetByUserID(ctx, msg.SenderID, msg.SenderEmail, msg.SenderFullName)
+	if err != nil {
+		return err
+	}
+
+	if rec.isSubscribed {
+		rec.openPairings = 0
+		return pl.rdb.Set(ctx, rec.id, rec)
+	}
+
+	return nil
+}
+
+func (pl *PairingLogic) incrementPairingCount(ctx context.Context, rc *Recurser) error {
+	rc.openPairings++
+	return pl.rdb.Set(ctx, rc.id, *rc)
 }

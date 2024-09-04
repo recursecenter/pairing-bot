@@ -30,7 +30,8 @@ import (
 // 		"saturday":  false,
 // 		"sunday":    false,
 // 	},
-//  "currentlyAtRC":      false,
+//  "currentlyAtRC": false,
+//  "openPairings":  0,
 // }
 
 type Recurser struct {
@@ -41,8 +42,16 @@ type Recurser struct {
 	schedule           map[string]interface{}
 
 	// isSubscribed really means "did they already have an entry in the database"
-	isSubscribed  bool
+	isSubscribed bool
+
 	currentlyAtRC bool
+
+	// openPairings is the number of pairings we've made since the user's last
+	// chat interaction.
+	//
+	// The count increments each time we send a pairing message. It resets to
+	// zero any time we get a chat message from the user.
+	openPairings int64
 }
 
 func (r *Recurser) ConvertToMap() map[string]interface{} {
@@ -53,6 +62,7 @@ func (r *Recurser) ConvertToMap() map[string]interface{} {
 		"isSkippingTomorrow": r.isSkippingTomorrow,
 		"schedule":           r.schedule,
 		"currentlyAtRC":      r.currentlyAtRC,
+		"openPairings":       r.openPairings,
 	}
 }
 
@@ -62,6 +72,15 @@ func parseDoc(doc *firestore.DocumentSnapshot) (Recurser, error) {
 		return Recurser{}, fmt.Errorf("invalid ID value: %w", err)
 	}
 	m := doc.Data()
+
+	var openPairings int64
+	if v, ok := m["openPairings"]; ok {
+		if i, ok := v.(int64); ok {
+			openPairings = i
+		} else {
+			return Recurser{}, fmt.Errorf("invalid openPairings (int64): %#+v", v)
+		}
+	}
 
 	// isSubscribed is missing here because it's not in the map
 	return Recurser{
@@ -73,6 +92,7 @@ func parseDoc(doc *firestore.DocumentSnapshot) (Recurser, error) {
 		isSkippingTomorrow: m["isSkippingTomorrow"].(bool),
 		schedule:           m["schedule"].(map[string]interface{}),
 		currentlyAtRC:      m["currentlyAtRC"].(bool),
+		openPairings:       openPairings,
 	}, nil
 }
 

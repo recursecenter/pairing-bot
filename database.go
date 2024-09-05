@@ -264,37 +264,6 @@ func (f *FirestoreRecurserDB) UnsetSkippingTomorrow(ctx context.Context, recurse
 	return err
 }
 
-// implements RecurserDB
-type MockRecurserDB struct{}
-
-func (m *MockRecurserDB) GetByUserID(ctx context.Context, userID int64, userEmail, userName string) (Recurser, error) {
-	return Recurser{}, nil
-}
-
-func (m *MockRecurserDB) GetAllUsers(ctx context.Context) ([]Recurser, error) {
-	return nil, nil
-}
-
-func (m *MockRecurserDB) Set(ctx context.Context, userID string, recurser Recurser) error {
-	return nil
-}
-
-func (m *MockRecurserDB) Delete(ctx context.Context, userID string) error {
-	return nil
-}
-
-func (m *MockRecurserDB) ListPairingTomorrow(ctx context.Context) ([]Recurser, error) {
-	return nil, nil
-}
-
-func (m *MockRecurserDB) ListSkippingTomorrow(ctx context.Context) ([]Recurser, error) {
-	return nil, nil
-}
-
-func (m *MockRecurserDB) UnsetSkippingTomorrow(ctx context.Context, userID string) error {
-	return nil
-}
-
 // DB Lookups of tokens
 
 type APIAuthDB interface {
@@ -314,13 +283,6 @@ func (f *FirestoreAPIAuthDB) GetKey(ctx context.Context, col, doc string) (strin
 
 	token := res.Data()
 	return token["value"].(string), nil
-}
-
-// implements APIAuthDB
-type MockAPIAuthDB struct{}
-
-func (f *MockAPIAuthDB) GetKey(ctx context.Context, col, doc string) (string, error) {
-	return "", nil
 }
 
 type PairingsDB interface {

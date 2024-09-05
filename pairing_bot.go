@@ -24,7 +24,7 @@ var maintenanceMode = false
 const ownerID = 215391
 
 type PairingLogic struct {
-	rdb   RecurserDB
+	rdb   *FirestoreRecurserDB
 	adb   APIAuthDB
 	pdb   PairingsDB
 	revdb ReviewDB
@@ -134,9 +134,9 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 
 	// get everyone who was set to skip today and set them back to isSkippingTomorrow = false
 	for _, skipper := range skippersList {
-		err := pl.rdb.UnsetSkippingTomorrow(ctx, skipper)
+		err := pl.rdb.UnsetSkippingTomorrow(ctx, &skipper)
 		if err != nil {
-			log.Printf("Could not unset skipping for recurser %v: %s\n", skipper.id, err)
+			log.Printf("Could not unset skipping for recurser %v: %s\n", skipper.ID, err)
 		}
 	}
 
@@ -164,24 +164,24 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 	if len(recursersList)%2 != 0 {
 		recurser := recursersList[len(recursersList)-1]
 		recursersList = recursersList[:len(recursersList)-1]
-		log.Printf("%s was the odd-one-out today", recurser.name)
+		log.Printf("%s was the odd-one-out today", recurser.Name)
 
-		err := pl.zulip.SendUserMessage(ctx, []int64{recurser.id}, oddOneOutMessage)
+		err := pl.zulip.SendUserMessage(ctx, []int64{recurser.ID}, oddOneOutMessage)
 		if err != nil {
-			log.Printf("Error when trying to send oddOneOut message to %s: %s\n", recurser.name, err)
+			log.Printf("Error when trying to send oddOneOut message to %s: %s\n", recurser.Name, err)
 		}
 	}
 
 	for i := 0; i < len(recursersList); i += 2 {
 		rc1 := recursersList[i]
 		rc2 := recursersList[i+1]
-		ids := []int64{rc1.id, rc2.id}
+		ids := []int64{rc1.ID, rc2.ID}
 
 		err := pl.zulip.SendUserMessage(ctx, ids, matchedMessage)
 		if err != nil {
-			log.Printf("Error when trying to send matchedMessage to %s and %s: %s\n", rc1.name, rc2.name, err)
+			log.Printf("Error when trying to send matchedMessage to %s and %s: %s\n", rc1.Name, rc2.Name, err)
 		}
-		log.Println(rc1.name, "was", "matched", "with", rc2.name)
+		log.Println(rc1.Name, "was", "matched", "with", rc2.Name)
 	}
 
 	numRecursersPairedUp := len(recursersList)
@@ -228,17 +228,17 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 
 	for i := 0; i < len(recursersList); i++ {
 
-		recurser := recursersList[i]
+		recurser := &recursersList[i]
 
-		isAtRCThisWeek := contains(idsOfPeopleAtRc, recurser.id)
-		wasAtRCLastWeek := recursersList[i].currentlyAtRC
+		isAtRCThisWeek := contains(idsOfPeopleAtRc, recurser.ID)
+		wasAtRCLastWeek := recursersList[i].CurrentlyAtRC
 
-		log.Printf("User: %s was at RC last week: %t and is at RC this week: %t", recurser.name, wasAtRCLastWeek, isAtRCThisWeek)
+		log.Printf("User: %s was at RC last week: %t and is at RC this week: %t", recurser.Name, wasAtRCLastWeek, isAtRCThisWeek)
 
-		recurser.currentlyAtRC = isAtRCThisWeek
+		recurser.CurrentlyAtRC = isAtRCThisWeek
 
-		if err = pl.rdb.Set(ctx, recurser.id, recurser); err != nil {
-			log.Printf("Error encountered while update currentlyAtRC status for user: %s (ID %d)", recurser.name, recurser.id)
+		if err = pl.rdb.Set(ctx, recurser.ID, recurser); err != nil {
+			log.Printf("Error encountered while update currentlyAtRC status for user: %s (ID %d)", recurser.Name, recurser.ID)
 		}
 
 		// If they were at RC last week but not this week then we assume they have graduated or otherwise left RC
@@ -247,19 +247,19 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 		if wasAtRCLastWeek && !isAtRCThisWeek {
 			var message string
 
-			err = pl.rdb.Delete(ctx, recurser.id)
+			err = pl.rdb.Delete(ctx, recurser.ID)
 			if err != nil {
 				log.Println(err)
 				message = fmt.Sprintf("Uh oh, I was trying to offboard you since it's the end of batch, but something went wrong. Consider messaging %v to let them know this happened.", owner)
 			} else {
-				log.Printf("This user has been unsubscribed from pairing bot: %s (ID: %d)", recurser.name, recurser.id)
+				log.Printf("This user has been unsubscribed from pairing bot: %s (ID: %d)", recurser.Name, recurser.ID)
 
 				message = offboardedMessage
 			}
 
-			err := pl.zulip.SendUserMessage(ctx, []int64{recurser.id}, message)
+			err := pl.zulip.SendUserMessage(ctx, []int64{recurser.ID}, message)
 			if err != nil {
-				log.Printf("Error when trying to send offboarding message to %s (ID %d): %s", recurser.name, recurser.id, err)
+				log.Printf("Error when trying to send offboarding message to %s (ID %d): %s", recurser.Name, recurser.ID, err)
 			}
 		}
 	}

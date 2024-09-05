@@ -37,7 +37,7 @@ func dispatch(ctx context.Context, pl *PairingLogic, cmd string, cmdArgs []strin
 		return response, err
 	}
 
-	isSubscribed := rec.isSubscribed
+	isSubscribed := rec.IsSubscribed
 
 	// here's the actual actions. command input from
 	// the user input has already been sanitized, so we can
@@ -48,22 +48,8 @@ func dispatch(ctx context.Context, pl *PairingLogic, cmd string, cmdArgs []strin
 			response = notSubscribedMessage
 			break
 		}
-		// create a new blank schedule
-		var newSchedule = map[string]interface{}{
-			"monday":    false,
-			"tuesday":   false,
-			"wednesday": false,
-			"thursday":  false,
-			"friday":    false,
-			"saturday":  false,
-			"sunday":    false,
-		}
-		// populate it with the new days they want to pair on
-		for _, day := range cmdArgs {
-			newSchedule[day] = true
-		}
-		// put it in the database
-		rec.schedule = newSchedule
+
+		rec.Schedule = newSchedule(cmdArgs)
 
 		if err = pl.rdb.Set(ctx, userID, rec); err != nil {
 			response = writeErrorMessage
@@ -84,7 +70,7 @@ func dispatch(ctx context.Context, pl *PairingLogic, cmd string, cmdArgs []strin
 			break
 		}
 
-		rec.currentlyAtRC, err = pl.rcapi.userIsCurrentlyAtRC(accessToken, userID)
+		rec.CurrentlyAtRC, err = pl.rcapi.userIsCurrentlyAtRC(accessToken, userID)
 		if err != nil {
 			log.Printf("Could not read currently-at-RC data from database: %s", err)
 			response = writeErrorMessage
@@ -116,7 +102,7 @@ func dispatch(ctx context.Context, pl *PairingLogic, cmd string, cmdArgs []strin
 			break
 		}
 
-		rec.isSkippingTomorrow = true
+		rec.IsSkippingTomorrow = true
 
 		if err := pl.rdb.Set(ctx, userID, rec); err != nil {
 			response = writeErrorMessage
@@ -129,7 +115,7 @@ func dispatch(ctx context.Context, pl *PairingLogic, cmd string, cmdArgs []strin
 			response = notSubscribedMessage
 			break
 		}
-		rec.isSkippingTomorrow = false
+		rec.IsSkippingTomorrow = false
 
 		if err := pl.rdb.Set(ctx, userID, rec); err != nil {
 			response = writeErrorMessage
@@ -155,11 +141,11 @@ func dispatch(ctx context.Context, pl *PairingLogic, cmd string, cmdArgs []strin
 		}
 
 		// get their current name
-		whoami := rec.name
+		whoami := rec.Name
 
 		// get skip status and prepare to write a sentence with it
 		var skipStr string
-		if rec.isSkippingTomorrow {
+		if rec.IsSkippingTomorrow {
 			skipStr = " "
 		} else {
 			skipStr = " not "
@@ -170,7 +156,7 @@ func dispatch(ctx context.Context, pl *PairingLogic, cmd string, cmdArgs []strin
 		for _, day := range daysList {
 			// this line is a little wild, sorry. it looks so weird because we
 			// have to do type assertion on both interface types
-			if rec.schedule[strings.ToLower(day)].(bool) {
+			if rec.Schedule[strings.ToLower(day)] {
 				schedule = append(schedule, day)
 			}
 		}

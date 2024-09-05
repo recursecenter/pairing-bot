@@ -94,9 +94,7 @@ func (ra *RecurseAPI) getCurrentlyActiveZulipIdsWithOffset(accessToken string, o
 
 	//Parse the json response from the API
 	recursers := []RecurserProfile{}
-	if err := json.Unmarshal([]byte(body), &recursers); err != nil {
-		return nil, fmt.Errorf("unmarshal recursers: %w", err)
-	}
+	json.Unmarshal([]byte(body), &recursers)
 
 	for i := range recursers {
 		zid := recursers[i].ZulipId
@@ -118,10 +116,7 @@ func (ra *RecurseAPI) isSecondWeekOfBatch(accessToken string) bool {
 
 	//Parse the json response from the API
 	var batches []map[string]interface{}
-	if err := json.Unmarshal([]byte(body), &batches); err != nil {
-		log.Printf("Error unmarshaling batches: %s", err)
-		return false
-	}
+	json.Unmarshal([]byte(body), &batches)
 
 	var batchStart string
 

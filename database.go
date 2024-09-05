@@ -15,171 +15,115 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// this is what we send to / receive from Firestore
-// var recurser = map[string]interface{}{
-// 	"id":                 1234,
-// 	"name":               "string",
-// 	"email":              "string",
-// 	"isSkippingTomorrow": false,
-// 	"schedule": map[string]interface{}{
-// 		"monday":    false,
-// 		"tuesday":   false,
-// 		"wednesday": false,
-// 		"thursday":  false,
-// 		"friday":    false,
-// 		"saturday":  false,
-// 		"sunday":    false,
-// 	},
-//  "currentlyAtRC":      false,
-// }
+// A Schedule determines whether to pair a Recurser on each day.
+// The only valid keys are all-lowercase day names (e.g., "monday").
+type Schedule map[string]bool
+
+func defaultSchedule() map[string]bool {
+	return map[string]bool{
+		"monday":    true,
+		"tuesday":   true,
+		"wednesday": true,
+		"thursday":  true,
+		"friday":    true,
+
+		"saturday": false,
+		"sunday":   false,
+	}
+}
+
+func newSchedule(days []string) map[string]bool {
+	schedule := emptySchedule()
+	for _, day := range days {
+		schedule[day] = true
+	}
+	return schedule
+}
+
+func emptySchedule() map[string]bool {
+	return map[string]bool{
+		"monday":    false,
+		"tuesday":   false,
+		"wednesday": false,
+		"thursday":  false,
+		"friday":    false,
+		"saturday":  false,
+		"sunday":    false,
+	}
+}
 
 type Recurser struct {
-	id                 int64
-	name               string
-	email              string
-	isSkippingTomorrow bool
-	schedule           map[string]interface{}
+	ID                 int64           `firestore:"id"`
+	Name               string          `firestore:"name"`
+	Email              string          `firestore:"email"`
+	IsSkippingTomorrow bool            `firestore:"isSkippingTomorrow"`
+	Schedule           map[string]bool `firestore:"schedule"`
+	CurrentlyAtRC      bool            `firestore:"currentlyAtRC"`
 
-	// isSubscribed really means "did they already have an entry in the database"
-	isSubscribed  bool
-	currentlyAtRC bool
+	// IsSubscribed really means "already had an entry in the database".
+	// It is not written to or read from the Firestore document.
+	IsSubscribed bool `firestore:"-"`
 }
 
-func (r *Recurser) ConvertToMap() map[string]interface{} {
-	return map[string]interface{}{
-		"id":                 r.id,
-		"name":               r.name,
-		"email":              r.email,
-		"isSkippingTomorrow": r.isSkippingTomorrow,
-		"schedule":           r.schedule,
-		"currentlyAtRC":      r.currentlyAtRC,
-	}
-}
-
-func parseDoc(doc *firestore.DocumentSnapshot) (Recurser, error) {
-	id, err := strconv.ParseInt(doc.Ref.ID, 10, 64)
-	if err != nil {
-		return Recurser{}, fmt.Errorf("invalid ID value: %w", err)
-	}
-	m := doc.Data()
-
-	// isSubscribed is missing here because it's not in the map
-	return Recurser{
-		id: id,
-		// isSubscribed is implicit by the existence of an entry in the database.
-		isSubscribed:       true,
-		name:               m["name"].(string),
-		email:              m["email"].(string),
-		isSkippingTomorrow: m["isSkippingTomorrow"].(bool),
-		schedule:           m["schedule"].(map[string]interface{}),
-		currentlyAtRC:      m["currentlyAtRC"].(bool),
-	}, nil
-}
-
-// DB Lookups of Pairing Bot subscribers (= "Recursers")
-
-type RecurserDB interface {
-	GetByUserID(ctx context.Context, userID int64, userEmail, userName string) (Recurser, error)
-	GetAllUsers(ctx context.Context) ([]Recurser, error)
-	Set(ctx context.Context, userID int64, recurser Recurser) error
-	Delete(ctx context.Context, userID int64) error
-	ListPairingTomorrow(ctx context.Context) ([]Recurser, error)
-	ListSkippingTomorrow(ctx context.Context) ([]Recurser, error)
-	UnsetSkippingTomorrow(ctx context.Context, recurser Recurser) error
-}
-
-// implements RecurserDB
+// FirestoreRecurserDB manages Pairing Bot subscribers ("Recursers").
 type FirestoreRecurserDB struct {
 	client *firestore.Client
 }
 
-func (f *FirestoreRecurserDB) GetByUserID(ctx context.Context, userID int64, userEmail, userName string) (Recurser, error) {
-	stringID := fmt.Sprintf("%d", userID)
-	// get the users "document" (database entry) out of firestore
-	// we temporarily keep it in 'doc'
-	doc, err := f.client.Collection("recursers").Doc(stringID).Get(ctx)
-	// this says "if there's an error, and if that error was not document-not-found"
+func (f *FirestoreRecurserDB) GetByUserID(ctx context.Context, userID int64, userEmail, userName string) (*Recurser, error) {
+	docID := strconv.FormatInt(userID, 10)
+	doc, err := f.client.Collection("recursers").Doc(docID).Get(ctx)
+
+	// A missing document still returns a non-nil doc with its NotFound error.
+	// Any other error is a real error.
 	if err != nil && status.Code(err) != codes.NotFound {
-		return Recurser{}, err
+		return nil, err
 	}
 
-	// if there's a db entry, that means they were already subscribed to pairing bot
-	// if there's not, they were not subscribed
-	isSubscribed := doc.Exists()
-
-	var r Recurser
-	// if the user is in the database, get their current state into this map
-	// also assign their zulip name to the name field, just in case it changed
-	// also assign their email, for the same reason
-	if isSubscribed {
-		r, err = parseDoc(doc)
-		if err != nil {
-			return Recurser{}, fmt.Errorf("parsing database entry for recurser %s (ID: %d): %w", userName, userID, err)
-		}
-		// Update with the latest from Zulip:
-		r.name = userName
-		r.email = userEmail
-	} else {
-		// User is not subscribed, so provide a default recurser struct instead.
-		r = Recurser{
-			id:    userID,
-			name:  userName,
-			email: userEmail,
-
-			// They didn't already have an entry, so they are not considered subscribed.
-			isSubscribed:       false,
-			isSkippingTomorrow: false,
-			schedule: map[string]interface{}{
-				"monday":    true,
-				"tuesday":   true,
-				"wednesday": true,
-				"thursday":  true,
-				"friday":    true,
-				"saturday":  false,
-				"sunday":    false,
-			},
-			currentlyAtRC: true,
-		}
+	if !doc.Exists() {
+		// If we don't have a record, that just means they're not subscribed.
+		return &Recurser{
+			ID:       userID,
+			Name:     userName,
+			Email:    userEmail,
+			Schedule: defaultSchedule(),
+		}, nil
 	}
-	return r, nil
+
+	var recurser Recurser
+	if err := doc.DataTo(&recurser); err != nil {
+		return nil, fmt.Errorf("parse document %q: %w", doc.Ref.Path, err)
+	}
+
+	// This field isn't stored in the DB, so populate it now.
+	recurser.IsSubscribed = true
+
+	// Prefer the Zulip values for these fields over our cached ones.
+	recurser.Name = userName
+	recurser.Email = userEmail
+
+	return &recurser, nil
 }
 
 func (f *FirestoreRecurserDB) GetAllUsers(ctx context.Context) ([]Recurser, error) {
-
-	var recursersList []Recurser
-	var r Recurser
-
 	iter := f.client.Collection("recursers").Documents(ctx)
-	for {
-		doc, err := iter.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			return nil, err
-		}
-		r, err = parseDoc(doc)
-		if err != nil {
-			log.Printf("error parsing database entry with ID: %s: %s", doc.Ref.ID, err)
-			log.Printf("skipping database entry (ID: %s)", doc.Ref.ID)
-			continue
-		}
-
-		recursersList = append(recursersList, r)
-	}
-	return recursersList, nil
+	return fetchAll[Recurser](iter)
 }
 
-func (f *FirestoreRecurserDB) Set(ctx context.Context, userID int64, recurser Recurser) error {
+func (f *FirestoreRecurserDB) Set(ctx context.Context, _ int64, recurser *Recurser) error {
+	docID := strconv.FormatInt(recurser.ID, 10)
 
-	r := recurser.ConvertToMap()
-	_, err := f.client.Collection("recursers").Doc(fmt.Sprintf("%d", userID)).Set(ctx, r, firestore.MergeAll)
+	// Merging isn't supported when using struct data, but we never do partial
+	// writes in the first place. So this will completely overwrite an existing
+	// document.
+	_, err := f.client.Collection("recursers").Doc(docID).Set(ctx, recurser)
 	return err
 
 }
 
 func (f *FirestoreRecurserDB) Delete(ctx context.Context, userID int64) error {
-	_, err := f.client.Collection("recursers").Doc(fmt.Sprintf("%d", userID)).Delete(ctx)
+	docID := strconv.FormatInt(userID, 10)
+	_, err := f.client.Collection("recursers").Doc(docID).Delete(ctx)
 	return err
 }
 
@@ -190,78 +134,25 @@ func (f *FirestoreRecurserDB) ListPairingTomorrow(ctx context.Context) ([]Recurs
 	// were ever running in another time zone
 	today := strings.ToLower(time.Now().Weekday().String())
 
-	var recursersList []Recurser
-	var r Recurser
-
-	// ok this is how we have to get all the recursers. it's weird.
-	// this query returns an iterator, and then we have to use firestore
-	// magic to iterate across the results of the query and store them
-	// into our 'recursersList' variable which is a slice of map[string]interface{}
-	iter := f.client.Collection("recursers").Where("isSkippingTomorrow", "==", false).Where("schedule."+today, "==", true).Documents(ctx)
-	for {
-		doc, err := iter.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			return nil, err
-		}
-		r, err = parseDoc(doc)
-		if err != nil {
-			log.Printf("error parsing database entry with ID: %s: %s", doc.Ref.ID, err)
-			log.Printf("skipping database entry (ID: %s)", doc.Ref.ID)
-			continue
-		}
-
-		recursersList = append(recursersList, r)
-	}
-
-	return recursersList, nil
+	iter := f.client.
+		Collection("recursers").
+		Where("isSkippingTomorrow", "==", false).
+		Where("schedule."+today, "==", true).
+		Documents(ctx)
+	return fetchAll[Recurser](iter)
 }
 
 func (f *FirestoreRecurserDB) ListSkippingTomorrow(ctx context.Context) ([]Recurser, error) {
-
-	var skippersList []Recurser
-	var r Recurser
-
-	iter := f.client.Collection("recursers").Where("isSkippingTomorrow", "==", true).Documents(ctx)
-	for {
-		doc, err := iter.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			return nil, err
-		}
-
-		r, err = parseDoc(doc)
-		if err != nil {
-			log.Printf("error parsing database entry with ID: %s: %s", doc.Ref.ID, err)
-			log.Printf("skipping database entry (ID: %s)", doc.Ref.ID)
-			continue
-		}
-
-		skippersList = append(skippersList, r)
-	}
-	return skippersList, nil
+	iter := f.client.
+		Collection("recursers").
+		Where("isSkippingTomorrow", "==", true).
+		Documents(ctx)
+	return fetchAll[Recurser](iter)
 }
 
-func (f *FirestoreRecurserDB) UnsetSkippingTomorrow(ctx context.Context, recurser Recurser) error {
-
-	r := recurser.ConvertToMap()
-	r["isSkippingTomorrow"] = false
-
-	// There are two IDs that have to match:
-	//  1. The recurser ID *inside* the document, which is an int64.
-	//  2. The document ID *itself*, which is a string.
-	rID, ok := r["id"].(int64)
-	if !ok {
-		return fmt.Errorf(`recurser's "id" field was not an int64: %+v`, r)
-	}
-
-	docID := strconv.FormatInt(rID, 10)
-	_, err := f.client.Collection("recursers").Doc(docID).Set(ctx, r, firestore.MergeAll)
-	return err
+func (f *FirestoreRecurserDB) UnsetSkippingTomorrow(ctx context.Context, recurser *Recurser) error {
+	recurser.IsSkippingTomorrow = false
+	return f.Set(ctx, recurser.ID, recurser)
 }
 
 // DB Lookups of tokens
@@ -416,4 +307,31 @@ func (f *FirestoreReviewDB) Insert(ctx context.Context, review Review) error {
 		"timestamp": review.timestamp,
 	})
 	return err
+}
+
+// fetchAll converts all documents in iter to values of type T. Documents that
+// cannot be converted will be skipped.
+//
+// If the iterator yields an error instead of a document, this returns the
+// first such error and stops.
+func fetchAll[T any](iter *firestore.DocumentIterator) ([]T, error) {
+	var all []T
+	defer iter.Stop()
+
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			return all, nil
+		} else if err != nil {
+			return nil, err
+		}
+
+		var item T
+		if err := doc.DataTo(&item); err != nil {
+			log.Printf("Skipping %q: %s", doc.Ref.Path, err)
+			continue
+		}
+
+		all = append(all, item)
+	}
 }

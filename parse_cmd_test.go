@@ -31,6 +31,7 @@ var tableNoArgs = []struct {
 	{"help_wrong_usage", "help me", "help", nil, true},
 	{"status_correct_usage", "status", "status", nil, false},
 	{"status_wrong_usage", "status me", "help", nil, true},
+	{"version", "version", "version", nil, false},
 }
 
 func TestParseCmdNoArgs(t *testing.T) {
@@ -73,6 +74,7 @@ var tableWithArgs = []struct {
 	{"unskip_wrong_usage", "unskip today", "help", nil, true},
 	{"unskip_wrong_usage", "unskip friday", "help", nil, true},
 	{"unskip_wrong_usage", "unskip", "help", nil, true},
+	{"version_extra_args_ok", "version info", "version", nil, false},
 }
 
 func TestParseCmdWithArgs(t *testing.T) {
@@ -98,6 +100,8 @@ func TestParseCmdWithArgs(t *testing.T) {
 				if gotArgs[0] != "tomorrow" {
 					t.Errorf("Wrong argument %v for command %v\n", gotArgs[0], gotCmd)
 				}
+			case "version":
+				// Always fine as long as the wantedCmd check passes.
 			default:
 				if gotCmd != "help" {
 					t.Errorf("unknown command %v\n", gotCmd)

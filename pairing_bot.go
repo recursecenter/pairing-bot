@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -13,9 +14,14 @@ import (
 
 const owner string = `@_**Maren Beam (SP2'19)**`
 const oddOneOutMessage string = "OK this is awkward.\nThere were an odd number of people in the match-set today, which means that one person couldn't get paired. Unfortunately, it was you -- I'm really sorry :(\nI promise it's not personal, it was very much random. Hopefully this doesn't happen again too soon. Enjoy your day! <3"
-const matchedMessage = "Hi you two! You've been matched for pairing :)\n\nHave fun!"
+const matchedMessage = "Hi you two! You've been matched for pairing :)\n\nHave fun!\n\nNote: In an effort to reduce the frequency of no-show partners, I'll soon start automatically unsubscribing users that I haven't heard from in a while. Please message me back so I know you're an active user (and messages in this chat count!) :heart:"
 const offboardedMessage = "Hi! You've been unsubscribed from Pairing Bot.\n\nThis happens at the end of every batch, and everyone is offboarded even if they're still in batch. If you'd like to re-subscribe, just send me a message that says `subscribe`.\n\nBe well! :)"
 const introMessage = "Hi! I'm Pairing Bot (she/her)!\n\nSend me a PM that says `subscribe` to get started :smiley:\n\n:pear::robot:\n:octopus::octopus:"
+const autoUnsubscribeMessage = ("Hi! I've noticed that it's been a few pairings since I last heard from you. To make sure I only pair active users together, I've automatically unsubscribed you from pairing.\n\nIt's okay though! Send me another `subscribe` message to join back in whenever you like (even now!) :heart:\n\nIf you *are* active and I unsubscribed you anyway, I'm sorry! Please re-subscribe! And then request a non-automated apology from the maintainers :robot:")
+
+// MAX_OPEN_PAIRINGS is the threshold for considering a user to be "inactive".
+// After this many unanswered pairings, the user is automatically unsubscribed.
+const MAX_OPEN_PAIRINGS = 3
 
 var maintenanceMode = false
 
@@ -65,6 +71,11 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 		}
 		return
+	}
+
+	// Reset the open pairings count on user activity.
+	if err := pl.resetPairingCount(ctx, hook.Message); err != nil {
+		log.Printf("Could not reset openPairings count for user (%d): %s", hook.Message.SenderID, err)
 	}
 
 	// Don't respond to commands sent in pair-making group DMs. We can
@@ -157,13 +168,16 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Remove anyone who has been inactive for too many pairings.
+	active, inactive := groupByActivity(recursersList)
+
 	// message the peeps!
 
 	// if there's an odd number today, message the last person in the list
 	// and tell them they don't get a match today, then knock them off the list
-	if len(recursersList)%2 != 0 {
-		recurser := recursersList[len(recursersList)-1]
-		recursersList = recursersList[:len(recursersList)-1]
+	if len(active)%2 != 0 {
+		recurser := active[len(active)-1]
+		active = active[:len(active)-1]
 		log.Printf("%s was the odd-one-out today", recurser.name)
 
 		err := pl.zulip.SendUserMessage(ctx, []int64{recurser.id}, oddOneOutMessage)
@@ -172,19 +186,26 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	for i := 0; i < len(recursersList); i += 2 {
-		rc1 := recursersList[i]
-		rc2 := recursersList[i+1]
+	for i := 0; i < len(active); i += 2 {
+		rc1 := &active[i]
+		rc2 := &active[i+1]
 		ids := []int64{rc1.id, rc2.id}
 
 		err := pl.zulip.SendUserMessage(ctx, ids, matchedMessage)
 		if err != nil {
 			log.Printf("Error when trying to send matchedMessage to %s and %s: %s\n", rc1.name, rc2.name, err)
+			continue
 		}
 		log.Println(rc1.name, "was", "matched", "with", rc2.name)
+
+		for _, rc := range []*Recurser{rc1, rc2} {
+			if err := pl.incrementPairingCount(ctx, rc); err != nil {
+				log.Printf("Error incrementing openPairings for user (%d): %s", rc1.id, err)
+			}
+		}
 	}
 
-	numRecursersPairedUp := len(recursersList)
+	numRecursersPairedUp := len(active)
 
 	log.Printf("Pairing Bot paired up %d recursers today", numRecursersPairedUp)
 
@@ -194,6 +215,18 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 	if err := pl.pdb.SetNumPairings(ctx, int(timestamp), numPairings); err != nil {
 		log.Printf("Failed to record today's pairings: %s", err)
 	}
+
+	for _, r := range inactive {
+		if err := pl.rdb.Delete(ctx, r.id); err != nil {
+			log.Printf("Could not unsubscribe user (%d): %s", r.id, err)
+		}
+
+		if err := pl.zulip.SendUserMessage(ctx, []int64{r.id}, autoUnsubscribeMessage); err != nil {
+			log.Printf("Could not send auto-unsubscribe message to user (%d): %s", r.id, err)
+		}
+	}
+
+	log.Printf("Pairing Bot auto-unsubscribed %d inactive recursers today", len(inactive))
 }
 
 // Unsubscribe people from Pairing Bot when their batch is over. They're always welcome to re-subscribe manually!
@@ -364,4 +397,34 @@ func getWelcomeMessage() string {
 			"* See what other recursers have to say about me by using the `get-reviews` command."
 
 	return fmt.Sprintf(message, todayFormatted)
+}
+
+func (pl *PairingLogic) resetPairingCount(ctx context.Context, msg zulip.Message) error {
+	rec, err := pl.rdb.GetByUserID(ctx, msg.SenderID, msg.SenderEmail, msg.SenderFullName)
+	if err != nil {
+		return err
+	}
+
+	if rec.isSubscribed {
+		rec.openPairings = 0
+		return pl.rdb.Set(ctx, rec.id, rec)
+	}
+
+	return nil
+}
+
+func (pl *PairingLogic) incrementPairingCount(ctx context.Context, rc *Recurser) error {
+	rc.openPairings++
+	return pl.rdb.Set(ctx, rc.id, *rc)
+}
+
+func groupByActivity(recursers []Recurser) (active, inactive []Recurser) {
+	for _, r := range recursers {
+		if r.openPairings < MAX_OPEN_PAIRINGS {
+			active = append(active, r)
+		} else {
+			inactive = append(inactive, r)
+		}
+	}
+	return active, inactive
 }

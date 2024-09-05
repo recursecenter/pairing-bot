@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -65,21 +64,9 @@ func main() {
 	}
 
 	zulipCredentials := func(ctx context.Context) (zulip.Credentials, error) {
-		res, err := db.Collection("apiauth").Doc("key").Get(ctx)
+		password, err := adb.GetToken(ctx, "apiauth/key")
 		if err != nil {
 			return zulip.Credentials{}, err
-		}
-
-		data := res.Data()
-
-		value, ok := data["value"]
-		if !ok {
-			return zulip.Credentials{}, errors.New(`missing key in /apiauth/key: "value"`)
-		}
-
-		password, ok := value.(string)
-		if !ok {
-			return zulip.Credentials{}, fmt.Errorf(`type mismatch in /apiauth/key: expected "value" to be string, got %T`, value)
 		}
 
 		return zulip.Credentials{

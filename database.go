@@ -155,25 +155,26 @@ func (f *FirestoreRecurserDB) UnsetSkippingTomorrow(ctx context.Context, recurse
 	return f.Set(ctx, recurser.ID, recurser)
 }
 
-// DB Lookups of tokens
-
-type APIAuthDB interface {
-	GetKey(ctx context.Context, col, doc string) (string, error)
-}
-
-// implements APIAuthDB
+// FirestoreAPIAuthDB manages auth tokens stored in Firestore.
 type FirestoreAPIAuthDB struct {
 	client *firestore.Client
 }
 
-func (f *FirestoreAPIAuthDB) GetKey(ctx context.Context, col, doc string) (string, error) {
-	res, err := f.client.Collection(col).Doc(doc).Get(ctx)
+func (f *FirestoreAPIAuthDB) GetToken(ctx context.Context, path string) (string, error) {
+	doc, err := f.client.Doc(path).Get(ctx)
 	if err != nil {
 		return "", err
 	}
 
-	token := res.Data()
-	return token["value"].(string), nil
+	var token struct {
+		Value string `firestore:"value"`
+	}
+
+	if err := doc.DataTo(&token); err != nil {
+		return "", err
+	}
+
+	return token.Value, nil
 }
 
 type PairingsDB interface {

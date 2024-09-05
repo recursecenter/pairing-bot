@@ -146,14 +146,14 @@ func TestFirestoreAuthDB(t *testing.T) {
 	}
 
 	t.Run("missing", func(t *testing.T) {
-		_, err := auth.GetKey(ctx, "does-not", "exist")
+		_, err := auth.GetToken(ctx, "does-not/exist")
 		if status.Code(err) != codes.NotFound {
 			t.Fatalf("expected NotFound error, got %#+v", err)
 		}
 	})
 
 	t.Run("present", func(t *testing.T) {
-		actual, err := auth.GetKey(ctx, "testing", key)
+		actual, err := auth.GetToken(ctx, fmt.Sprintf("testing/%s", key))
 		if err != nil {
 			t.Fatal(err)
 		}

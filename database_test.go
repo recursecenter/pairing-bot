@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"maps"
 	"math/big"
+	"strconv"
 	"testing"
 
 	"cloud.google.com/go/firestore"
@@ -76,8 +77,9 @@ func TestFirestoreRecurserDB(t *testing.T) {
 		expected := recurser
 		expected.isSubscribed = true
 
-		// GetByUserID can update the name and email address if our record is stale.
-		// These values are the same, so this call *does not* trigger that update.
+		// GetByUserID will prefer the argument values for email and name if
+		// they differ from what's stored in the DB. These values are the same,
+		// so we wouldn't be able to tell from this call.
 		unchanged, err := recursers.GetByUserID(ctx, recurser.id, recurser.email, recurser.name)
 		if err != nil {
 			t.Fatal(err)
@@ -87,7 +89,8 @@ func TestFirestoreRecurserDB(t *testing.T) {
 			t.Errorf("values not equal:\nactual:   %+v\nexpected: %+v", unchanged, expected)
 		}
 
-		// These values are different, so this call *does* trigger an update.
+		// These values are different, so this call *does* tell us whether we
+		// used the arguments.
 		changed, err := recursers.GetByUserID(ctx, recurser.id, "changed@recurse.example.net", "My Name")
 		if err != nil {
 			t.Fatal(err)
@@ -97,7 +100,32 @@ func TestFirestoreRecurserDB(t *testing.T) {
 		expected.name = "My Name"
 
 		if !changed.Equal(expected) {
-			t.Errorf("values not equal:\nactual:   %+v\nexpected: %+v", unchanged, expected)
+			t.Errorf("values not equal:\nactual:   %+v\nexpected: %+v", changed, expected)
+		}
+
+		// But none of this is actually stored in the DB. If we fetch the
+		// collection directly, we can see the original name and email.
+		doc, err := client.Collection("recursers").Doc(strconv.FormatInt(recurser.id, 10)).Get(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		actual, err := parseDoc(doc)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// parseDoc forces this to `true`, so undo that.
+		if !actual.isSubscribed {
+			t.Error("isSubscribed should have been true, was false")
+		}
+		actual.isSubscribed = false
+
+		expected = recurser
+		expected.isSubscribed = true
+
+		if !actual.Equal(recurser) {
+			t.Errorf("values not equal:\nactual:   %+v\nexpected: %+v", actual, recurser)
 		}
 	})
 }

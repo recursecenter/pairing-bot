@@ -10,6 +10,8 @@ import (
 	"testing"
 
 	"cloud.google.com/go/firestore"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func fakeProjectID(t *testing.T) string {
@@ -122,4 +124,42 @@ func (r Recurser) Equal(s Recurser) bool {
 		maps.Equal(r.Schedule, s.Schedule) &&
 		r.IsSubscribed == s.IsSubscribed &&
 		r.CurrentlyAtRC == s.CurrentlyAtRC
+}
+
+func TestFirestoreAuthDB(t *testing.T) {
+	ctx := context.Background()
+	projectID := fakeProjectID(t)
+
+	client := testFirestoreClient(t, ctx, projectID)
+	auth := &FirestoreAPIAuthDB{client}
+
+	// Try to keep tests from conflicting with each other by adding a token
+	// that only this test knows about.
+	key := fmt.Sprintf("token-%d", randInt64(t))
+	val := fmt.Sprintf("secret-%d", randInt64(t))
+	doc := map[string]any{
+		"value": val,
+	}
+	_, err := client.Collection("testing").Doc(key).Set(ctx, doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("missing", func(t *testing.T) {
+		_, err := auth.GetToken(ctx, "does-not/exist")
+		if status.Code(err) != codes.NotFound {
+			t.Fatalf("expected NotFound error, got %#+v", err)
+		}
+	})
+
+	t.Run("present", func(t *testing.T) {
+		actual, err := auth.GetToken(ctx, fmt.Sprintf("testing/%s", key))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if actual != val {
+			t.Errorf("values not equal:\nactual:   %+v\nexpected: %+v", actual, val)
+		}
+	})
 }

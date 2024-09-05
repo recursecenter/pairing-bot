@@ -63,10 +63,10 @@ func dispatch(ctx context.Context, pl *PairingLogic, cmd string, cmdArgs []strin
 			break
 		}
 
-		accessToken, err := pl.adb.GetKey(ctx, "rc-accesstoken", "key")
+		accessToken, err := pl.adb.GetToken(ctx, "rc-accesstoken/key")
 		if err != nil {
 			log.Printf("Something weird happened trying to read the RC API access token from the database: %s", err)
-			response = writeErrorMessage
+			response = readErrorMessage
 			break
 		}
 

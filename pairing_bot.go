@@ -25,7 +25,7 @@ const ownerID = 215391
 
 type PairingLogic struct {
 	rdb   *FirestoreRecurserDB
-	adb   APIAuthDB
+	adb   *FirestoreAPIAuthDB
 	pdb   PairingsDB
 	revdb ReviewDB
 	rcapi RecurseAPI
@@ -46,7 +46,7 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("Handling a new Zulip request")
 
-	botAuth, err := pl.adb.GetKey(ctx, "botauth", "token")
+	botAuth, err := pl.adb.GetToken(ctx, "botauth/token")
 	if err != nil {
 		log.Println("Something weird happened trying to read the auth token from the database")
 	}
@@ -212,7 +212,7 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 		log.Println("Could not get list of recursers from DB: ", err)
 	}
 
-	accessToken, err := pl.adb.GetKey(ctx, "rc-accesstoken", "key")
+	accessToken, err := pl.adb.GetToken(ctx, "rc-accesstoken/key")
 	if err != nil {
 		log.Println("Something weird happened trying to read the RC API access token from the database: ", err)
 	}
@@ -329,7 +329,7 @@ func (pl *PairingLogic) welcome(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
-	accessToken, err := pl.adb.GetKey(ctx, "rc-accesstoken", "key")
+	accessToken, err := pl.adb.GetToken(ctx, "rc-accesstoken/key")
 	if err != nil {
 		log.Printf("Something weird happened trying to read the RC API access token from the database: %s", err)
 	}

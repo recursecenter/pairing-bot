@@ -44,7 +44,7 @@ func (d *DisplayRecipient) UnmarshalJSON(b []byte) error {
 		return nil
 	}
 
-	// Check each
+	// Check each possibility and use the one that works.
 
 	var stream string
 	if err := json.Unmarshal(b, &stream); err == nil {

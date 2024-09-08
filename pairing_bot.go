@@ -13,11 +13,6 @@ import (
 	"github.com/recursecenter/pairing-bot/zulip"
 )
 
-const oddOneOutMessage string = "OK this is awkward.\nThere were an odd number of people in the match-set today, which means that one person couldn't get paired. Unfortunately, it was you -- I'm really sorry :(\nI promise it's not personal, it was very much random. Hopefully this doesn't happen again too soon. Enjoy your day! <3"
-const matchedMessage = "Hi you two! You've been matched for pairing :)\n\nHave fun!"
-const offboardedMessage = "Hi! You've been unsubscribed from Pairing Bot.\n\nThis happens at the end of every batch, and everyone is offboarded even if they're still in batch. If you'd like to re-subscribe, just send me a message that says `subscribe`.\n\nBe well! :)"
-const introMessage = "Hi! I'm Pairing Bot (she/her)!\n\nSend me a PM that says `subscribe` to get started :smiley:\n\n:pear::robot:\n:octopus::octopus:"
-
 var maintenanceMode = false
 
 // maintainers contains the Zulip IDs of the current maintainers.

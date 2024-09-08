@@ -95,7 +95,7 @@ func recipients(userIDs []int64) string {
 
 // postForm sends the POST request with authorization and encoded form values.
 // This returns a non-nil error if the response status code indicates an error
-// (400 or higher) or if the request colud not be sent.
+// (400 or higher) or if the request could not be sent.
 func (c *Client) postForm(ctx context.Context, endpoint *url.URL, form url.Values) error {
 	req, err := http.NewRequestWithContext(
 		ctx,

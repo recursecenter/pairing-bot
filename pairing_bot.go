@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/recursecenter/pairing-bot/recurse"
 	"github.com/recursecenter/pairing-bot/zulip"
 )
 
@@ -45,9 +46,9 @@ type PairingLogic struct {
 	adb   *FirestoreAPIAuthDB
 	pdb   PairingsDB
 	revdb ReviewDB
-	rcapi RecurseAPI
 
 	zulip   *zulip.Client
+	recurse *recurse.Client
 	version string
 }
 
@@ -229,18 +230,18 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 		log.Println("Could not get list of recursers from DB: ", err)
 	}
 
-	accessToken, err := pl.adb.GetToken(ctx, "rc-accesstoken/key")
-	if err != nil {
-		log.Println("Something weird happened trying to read the RC API access token from the database: ", err)
-	}
-
-	idsOfPeopleAtRc, err := pl.rcapi.getCurrentlyActiveZulipIds(accessToken)
+	profiles, err := pl.recurse.ActiveRecursers(ctx)
 	if err != nil {
 		log.Println("Encountered error while getting currently-active Recursers: ", err)
 		// TODO: https://github.com/recursecenter/pairing-bot/issues/61: Alert here!
 		// Using a FATAL here so it gets called out in the logs.
 		log.Fatal("Aborting end-of-batch processing!")
 		return
+	}
+
+	var idsOfPeopleAtRc []int64
+	for _, p := range profiles {
+		idsOfPeopleAtRc = append(idsOfPeopleAtRc, p.ZulipID)
 	}
 
 	for i := 0; i < len(recursersList); i++ {
@@ -346,12 +347,27 @@ func (pl *PairingLogic) welcome(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
-	accessToken, err := pl.adb.GetToken(ctx, "rc-accesstoken/key")
+	batches, err := pl.recurse.AllBatches(ctx)
 	if err != nil {
-		log.Printf("Something weird happened trying to read the RC API access token from the database: %s", err)
+		log.Printf("Error when fetching batches: %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
-	if pl.rcapi.isSecondWeekOfBatch(accessToken) {
+	// Loop through the batches until we find the first non-mini batch. Mini
+	// batches are only 1 week long, so it doesn't make sense to send a message
+	// 1 week after a mini batch has started :joy:
+	var currentBatch recurse.Batch
+	for _, batch := range batches {
+		if batch.IsMini() {
+			continue
+		}
+
+		currentBatch = batch
+		break
+	}
+
+	if currentBatch.IsSecondWeek(time.Now()) {
 		if err := pl.zulip.PostToTopic(ctx, "397 Bridge", "🍐🤖", getWelcomeMessage()); err != nil {
 			log.Printf("Error when trying to send welcome message about Pairing Bot %s\n", err)
 		}

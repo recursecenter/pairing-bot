@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"reflect"
 	"sync/atomic"
 	"testing"
@@ -22,7 +21,7 @@ func assertEqual[T any](t *testing.T, expected, actual T) {
 		return
 	}
 
-	t.Errorf("expected %#+v, got %#+v", expected, actual)
+	t.Errorf("expected %#+v to equal %#+v", expected, actual)
 }
 
 func assertNoError(t *testing.T, err error) {
@@ -41,21 +40,6 @@ func assertErrorAs[T error](t *testing.T, err error) (target T, ok bool) {
 		t.Errorf("expected error as %T, got %#+v", target, err)
 	}
 	return target, ok
-}
-
-func withEnv(t *testing.T, name string, value string) {
-	prev, wasSet := os.LookupEnv(name)
-	if err := os.Setenv(name, value); err != nil {
-		t.Fatalf("set env %q: %s", name, err)
-	}
-
-	if wasSet {
-		t.Cleanup(func() {
-			if err := os.Setenv(name, prev); err != nil {
-				panic(err)
-			}
-		})
-	}
 }
 
 // MockServer wraps an httptest.Server to count the number of requests
@@ -97,7 +81,7 @@ func (m *MockServer) AssertRequestCount(expected int) {
 
 func TestClient_PostToTopic(t *testing.T) {
 	t.Run("non-production", func(t *testing.T) {
-		withEnv(t, "APP_ENV", "development")
+		t.Setenv("APP_ENV", "development")
 
 		srv := mockServer(t, func(w http.ResponseWriter, r *http.Request) {
 			t.Fatalf("unexpected request: %#+v", r)
@@ -123,7 +107,7 @@ func TestClient_PostToTopic(t *testing.T) {
 	})
 
 	t.Run("production", func(t *testing.T) {
-		withEnv(t, "APP_ENV", "production")
+		t.Setenv("APP_ENV", "production")
 
 		srv := mockServer(t, func(w http.ResponseWriter, r *http.Request) {
 			assertEqual(t, r.Method, http.MethodPost)

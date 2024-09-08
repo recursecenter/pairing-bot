@@ -24,8 +24,8 @@ const subscribeMessage string = "Yay! You're now subscribed to Pairing Bot!\nCur
 const unsubscribeMessage string = "You're unsubscribed!\nI won't find pairing partners for you unless you `subscribe`.\n\nBe well :)"
 const notSubscribedMessage string = "You're not subscribed to Pairing Bot <3"
 
-var writeErrorMessage = fmt.Sprintf("Something went sideways while writing to the database. You should probably ping %v", owner)
-var readErrorMessage = fmt.Sprintf("Something went sideways while reading from the database. You should probably ping %v", owner)
+var writeErrorMessage = fmt.Sprintf("Something went sideways while writing to the database. You should probably ping %v", maintainersMention())
+var readErrorMessage = fmt.Sprintf("Something went sideways while reading from the database. You should probably ping %v", maintainersMention())
 
 func dispatch(ctx context.Context, pl *PairingLogic, cmd string, cmdArgs []string, userID int64, userEmail string, userName string) (string, error) {
 	var response string

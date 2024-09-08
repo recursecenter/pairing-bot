@@ -6,12 +6,12 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/recursecenter/pairing-bot/zulip"
 )
 
-const owner string = `@_**Maren Beam (SP2'19)**`
 const oddOneOutMessage string = "OK this is awkward.\nThere were an odd number of people in the match-set today, which means that one person couldn't get paired. Unfortunately, it was you -- I'm really sorry :(\nI promise it's not personal, it was very much random. Hopefully this doesn't happen again too soon. Enjoy your day! <3"
 const matchedMessage = "Hi you two! You've been matched for pairing :)\n\nHave fun!"
 const offboardedMessage = "Hi! You've been unsubscribed from Pairing Bot.\n\nThis happens at the end of every batch, and everyone is offboarded even if they're still in batch. If you'd like to re-subscribe, just send me a message that says `subscribe`.\n\nBe well! :)"
@@ -19,9 +19,26 @@ const introMessage = "Hi! I'm Pairing Bot (she/her)!\n\nSend me a PM that says `
 
 var maintenanceMode = false
 
-// this is the "id" field from zulip, and is a permanent user ID that's not secret
-// Pairing Bot's owner can add their ID here for testing. ctrl+f "ownerID" to see where it's used
-const ownerID = 215391
+// maintainers contains the Zulip IDs of the current maintainers.
+//
+// This is a map instead of a slice to allow for easy membership checks.
+var maintainers = map[int64]struct{}{
+	215391: {}, // Maren Beam (SP2'19)
+	699369: {}, // Charles Eckman (SP2'24)
+	720507: {}, // Jeremy Kaplan (S1'24)
+}
+
+// maintainersMention returns a Zulip-markdown string that mentions all the
+// maintainers.
+//
+// https://zulip.com/help/format-your-message-using-markdown#mention-a-user-or-group
+func maintainersMention() string {
+	var tags []string
+	for id := range maintainers {
+		tags = append(tags, fmt.Sprintf("@_**|%d**", id))
+	}
+	return strings.Join(tags, ", ")
+}
 
 type PairingLogic struct {
 	rdb   *FirestoreRecurserDB
@@ -78,8 +95,8 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// for testing only
-	// this responds with a maintenance message and quits if the request is coming from anyone other than the owner
-	if maintenanceMode && hook.Message.SenderID != ownerID {
+	// this responds with a maintenance message and quits if the request is coming from anyone other than a maintainer
+	if _, ok := maintainers[hook.Message.SenderID]; !ok && maintenanceMode {
 		if err = responder.Encode(zulip.Reply(`pairing bot is down for maintenance`)); err != nil {
 			log.Println(err)
 		}
@@ -250,7 +267,7 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 			err = pl.rdb.Delete(ctx, recurser.ID)
 			if err != nil {
 				log.Println(err)
-				message = fmt.Sprintf("Uh oh, I was trying to offboard you since it's the end of batch, but something went wrong. Consider messaging %v to let them know this happened.", owner)
+				message = fmt.Sprintf("Uh oh, I was trying to offboard you since it's the end of batch, but something went wrong. Consider messaging the maintainers to let them know this happened: %s", maintainersMention())
 			} else {
 				log.Printf("This user has been unsubscribed from pairing bot: %s (ID: %d)", recurser.Name, recurser.ID)
 

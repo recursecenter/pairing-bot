@@ -297,33 +297,15 @@ func (pl *PairingLogic) checkin(w http.ResponseWriter, r *http.Request) {
 		log.Println("Could not get a random review from DB: ", err)
 	}
 
-	checkinMessage := getCheckinMessage(numPairings, len(recursersList), review.content)
+	checkinMessage, err := renderCheckin(time.Now(), numPairings, len(recursersList), review.content)
+	if err != nil {
+		log.Printf("Error when trying to render Pairing Bot checkin: %s", err)
+		return
+	}
 
 	if err := pl.zulip.PostToTopic(ctx, "checkins", "Pairing Bot", checkinMessage); err != nil {
 		log.Printf("Error when trying to submit Pairing Bot checkins stream message: %s\n", err)
 	}
-}
-
-func getCheckinMessage(numPairings int, numRecursers int, review string) string {
-	today := time.Now()
-	todayFormatted := today.Format("January 2, 2006")
-
-	message :=
-		"```Bash\n" +
-			"=> Initializing the Pairing Bot process\n" +
-			"######################################################################## 100%%\n" +
-			"=> Loading Pairing Bot Usage Statistics\n" +
-			"######################################################################## 100%%\n" +
-			"=> Teaching Pairing Bot how to boop beep boop as it is a strange loop\n" +
-			"######################################################################## 00110001 00110000 00110000 00100101\n\n" +
-			"``` \n\n\n" +
-			"**%s Checkin**\n\n" +
-			"* Current number of Recursers subscribed to Pairing Bot: %d\n\n" +
-			"* Number of pairings facilitiated in the last week: %d \n\n" +
-			"**Randomly Selected Pairing Bot Review**\n\n" +
-			"* %s"
-
-	return fmt.Sprintf(message, todayFormatted, numRecursers, numPairings, review)
 }
 
 /*
@@ -362,34 +344,16 @@ func (pl *PairingLogic) welcome(w http.ResponseWriter, r *http.Request) {
 		break
 	}
 
-	if currentBatch.IsSecondWeek(time.Now()) {
-		if err := pl.zulip.PostToTopic(ctx, "397 Bridge", "🍐🤖", getWelcomeMessage()); err != nil {
+	now := time.Now()
+	if currentBatch.IsSecondWeek(now) {
+		msg, err := renderWelcome(now)
+		if err != nil {
+			log.Printf("Error when trying to send welcome message about Pairing Bot %s\n", err)
+			return
+		}
+
+		if err := pl.zulip.PostToTopic(ctx, "397 Bridge", "🍐🤖", msg); err != nil {
 			log.Printf("Error when trying to send welcome message about Pairing Bot %s\n", err)
 		}
 	}
-}
-
-func getWelcomeMessage() string {
-	today := time.Now()
-	todayFormatted := today.Format("01.02.2006")
-
-	message :=
-		"```Bash\n" +
-			"=> Initializing the Pairing Bot process\n" +
-			"######################################################################## 100%%\n" +
-			"=> Loading list of people currently at RC\n" +
-			"######################################################################## 100%%\n" +
-			"=> Teaching Pairing Bot how to beep boop beep\n" +
-			"######################################################################## 00110001 00110000 00110000 00100101\n\n" +
-			"=> Pairing Bot successfully updated to version %s\n" +
-			"``` \n\n\n" +
-			"Greetings @*Currently at RC*,\n\n" +
-			"My name is Pairing Bot and my mission is to ~~eliminate all~~ help pair people at RC to work on projects.\n\n" +
-			"**How To Get Started**\n\n" +
-			"* Send me a private message with the word `subscribe` to get started. I will then match you with another pairing bot subscriber each day.\n\n" +
-			"* Don't want to pair each day? You can set your schedule with the command `schedule tuesday friday` and I will only match you with people on those days.\n\n" +
-			"* You can view a full list of my functions by sending me a PM with the message `help`.\n\n" +
-			"* See what other recursers have to say about me by using the `get-reviews` command."
-
-	return fmt.Sprintf(message, todayFormatted)
 }

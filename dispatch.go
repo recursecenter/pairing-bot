@@ -43,22 +43,10 @@ func (pl *PairingLogic) dispatch(ctx context.Context, cmd string, cmdArgs []stri
 
 	case "get-reviews":
 		numReviews := 5
-
 		if len(cmdArgs) > 0 {
 			numReviews, _ = strconv.Atoi(cmdArgs[0])
 		}
-
-		lastN, err := pl.revdb.GetLastN(ctx, numReviews)
-		if err != nil {
-			log.Printf("Encountered an error when trying to fetch the last %v reviews: %v", numReviews, err)
-			return readErrorMessage, err
-		}
-
-		response := "Here are some reviews of pairing bot:\n"
-		for _, rev := range lastN {
-			response += "* \"" + rev.content + "\"!\n"
-		}
-		return response, nil
+		return pl.GetReviews(ctx, numReviews)
 
 	case "cookie":
 		return cookieClubMessage, nil
@@ -210,4 +198,18 @@ func (pl *PairingLogic) AddReview(ctx context.Context, rec *Recurser, content st
 	}
 
 	return "Thank you for sharing your review with pairing bot!", nil
+}
+
+func (pl *PairingLogic) GetReviews(ctx context.Context, numReviews int) (string, error) {
+	lastN, err := pl.revdb.GetLastN(ctx, numReviews)
+	if err != nil {
+		log.Printf("Encountered an error when trying to fetch the last %v reviews: %v", numReviews, err)
+		return readErrorMessage, err
+	}
+
+	response := "Here are some reviews of pairing bot:\n"
+	for _, rev := range lastN {
+		response += "* \"" + rev.content + "\"!\n"
+	}
+	return response, nil
 }

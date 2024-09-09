@@ -22,16 +22,7 @@ func (pl *PairingLogic) dispatch(ctx context.Context, cmd string, cmdArgs []stri
 	// trust that cmd and cmdArgs only have valid stuff in them
 	switch cmd {
 	case "schedule":
-		if !isSubscribed {
-			return notSubscribedMessage, nil
-		}
-
-		rec.Schedule = newSchedule(cmdArgs)
-
-		if err = pl.rdb.Set(ctx, userID, rec); err != nil {
-			return writeErrorMessage, err
-		}
-		return "Awesome, your new schedule's been set! You can check it with `status`.", nil
+		return pl.SetSchedule(ctx, rec, cmdArgs)
 
 	case "subscribe":
 		if isSubscribed {
@@ -183,4 +174,17 @@ func (pl *PairingLogic) dispatch(ctx context.Context, cmd string, cmdArgs []stri
 		// by parseCmd() and all cases are handled explicitly above
 		return "", nil
 	}
+}
+
+func (pl *PairingLogic) SetSchedule(ctx context.Context, rec *Recurser, days []string) (string, error) {
+	if !rec.IsSubscribed {
+		return notSubscribedMessage, nil
+	}
+
+	rec.Schedule = newSchedule(days)
+
+	if err := pl.rdb.Set(ctx, rec.ID, rec); err != nil {
+		return writeErrorMessage, err
+	}
+	return "Awesome, your new schedule's been set! You can check it with `status`.", nil
 }

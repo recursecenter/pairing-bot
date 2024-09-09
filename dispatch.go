@@ -9,12 +9,7 @@ import (
 	"time"
 )
 
-func (pl *PairingLogic) dispatch(ctx context.Context, cmd string, cmdArgs []string, userID int64, userEmail string, userName string) (string, error) {
-	rec, err := pl.rdb.GetByUserID(ctx, userID, userEmail, userName)
-	if err != nil {
-		return readErrorMessage, err
-	}
-
+func (pl *PairingLogic) dispatch(ctx context.Context, cmd string, cmdArgs []string, rec *Recurser) (string, error) {
 	// here's the actual actions. command input from
 	// the user input has already been sanitized, so we can
 	// trust that cmd and cmdArgs only have valid stuff in them

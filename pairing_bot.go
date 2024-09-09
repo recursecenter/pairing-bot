@@ -107,6 +107,16 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("The user: %s (%d) issued the following request to Pairing Bot: %s", hook.Message.SenderFullName, hook.Message.SenderID, hook.Data)
 
+	user, err := pl.rdb.GetByUserID(ctx, hook.Message.SenderID, hook.Message.SenderEmail, hook.Message.SenderFullName)
+	if err != nil {
+		log.Println(err)
+
+		if err = responder.Encode(zulip.Reply(readErrorMessage)); err != nil {
+			log.Println(err)
+		}
+		return
+	}
+
 	// you *should* be able to throw any string at this thing and get back a valid command for dispatch()
 	// if there are no command arguments, cmdArgs will be nil
 	cmd, cmdArgs, err := parseCmd(hook.Data)
@@ -116,7 +126,7 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// the tofu and potatoes right here y'all
-	response, err := pl.dispatch(ctx, cmd, cmdArgs, hook.Message.SenderID, hook.Message.SenderEmail, hook.Message.SenderFullName)
+	response, err := pl.dispatch(ctx, cmd, cmdArgs, user)
 	if err != nil {
 		log.Println(err)
 		// Errors come with non-empty messages sometimes, so continue on.

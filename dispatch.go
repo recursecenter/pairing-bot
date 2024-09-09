@@ -25,21 +25,7 @@ func (pl *PairingLogic) dispatch(ctx context.Context, cmd string, cmdArgs []stri
 		return pl.SetSchedule(ctx, rec, cmdArgs)
 
 	case "subscribe":
-		if isSubscribed {
-			return "You're already subscribed! Use `schedule` to set your schedule.", nil
-		}
-
-		rec.CurrentlyAtRC, err = pl.recurse.IsCurrentlyAtRC(ctx, userID)
-		if err != nil {
-			log.Printf("Could not read currently-at-RC data from RC API: %s", err)
-			return readErrorMessage, err
-		}
-
-		if err = pl.rdb.Set(ctx, userID, rec); err != nil {
-			log.Printf("Could not update recurser in database: %s", err)
-			return writeErrorMessage, err
-		}
-		return subscribeMessage, nil
+		return pl.Subscribe(ctx, rec)
 
 	case "unsubscribe":
 		if !isSubscribed {
@@ -187,4 +173,24 @@ func (pl *PairingLogic) SetSchedule(ctx context.Context, rec *Recurser, days []s
 		return writeErrorMessage, err
 	}
 	return "Awesome, your new schedule's been set! You can check it with `status`.", nil
+}
+
+func (pl *PairingLogic) Subscribe(ctx context.Context, rec *Recurser) (string, error) {
+	if rec.IsSubscribed {
+		return "You're already subscribed! Use `schedule` to set your schedule.", nil
+	}
+
+	atRC, err := pl.recurse.IsCurrentlyAtRC(ctx, rec.ID)
+	if err != nil {
+		log.Printf("Could not read currently-at-RC data from RC API: %s", err)
+		return readErrorMessage, err
+	}
+
+	rec.CurrentlyAtRC = atRC
+
+	if err = pl.rdb.Set(ctx, rec.ID, rec); err != nil {
+		log.Printf("Could not update recurser in database: %s", err)
+		return writeErrorMessage, err
+	}
+	return subscribeMessage, nil
 }

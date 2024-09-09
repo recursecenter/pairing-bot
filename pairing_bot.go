@@ -24,6 +24,12 @@ var maintainers = map[int64]struct{}{
 	720507: {}, // Jeremy Kaplan (S1'24)
 }
 
+// isMaintainer returns whether this Zulip ID is in the maintainer set.
+func isMaintainer(id int64) bool {
+	_, isPresent := maintainers[id]
+	return isPresent
+}
+
 // maintainersMention returns a Zulip-markdown string that mentions all the
 // maintainers.
 //
@@ -92,7 +98,7 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 
 	// for testing only
 	// this responds with a maintenance message and quits if the request is coming from anyone other than a maintainer
-	if _, ok := maintainers[hook.Message.SenderID]; !ok && maintenanceMode {
+	if !isMaintainer(hook.Message.SenderID) && maintenanceMode {
 		if err = responder.Encode(zulip.Reply(`pairing bot is down for maintenance`)); err != nil {
 			log.Println(err)
 		}

@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func dispatch(ctx context.Context, pl *PairingLogic, cmd string, cmdArgs []string, userID int64, userEmail string, userName string) (string, error) {
+func (pl *PairingLogic) dispatch(ctx context.Context, cmd string, cmdArgs []string, userID int64, userEmail string, userName string) (string, error) {
 	var response string
 	var err error
 

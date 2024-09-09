@@ -17,7 +17,7 @@ func Test_dispatch(t *testing.T) {
 	}
 
 	t.Run("version", func(t *testing.T) {
-		resp, err := dispatch(ctx, pl, "version", nil, 0, "fake@recurse.example.net", "Your Name")
+		resp, err := pl.dispatch(ctx, "version", nil, 0, "fake@recurse.example.net", "Your Name")
 		if err != nil {
 			t.Fatal(err)
 		}

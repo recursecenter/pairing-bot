@@ -116,7 +116,7 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// the tofu and potatoes right here y'all
-	response, err := dispatch(ctx, pl, cmd, cmdArgs, hook.Message.SenderID, hook.Message.SenderEmail, hook.Message.SenderFullName)
+	response, err := pl.dispatch(ctx, cmd, cmdArgs, hook.Message.SenderID, hook.Message.SenderEmail, hook.Message.SenderFullName)
 	if err != nil {
 		log.Println(err)
 		return

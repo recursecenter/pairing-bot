@@ -38,22 +38,8 @@ func (pl *PairingLogic) dispatch(ctx context.Context, cmd string, cmdArgs []stri
 		return pl.Status(ctx, rec)
 
 	case "add-review":
-		reviewContent := cmdArgs[0]
-
-		currentTimestamp := time.Now().Unix()
-
-		err = pl.revdb.Insert(ctx, Review{
-			content:   reviewContent,
-			timestamp: int(currentTimestamp),
-			email:     userEmail,
-		})
-
-		if err != nil {
-			log.Println("Encountered an error when trying to save a review: ", err)
-			return writeErrorMessage, err
-		}
-
-		return "Thank you for sharing your review with pairing bot!", nil
+		content := cmdArgs[0]
+		return pl.AddReview(ctx, rec, content)
 
 	case "get-reviews":
 		numReviews := 5
@@ -208,4 +194,20 @@ func (pl *PairingLogic) Status(ctx context.Context, rec *Recurser) (string, erro
 	}
 
 	return fmt.Sprintf("* You're %v\n* You're scheduled for pairing on **%v**\n* **You're%vset to skip** pairing tomorrow", whoami, scheduleStr, skipStr), nil
+}
+
+func (pl *PairingLogic) AddReview(ctx context.Context, rec *Recurser, content string) (string, error) {
+	currentTimestamp := time.Now().Unix()
+
+	err := pl.revdb.Insert(ctx, Review{
+		content:   content,
+		timestamp: int(currentTimestamp),
+		email:     rec.Email,
+	})
+	if err != nil {
+		log.Println("Encountered an error when trying to save a review: ", err)
+		return writeErrorMessage, err
+	}
+
+	return "Thank you for sharing your review with pairing bot!", nil
 }

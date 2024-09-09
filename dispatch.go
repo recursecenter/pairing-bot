@@ -15,8 +15,6 @@ func (pl *PairingLogic) dispatch(ctx context.Context, cmd string, cmdArgs []stri
 		return readErrorMessage, err
 	}
 
-	isSubscribed := rec.IsSubscribed
-
 	// here's the actual actions. command input from
 	// the user input has already been sanitized, so we can
 	// trust that cmd and cmdArgs only have valid stuff in them
@@ -37,53 +35,7 @@ func (pl *PairingLogic) dispatch(ctx context.Context, cmd string, cmdArgs []stri
 		return pl.UnskipTomorrow(ctx, rec)
 
 	case "status":
-		if !isSubscribed {
-			return notSubscribedMessage, nil
-		}
-		// this particular days list is for sorting and printing the
-		// schedule correctly, since it's stored in a map in all lowercase
-		var daysList = []string{
-			"Monday",
-			"Tuesday",
-			"Wednesday",
-			"Thursday",
-			"Friday",
-			"Saturday",
-			"Sunday",
-		}
-
-		// get their current name
-		whoami := rec.Name
-
-		// get skip status and prepare to write a sentence with it
-		var skipStr string
-		if rec.IsSkippingTomorrow {
-			skipStr = " "
-		} else {
-			skipStr = " not "
-		}
-
-		// make a sorted list of their schedule
-		var schedule []string
-		for _, day := range daysList {
-			// this line is a little wild, sorry. it looks so weird because we
-			// have to do type assertion on both interface types
-			if rec.Schedule[strings.ToLower(day)] {
-				schedule = append(schedule, day)
-			}
-		}
-		// make a lil nice-lookin schedule string
-		var scheduleStr string
-		for i := range schedule[:len(schedule)-1] {
-			scheduleStr += schedule[i] + "s, "
-		}
-		if len(schedule) > 1 {
-			scheduleStr += "and " + schedule[len(schedule)-1] + "s"
-		} else if len(schedule) == 1 {
-			scheduleStr += schedule[0] + "s"
-		}
-
-		return fmt.Sprintf("* You're %v\n* You're scheduled for pairing on **%v**\n* **You're%vset to skip** pairing tomorrow", whoami, scheduleStr, skipStr), nil
+		return pl.Status(ctx, rec)
 
 	case "add-review":
 		reviewContent := cmdArgs[0]
@@ -205,4 +157,55 @@ func (pl *PairingLogic) UnskipTomorrow(ctx context.Context, rec *Recurser) (stri
 		return writeErrorMessage, err
 	}
 	return "Tomorrow: uncancelled! Heckin *yes*! **I will match you** for pairing tomorrow :)", nil
+}
+
+func (pl *PairingLogic) Status(ctx context.Context, rec *Recurser) (string, error) {
+	if !rec.IsSubscribed {
+		return notSubscribedMessage, nil
+	}
+
+	// this particular days list is for sorting and printing the
+	// schedule correctly, since it's stored in a map in all lowercase
+	var daysList = []string{
+		"Monday",
+		"Tuesday",
+		"Wednesday",
+		"Thursday",
+		"Friday",
+		"Saturday",
+		"Sunday",
+	}
+
+	// get their current name
+	whoami := rec.Name
+
+	// get skip status and prepare to write a sentence with it
+	var skipStr string
+	if rec.IsSkippingTomorrow {
+		skipStr = " "
+	} else {
+		skipStr = " not "
+	}
+
+	// make a sorted list of their schedule
+	var schedule []string
+	for _, day := range daysList {
+		// this line is a little wild, sorry. it looks so weird because we
+		// have to do type assertion on both interface types
+		if rec.Schedule[strings.ToLower(day)] {
+			schedule = append(schedule, day)
+		}
+	}
+	// make a lil nice-lookin schedule string
+	var scheduleStr string
+	for i := range schedule[:len(schedule)-1] {
+		scheduleStr += schedule[i] + "s, "
+	}
+	if len(schedule) > 1 {
+		scheduleStr += "and " + schedule[len(schedule)-1] + "s"
+	} else if len(schedule) == 1 {
+		scheduleStr += schedule[0] + "s"
+	}
+
+	return fmt.Sprintf("* You're %v\n* You're scheduled for pairing on **%v**\n* **You're%vset to skip** pairing tomorrow", whoami, scheduleStr, skipStr), nil
 }

@@ -31,16 +31,7 @@ func (pl *PairingLogic) dispatch(ctx context.Context, cmd string, cmdArgs []stri
 		return pl.Unsubscribe(ctx, rec)
 
 	case "skip":
-		if !isSubscribed {
-			return notSubscribedMessage, nil
-		}
-
-		rec.IsSkippingTomorrow = true
-
-		if err := pl.rdb.Set(ctx, userID, rec); err != nil {
-			return writeErrorMessage, err
-		}
-		return `Tomorrow: cancelled. I feel you. **I will not match you** for pairing tomorrow <3`, nil
+		return pl.SkipTomorrow(ctx, rec)
 
 	case "unskip":
 		if !isSubscribed {
@@ -197,4 +188,17 @@ func (pl *PairingLogic) Unsubscribe(ctx context.Context, rec *Recurser) (string,
 		return writeErrorMessage, err
 	}
 	return unsubscribeMessage, nil
+}
+
+func (pl *PairingLogic) SkipTomorrow(ctx context.Context, rec *Recurser) (string, error) {
+	if !rec.IsSubscribed {
+		return notSubscribedMessage, nil
+	}
+
+	rec.IsSkippingTomorrow = true
+
+	if err := pl.rdb.Set(ctx, rec.ID, rec); err != nil {
+		return writeErrorMessage, err
+	}
+	return `Tomorrow: cancelled. I feel you. **I will not match you** for pairing tomorrow <3`, nil
 }

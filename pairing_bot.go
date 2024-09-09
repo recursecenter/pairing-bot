@@ -119,7 +119,7 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 	response, err := pl.dispatch(ctx, cmd, cmdArgs, hook.Message.SenderID, hook.Message.SenderEmail, hook.Message.SenderFullName)
 	if err != nil {
 		log.Println(err)
-		return
+		// Errors come with non-empty messages sometimes, so continue on.
 	}
 
 	if err = responder.Encode(zulip.Reply(response)); err != nil {

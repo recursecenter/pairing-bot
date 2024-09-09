@@ -28,14 +28,7 @@ func (pl *PairingLogic) dispatch(ctx context.Context, cmd string, cmdArgs []stri
 		return pl.Subscribe(ctx, rec)
 
 	case "unsubscribe":
-		if !isSubscribed {
-			return notSubscribedMessage, nil
-		}
-
-		if err := pl.rdb.Delete(ctx, userID); err != nil {
-			return writeErrorMessage, err
-		}
-		return unsubscribeMessage, nil
+		return pl.Unsubscribe(ctx, rec)
 
 	case "skip":
 		if !isSubscribed {
@@ -193,4 +186,15 @@ func (pl *PairingLogic) Subscribe(ctx context.Context, rec *Recurser) (string, e
 		return writeErrorMessage, err
 	}
 	return subscribeMessage, nil
+}
+
+func (pl *PairingLogic) Unsubscribe(ctx context.Context, rec *Recurser) (string, error) {
+	if !rec.IsSubscribed {
+		return notSubscribedMessage, nil
+	}
+
+	if err := pl.rdb.Delete(ctx, rec.ID); err != nil {
+		return writeErrorMessage, err
+	}
+	return unsubscribeMessage, nil
 }

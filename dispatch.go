@@ -40,12 +40,12 @@ func (pl *PairingLogic) dispatch(ctx context.Context, cmd string, cmdArgs []stri
 
 		rec.CurrentlyAtRC, err = pl.recurse.IsCurrentlyAtRC(ctx, userID)
 		if err != nil {
-			log.Printf("Could not read currently-at-RC data from database: %s", err)
-			return writeErrorMessage, err
+			log.Printf("Could not read currently-at-RC data from RC API: %s", err)
+			return readErrorMessage, err
 		}
 
 		if err = pl.rdb.Set(ctx, userID, rec); err != nil {
-			log.Printf("Could not update from database: %s", err)
+			log.Printf("Could not update recurser in database: %s", err)
 			return writeErrorMessage, err
 		}
 		return subscribeMessage, nil

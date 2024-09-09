@@ -10,13 +10,9 @@ import (
 )
 
 func (pl *PairingLogic) dispatch(ctx context.Context, cmd string, cmdArgs []string, userID int64, userEmail string, userName string) (string, error) {
-	var response string
-	var err error
-
 	rec, err := pl.rdb.GetByUserID(ctx, userID, userEmail, userName)
 	if err != nil {
-		response = readErrorMessage
-		return response, err
+		return readErrorMessage, err
 	}
 
 	isSubscribed := rec.IsSubscribed
@@ -27,86 +23,69 @@ func (pl *PairingLogic) dispatch(ctx context.Context, cmd string, cmdArgs []stri
 	switch cmd {
 	case "schedule":
 		if !isSubscribed {
-			response = notSubscribedMessage
-			return response, err
+			return notSubscribedMessage, nil
 		}
 
 		rec.Schedule = newSchedule(cmdArgs)
 
 		if err = pl.rdb.Set(ctx, userID, rec); err != nil {
-			response = writeErrorMessage
-			return response, err
+			return writeErrorMessage, err
 		}
-		response = "Awesome, your new schedule's been set! You can check it with `status`."
-		return response, err
+		return "Awesome, your new schedule's been set! You can check it with `status`.", nil
 
 	case "subscribe":
 		if isSubscribed {
-			response = "You're already subscribed! Use `schedule` to set your schedule."
-			return response, err
+			return "You're already subscribed! Use `schedule` to set your schedule.", nil
 		}
 
 		rec.CurrentlyAtRC, err = pl.recurse.IsCurrentlyAtRC(ctx, userID)
 		if err != nil {
 			log.Printf("Could not read currently-at-RC data from database: %s", err)
-			response = writeErrorMessage
-			return response, err
+			return writeErrorMessage, err
 		}
 
 		if err = pl.rdb.Set(ctx, userID, rec); err != nil {
 			log.Printf("Could not update from database: %s", err)
-			response = writeErrorMessage
-			return response, err
+			return writeErrorMessage, err
 		}
-		response = subscribeMessage
-		return response, err
+		return subscribeMessage, nil
 
 	case "unsubscribe":
 		if !isSubscribed {
-			response = notSubscribedMessage
-			return response, err
+			return notSubscribedMessage, nil
 		}
 
 		if err := pl.rdb.Delete(ctx, userID); err != nil {
-			response = writeErrorMessage
-			return response, err
+			return writeErrorMessage, err
 		}
-		response = unsubscribeMessage
-		return response, err
+		return unsubscribeMessage, nil
 
 	case "skip":
 		if !isSubscribed {
-			response = notSubscribedMessage
-			return response, err
+			return notSubscribedMessage, nil
 		}
 
 		rec.IsSkippingTomorrow = true
 
 		if err := pl.rdb.Set(ctx, userID, rec); err != nil {
-			response = writeErrorMessage
-			return response, err
+			return writeErrorMessage, err
 		}
-		response = `Tomorrow: cancelled. I feel you. **I will not match you** for pairing tomorrow <3`
-		return response, err
+		return `Tomorrow: cancelled. I feel you. **I will not match you** for pairing tomorrow <3`, nil
 
 	case "unskip":
 		if !isSubscribed {
-			response = notSubscribedMessage
-			return response, err
+			return notSubscribedMessage, nil
 		}
 		rec.IsSkippingTomorrow = false
 
 		if err := pl.rdb.Set(ctx, userID, rec); err != nil {
-			response = writeErrorMessage
-			return response, err
+			return writeErrorMessage, err
 		}
-		response = "Tomorrow: uncancelled! Heckin *yes*! **I will match you** for pairing tomorrow :)"
-		return response, err
+		return "Tomorrow: uncancelled! Heckin *yes*! **I will match you** for pairing tomorrow :)", nil
 
 	case "status":
 		if !isSubscribed {
-			response = notSubscribedMessage
-			return response, err
+			return notSubscribedMessage, nil
 		}
 		// this particular days list is for sorting and printing the
 		// schedule correctly, since it's stored in a map in all lowercase
@@ -151,8 +130,7 @@ func (pl *PairingLogic) dispatch(ctx context.Context, cmd string, cmdArgs []stri
 			scheduleStr += schedule[0] + "s"
 		}
 
-		response = fmt.Sprintf("* You're %v\n* You're scheduled for pairing on **%v**\n* **You're%vset to skip** pairing tomorrow", whoami, scheduleStr, skipStr)
-		return response, err
+		return fmt.Sprintf("* You're %v\n* You're scheduled for pairing on **%v**\n* **You're%vset to skip** pairing tomorrow", whoami, scheduleStr, skipStr), nil
 
 	case "add-review":
 		reviewContent := cmdArgs[0]
@@ -167,12 +145,10 @@ func (pl *PairingLogic) dispatch(ctx context.Context, cmd string, cmdArgs []stri
 
 		if err != nil {
 			log.Println("Encountered an error when trying to save a review: ", err)
-			response = writeErrorMessage
-			return response, err
+			return writeErrorMessage, err
 		}
 
-		response = "Thank you for sharing your review with pairing bot!"
-		return response, err
+		return "Thank you for sharing your review with pairing bot!", nil
 
 	case "get-reviews":
 		numReviews := 5
@@ -184,31 +160,27 @@ func (pl *PairingLogic) dispatch(ctx context.Context, cmd string, cmdArgs []stri
 		lastN, err := pl.revdb.GetLastN(ctx, numReviews)
 		if err != nil {
 			log.Printf("Encountered an error when trying to fetch the last %v reviews: %v", numReviews, err)
-			response = readErrorMessage
-			return response, err
+			return readErrorMessage, err
 		}
 
-		response = "Here are some reviews of pairing bot:\n"
+		response := "Here are some reviews of pairing bot:\n"
 		for _, rev := range lastN {
 			response += "* \"" + rev.content + "\"!\n"
 		}
-		return response, err
+		return response, nil
 
 	case "cookie":
-		response = cookieClubMessage
-		return response, err
+		return cookieClubMessage, nil
 
 	case "help":
-		response = helpMessage
-		return response, err
+		return helpMessage, nil
 
 	case "version":
-		response = pl.version
-		return response, err
+		return pl.version, nil
 
 	default:
 		// this won't execute because all input has been sanitized
 		// by parseCmd() and all cases are handled explicitly above
-		return response, err
+		return "", nil
 	}
 }

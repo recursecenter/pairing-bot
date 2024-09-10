@@ -62,3 +62,19 @@ func ErrorAs[E error](t *testing.T, err error) (E, bool) {
 	t.Errorf("%s (-want +got):\n%s", msg, diff)
 	return want, false
 }
+
+// ErrorIs asserts that an error in err's chain matches target using errors.As.
+func ErrorIs(t *testing.T, got, want error) bool {
+	t.Helper()
+
+	if errors.Is(got, want) {
+		return true
+	}
+
+	diff := cmp.Diff(got, want)
+
+	msg := fmt.Sprintf("got error of type %T, wanted %T from unwrap", got, want)
+
+	t.Errorf("%s (-want +got):\n%s", msg, diff)
+	return false
+}

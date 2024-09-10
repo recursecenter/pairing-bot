@@ -57,59 +57,63 @@ var acceptedCommands = map[string]parseResult{
 }
 
 func TestParseCmdAccept(t *testing.T) {
-	for input, expected := range acceptedCommands {
+	for input, want := range acceptedCommands {
 		t.Run(input, func(t *testing.T) {
 			cmd, args, err := parseCmd(input)
 			if err != nil {
 				t.Fatalf("unexpected error: %#+v", err)
 			}
 
-			assert.Equal(t, cmd, expected.Cmd)
-			assert.Equal(t, args, expected.Args)
+			assert.Equal(t, cmd, want.Cmd)
+			assert.Equal(t, args, want.Args)
 		})
 	}
 }
 
-var rejectedCommands = []string{
-	"",
+var rejectedCommands = map[string]error{
+	"": nil,
 
-	// Funnily enough, these *do* give you what you want!
-	"help me",
-	"halp",
-	"schedule help",
+	// Funnily enough: nil, these *do* give you what you want!
+	"help me":       nil,
+	"halp":          nil,
+	"schedule help": ErrUnknownDay,
 
 	// Unexpected arguments
-	"status me",
-	"cookie me",
+	"status me": nil,
+	"cookie me": nil,
 
 	// Did they really want `schedule`?
-	"subscribe tue",
-	"unsubscribe thu",
+	"subscribe tue":   nil,
+	"unsubscribe thu": nil,
 
 	// (Un)skipping requires an argument.
-	"skip",
-	"unskip",
+	"skip":   nil,
+	"unskip": nil,
 
 	// TODO(#49): Allow (un)skipping days other than tomorrow
-	"skip friday",
-	"unskip next",
+	"skip friday": nil,
+	"unskip next": nil,
 
 	// This is not the way to delete reviews you don't like 😛
-	"get-reviews -1",
-	"get-reviews -10",
+	"get-reviews -1":  nil,
+	"get-reviews -10": nil,
 
 	// Unknown commands
-	"scheduleing monday",
-	"schedul monday",
-	"mooh",
+	"scheduleing monday": nil,
+	"schedul monday":     nil,
+	"mooh":               nil,
 }
 
 func TestParseCmdReject(t *testing.T) {
-	for _, input := range rejectedCommands {
+	for input, want := range rejectedCommands {
 		t.Run(input, func(t *testing.T) {
 			cmd, args, err := parseCmd(input)
 
-			_, _ = assert.ErrorAs[*parsingErr](t, err)
+			if want == nil {
+				_, _ = assert.ErrorAs[*parsingErr](t, err)
+			} else {
+				assert.ErrorIs(t, err, want)
+			}
 
 			assert.Equal(t, cmd, "help")
 			assert.Equal(t, args, nil)

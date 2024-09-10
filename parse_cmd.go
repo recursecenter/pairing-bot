@@ -33,28 +33,6 @@ func parseCmd(cmdStr string) (string, []string, error) {
 		"version",
 	}
 
-	//This contains the days of the week and common abbreviations
-	//so users can more easily set their schedules
-	dayAbbrevMap := map[string]string{
-		"monday":    "monday",
-		"mon":       "monday",
-		"tuesday":   "tuesday",
-		"tu":        "tuesday",
-		"tue":       "tuesday",
-		"wednesday": "wednesday",
-		"wed":       "wednesday",
-		"thursday":  "thursday",
-		"th":        "thursday",
-		"thu":       "thursday",
-		"thurs":     "thursday",
-		"friday":    "friday",
-		"fri":       "friday",
-		"saturday":  "saturday",
-		"sat":       "saturday",
-		"sunday":    "sunday",
-		"sun":       "sunday",
-	}
-
 	// convert the string to a slice
 	// after this, we have a value "cmd" of type []string
 	// where cmd[0] is the command and cmd[1:] are any arguments
@@ -110,12 +88,12 @@ func parseCmd(cmdStr string) (string, []string, error) {
 			var userSchedule []string
 
 			for _, day := range cmd[1:] {
-				if fullDayName, ok := dayAbbrevMap[day]; ok {
-					userSchedule = append(userSchedule, fullDayName)
-				} else {
-					err = &parsingErr{"the user issued SCHEDULE with malformed arguments"}
+				fullDayName, err := parseDay(day)
+				if err != nil {
 					return "help", nil, err
 				}
+
+				userSchedule = append(userSchedule, fullDayName)
 			}
 
 			return "schedule", userSchedule, err
@@ -139,4 +117,35 @@ func contains[S ~[]E, E comparable](list S, element E) bool {
 		}
 	}
 	return false
+}
+
+var ErrUnknownDay = errors.New("unknown day abbreviation")
+
+// parseDay expands day name abbreviations into their canonical form.
+func parseDay(word string) (string, error) {
+	switch strings.ToLower(word) {
+	case "mon", "monday":
+		return "monday", nil
+
+	case "tu", "tue", "tuesday":
+		return "tuesday", nil
+
+	case "wed", "wednesday":
+		return "wednesday", nil
+
+	case "th", "thu", "thurs", "thursday":
+		return "thursday", nil
+
+	case "fri", "friday":
+		return "friday", nil
+
+	case "sat", "saturday":
+		return "saturday", nil
+
+	case "sun", "sunday":
+		return "sunday", nil
+
+	default:
+		return "", fmt.Errorf("%w: %q", ErrUnknownDay, word)
+	}
 }

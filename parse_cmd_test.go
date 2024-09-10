@@ -36,8 +36,8 @@ var acceptedCommands = map[string]parseResult{
 		[]string{"monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"},
 	},
 
-	// BUG(@jdkaplan): Don't squash spaces *inside* the review.
-	"add-review  :pear: ing    :robot:": {"add-review", []string{":pear: ing :robot:"}},
+	// Don't squash spaces *inside* the review.
+	"add-review  :pear: ing    :robot:": {"add-review", []string{":pear: ing    :robot:"}},
 
 	"get-reviews 0":  {"get-reviews", []string{"0"}},
 	"get-reviews 1":  {"get-reviews", []string{"1"}},

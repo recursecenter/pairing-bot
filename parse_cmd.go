@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"regexp"
 	"strconv"
 	"strings"
 )
@@ -13,20 +12,17 @@ var ErrUnknownCommand = errors.New("unknown command")
 var ErrInvalidArguments = errors.New("invalid arguments")
 
 func parseCmd(cmdStr string) (string, []string, error) {
+	cmdStr = strings.TrimSpace(cmdStr)
+
 	log.Println("The cmdStr is: ", cmdStr)
 
-	// convert the string to a slice
-	// after this, we have a value "cmd" of type []string
-	// where cmd[0] is the command and cmd[1:] are any arguments
-	space := regexp.MustCompile(`\s+`)
-	cmdStr = space.ReplaceAllString(cmdStr, ` `)
-	cmdStr = strings.TrimSpace(cmdStr)
-	cmdStrLower := strings.ToLower(cmdStr)
-	cmd := strings.Split(cmdStrLower, ` `)
+	name, rest, _ := strings.Cut(cmdStr, " ")
+	name = strings.ToLower(name)
+	rest = strings.TrimSpace(rest)
 
-	switch name := cmd[0]; name {
+	switch name {
 	case "subscribe", "unsubscribe", "help", "status", "cookie":
-		if len(cmd) > 1 {
+		if len(rest) > 0 {
 			return "help", nil, fmt.Errorf("%w: wanted no arguments", ErrInvalidArguments)
 		}
 		return name, nil, nil
@@ -36,37 +32,35 @@ func parseCmd(cmdStr string) (string, []string, error) {
 		return name, nil, nil
 
 	case "add-review":
-		if len(cmd) == 1 {
+		if rest == "" {
 			return "help", nil, fmt.Errorf(`%w: wanted review content`, ErrInvalidArguments)
 		}
-
-		//We manually split the input cmdStr here since the above code converts it to lower case
-		//and we want to presever the user's original formatting/casing
-		reviewArgs := strings.SplitN(cmdStr, " ", 2)
-		return name, []string{reviewArgs[1]}, nil
+		return name, []string{rest}, nil
 
 	case "get-reviews":
-		switch len(cmd) {
-		case 1:
+		args := strings.Fields(rest)
+		switch len(args) {
+		case 0:
 			return name, nil, nil
-		case 2:
-			n, err := strconv.Atoi(cmd[1])
+		case 1:
+			n, err := strconv.Atoi(args[0])
 			if err != nil || n < 0 {
 				return "help", nil, fmt.Errorf(`%w: wanted a positive integer`, ErrInvalidArguments)
 			}
-			return name, cmd[1:], nil
+			return name, args, nil
 		default:
 			return "help", nil, fmt.Errorf(`%w: wanted a positive integer`, ErrInvalidArguments)
 		}
 
 	case "schedule":
-		if len(cmd) == 1 {
+		args := strings.Fields(rest)
+		if len(args) == 0 {
 			return "help", nil, fmt.Errorf("%w: wanted list of days", ErrInvalidArguments)
 		}
 
 		var userSchedule []string
 
-		for _, day := range cmd[1:] {
+		for _, day := range args {
 			fullDayName, err := parseDay(day)
 			if err != nil {
 				return "help", nil, fmt.Errorf("%w: %w", ErrInvalidArguments, err)
@@ -79,19 +73,13 @@ func parseCmd(cmdStr string) (string, []string, error) {
 
 	case "skip", "unskip":
 		// TODO(#49): Allow (un)skipping days other than tomorrow
-		when := "tomorrow"
-
-		if len(cmd) != 2 {
+		if rest != "tomorrow" {
 			return "help", nil, fmt.Errorf(`%w: wanted "tomorrow"`, ErrInvalidArguments)
 		}
-
-		if cmd[1] != when {
-			return "help", nil, fmt.Errorf(`%w: wanted "tomorrow"`, ErrInvalidArguments)
-		}
-		return name, []string{when}, nil
+		return name, []string{"tomorrow"}, nil
 
 	default:
-		return "help", nil, fmt.Errorf("%w: %q", ErrUnknownCommand, cmd[0])
+		return "help", nil, fmt.Errorf("%w: %q", ErrUnknownCommand, name)
 	}
 }
 

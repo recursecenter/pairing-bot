@@ -19,7 +19,6 @@ var maintenanceMode = false
 //
 // This is a map instead of a slice to allow for easy membership checks.
 var maintainers = map[int64]struct{}{
-	215391: {}, // Maren Beam (SP2'19)
 	699369: {}, // Charles Eckman (SP2'24)
 	720507: {}, // Jeremy Kaplan (S1'24)
 }

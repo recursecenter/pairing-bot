@@ -44,7 +44,7 @@ Zulip bots must have an owner set in Zulip and may only have one owner at a time
 
 ## Information for People Looking to Work On Pairing Bot
 
-Please contact [Charles Eckman], [Jeremy Kaplan], and/or [Maren Beam] for help getting started. You'll get an overview of Pairing Bot's code and commit access to this repo. You'll also get a tour of the Google Cloud project and access to the resources in it.
+Please contact [Charles Eckman] and/or [Jeremy Kaplan] for help getting started. You'll get an overview of Pairing Bot's code and commit access to this repo. You'll also get a tour of the Google Cloud project and access to the resources in it.
 
 You can open a Pull Request for Pairing Bot without contacting the project owners, but that means you'll lose out on the testing environment described below!
 
@@ -72,4 +72,3 @@ Pairing Bot is an [RC community project](https://recurse.zulipchat.com/#narrow/s
 
 [Jeremy Kaplan]: https://www.recurse.com/directory/6151-jeremy-kaplan
 [Charles Eckman]: https://www.recurse.com/directory/6134-charles-eckman
-[Maren Beam]: https://www.recurse.com/directory/2907-maren-beam

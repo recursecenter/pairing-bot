@@ -68,6 +68,8 @@ func parseCmd(cmdStr string) (string, []string, error) {
 	switch {
 	// if there's nothing in the command string array
 	case len(cmd) == 0:
+		// This case is unreachable because strings.Split always returns at
+		// least one element.
 		err = errors.New("the user-issued command was blank")
 		return "help", nil, err
 

@@ -1,151 +1,136 @@
 package main
 
 import (
+	"errors"
+	"reflect"
 	"testing"
 )
 
-var daysList = map[string]struct{}{
-	"monday":    {},
-	"tuesday":   {},
-	"wednesday": {},
-	"thursday":  {},
-	"friday":    {},
-	"saturday":  {},
-	"sunday":    {},
+type parseResult struct {
+	Cmd  string
+	Args []string
 }
 
-// due to the difficulties around comparing error return values (and because we don't want to compare error messages),
-// the struct contains expectErr to indicate whether an error is expected, instead of an actual error value
-var tableNoArgs = []struct {
-	testName   string
-	inputStr   string
-	wantedCmd  string
-	wantedArgs []string
-	expectErr  bool
-}{
-	{"subscribe_correct_usage", "subscribe", "subscribe", nil, false},
-	{"subscribe_wrong_usage", "subscribe mon", "help", nil, true},
-	{"unsubscribe_correct_usage", "unsubscribe", "unsubscribe", nil, false},
-	{"unsubscribe_wrong_usage", "unsubscribe tuesday", "help", nil, true},
-	{"help_correct_usage", "help", "help", nil, false},
-	{"help_wrong_usage", "help me", "help", nil, true},
-	{"status_correct_usage", "status", "status", nil, false},
-	{"status_wrong_usage", "status me", "help", nil, true},
-	{"version", "version", "version", nil, false},
+var acceptedCommands = map[string]parseResult{
+	"subscribe":   {"subscribe", nil},
+	"unsubscribe": {"unsubscribe", nil},
+	"help":        {"help", nil},
+	"status":      {"status", nil},
+	"get-reviews": {"get-reviews", nil},
+	"cookie":      {"cookie", nil},
+	"version":     {"version", nil},
+
+	// This command ignores its arguments.
+	"version info": {"version", nil},
+
+	// These commands require exact literal arguments.
+	"skip tomorrow":   {"skip", []string{"tomorrow"}},
+	"unskip tomorrow": {"unskip", []string{"tomorrow"}},
+
+	// Schedules!
+	"schedule monday":         {"schedule", []string{"monday"}},
+	"schedule sunday":         {"schedule", []string{"sunday"}},
+	"schedule friday tuesday": {"schedule", []string{"friday", "tuesday"}},
+	"schedule mon tue wed thu fri sat sun": {
+		"schedule",
+		[]string{"monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"},
+	},
+
+	// BUG(@jdkaplan): Don't squash spaces *inside* the review.
+	"add-review  :pear: ing    :robot:": {"add-review", []string{":pear: ing :robot:"}},
+
+	"get-reviews 0":  {"get-reviews", []string{"0"}},
+	"get-reviews 1":  {"get-reviews", []string{"1"}},
+	"get-reviews 5":  {"get-reviews", []string{"5"}},
+	"get-reviews 10": {"get-reviews", []string{"10"}},
+
+	// Commands are case-insensitive.
+	"Help":      {"help", nil},
+	"hElP":      {"help", nil},
+	"sUbScRiBe": {"subscribe", nil},
+
+	// Day names (as keywords) are also case-insensitive
+	"schedule MoN WED fRi": {"schedule", []string{"monday", "wednesday", "friday"}},
+
+	// Review content *is* case-sensitive.
+	"add-review   I :heart: Pairing Bot!\n": {"add-review", []string{"I :heart: Pairing Bot!"}},
 }
 
-func TestParseCmdNoArgs(t *testing.T) {
-	for _, tt := range tableNoArgs {
-		t.Run(tt.testName, func(t *testing.T) {
-			gotCmd, gotArgs, gotErr := parseCmd(tt.inputStr)
-			if gotCmd != tt.wantedCmd {
-				t.Errorf("got %v, %v\n", gotCmd, gotArgs)
+func TestParseCmdAccept(t *testing.T) {
+	for input, expected := range acceptedCommands {
+		t.Run(input, func(t *testing.T) {
+			cmd, args, err := parseCmd(input)
+			if err != nil {
+				t.Fatalf("unexpected error: %#+v", err)
 			}
 
-			_, ok := gotErr.(*parsingErr)
-
-			if tt.expectErr && !ok {
-				t.Errorf("Expected parsingErr but didn't get one\n")
-			} else if !tt.expectErr && ok {
-				t.Errorf("Got unexpected parsingError\n")
-			}
+			assertEqual(t, cmd, expected.Cmd)
+			assertEqual(t, args, expected.Args)
 		})
 	}
 }
 
-var tableWithArgs = []struct {
-	testName   string
-	inputStr   string
-	wantedCmd  string
-	wantedArgs []string
-	expectErr  bool
-}{
-	{"schedule_1_arg", "schedule monday", "schedule", []string{"monday"}, false},
-	{"schedule_2_args", "schedule monday friday", "schedule", []string{"monday", "friday"}, false},
-	{"schedule_3_args", "schedule monday wednesday friday", "schedule", []string{"monday", "wednesday", "friday"}, false},
-	{"schedule_4_args", "schedule monday wednesday friday sunday", "schedule", []string{"monday", "wednesday", "friday", "sunday"}, false},
-	{"schedule_weekend_only", "schedule sunday", "schedule", []string{"sunday"}, false},
-	{"schedule_wrong_usage", "schedule", "help", nil, true},
-	{"skip_correct_usage", "skip tomorrow", "skip", []string{"tomorrow"}, false},
-	{"skip_wrong_usage", "skip monday", "help", nil, true},
-	{"skip_wrong_usage", "skip whenever", "help", nil, true},
-	{"skip_wrong_usage", "skip", "help", nil, true},
-	{"unskip_correct_usage", "unskip tomorrow", "unskip", []string{"tomorrow"}, false},
-	{"unskip_wrong_usage", "unskip today", "help", nil, true},
-	{"unskip_wrong_usage", "unskip friday", "help", nil, true},
-	{"unskip_wrong_usage", "unskip", "help", nil, true},
-	{"version_extra_args_ok", "version info", "version", nil, false},
+var rejectedCommands = []string{
+	"",
+
+	// Funnily enough, these *do* give you what you want!
+	"help me",
+	"halp",
+	"schedule help",
+
+	// Unexpected arguments
+	"status me",
+	"cookie me",
+
+	// Did they really want `schedule`?
+	"subscribe tue",
+	"unsubscribe thu",
+
+	// (Un)skipping requires an argument.
+	"skip",
+	"unskip",
+
+	// TODO(#49): Allow (un)skipping days other than tomorrow
+	"skip friday",
+	"unskip next",
+
+	// This is not the way to delete reviews you don't like 😛
+	"get-reviews -1",
+	"get-reviews -10",
+
+	// Unknown commands
+	"scheduleing monday",
+	"schedul monday",
+	"mooh",
 }
 
-func TestParseCmdWithArgs(t *testing.T) {
-	for _, tt := range tableWithArgs {
-		t.Run(tt.testName, func(t *testing.T) {
-			gotCmd, gotArgs, gotErr := parseCmd(tt.inputStr)
-			if gotCmd != tt.wantedCmd || len(gotArgs) != len(tt.wantedArgs) {
-				t.Errorf("got %v, %v, wanted %v, %v\n", gotCmd, gotArgs, tt.wantedCmd, tt.wantedArgs)
-			}
+func TestParseCmdReject(t *testing.T) {
+	for _, input := range rejectedCommands {
+		t.Run(input, func(t *testing.T) {
+			cmd, args, err := parseCmd(input)
 
-			switch gotCmd {
-			case "schedule":
-				for i, arg := range gotArgs {
-					if _, ok := daysList[arg]; !ok {
-						t.Errorf("Wrong argument %v for command %v\n", gotArgs[i], gotCmd)
-					}
-				}
-			case "skip":
-				if gotArgs[0] != "tomorrow" {
-					t.Errorf("Wrong argument %v for command %v\n", gotArgs[0], gotCmd)
-				}
-			case "unskip":
-				if gotArgs[0] != "tomorrow" {
-					t.Errorf("Wrong argument %v for command %v\n", gotArgs[0], gotCmd)
-				}
-			case "version":
-				// Always fine as long as the wantedCmd check passes.
-			default:
-				if gotCmd != "help" {
-					t.Errorf("unknown command %v\n", gotCmd)
-				}
-			}
+			_, _ = assertErrorAs[*parsingErr](t, err)
 
-			_, ok := gotErr.(*parsingErr)
-
-			if tt.expectErr && !ok {
-				t.Errorf("Expected parsingErr but didn't get one\n")
-			} else if !tt.expectErr && ok {
-				t.Errorf("Got unexpected parsingError\n")
-			}
+			assertEqual(t, cmd, "help")
+			assertEqual(t, args, nil)
 		})
 	}
 }
 
-var tableMisc = []struct {
-	testName   string
-	inputStr   string
-	wantedCmd  string
-	wantedArgs []string
-	expectErr  bool
-}{
-	{"command_is_superstring", "scheduleing monday", "help", nil, true},
-	{"command_is_substring", "schedul monday", "help", nil, true},
-	{"command_is_undefined", "mooh", "help", nil, true},
-	{"command_is_capitalized", "Help", "help", nil, false},
+func assertEqual[T any](t *testing.T, a, b T) {
+	t.Helper()
+
+	if reflect.DeepEqual(a, b) {
+		return
+	}
+
+	t.Errorf("expected %#+v to equal %#+v", a, b)
 }
 
-func TestParseCmdMisc(t *testing.T) {
-	for _, tt := range tableMisc {
-		t.Run(tt.testName, func(t *testing.T) {
-			gotCmd, gotArgs, gotErr := parseCmd(tt.inputStr)
-			if gotCmd != tt.wantedCmd {
-				t.Errorf("got %v, %v, wanted %v, %v\n", gotCmd, gotArgs, tt.wantedCmd, tt.wantedArgs)
-			}
-			_, ok := gotErr.(*parsingErr)
-
-			if tt.expectErr && !ok {
-				t.Errorf("Expected parsingErr but didn't get one\n")
-			} else if !tt.expectErr && ok {
-				t.Errorf("Got unexpected parsingError\n")
-			}
-		})
+func assertErrorAs[T error](t *testing.T, err error) (target T, ok bool) {
+	ok = errors.As(err, &target)
+	if !ok {
+		t.Errorf("expected error as %T, got %#+v", target, err)
 	}
+	return target, ok
 }

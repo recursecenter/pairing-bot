@@ -15,7 +15,6 @@ var ErrInvalidArguments = errors.New("invalid arguments")
 func parseCmd(cmdStr string) (string, []string, error) {
 	log.Println("The cmdStr is: ", cmdStr)
 
-	var err error
 	var cmdList = []string{
 		"subscribe",
 		"unsubscribe",
@@ -45,8 +44,7 @@ func parseCmd(cmdStr string) (string, []string, error) {
 	case len(cmd) == 0:
 		// This case is unreachable because strings.Split always returns at
 		// least one element.
-		err = errors.New("the user-issued command was blank")
-		return "help", nil, err
+		return "help", nil, errors.New("the user-issued command was blank")
 
 	// if there's a valid command and if there's no arguments
 	case contains(cmdList, cmd[0]) && len(cmd) == 1:
@@ -58,7 +56,7 @@ func parseCmd(cmdStr string) (string, []string, error) {
 		case "add-review":
 			return "help", nil, fmt.Errorf(`%w: wanted review content`, ErrInvalidArguments)
 		}
-		return cmd[0], nil, err
+		return cmd[0], nil, nil
 
 	// if there's a valid command and there's some arguments
 	case contains(cmdList, cmd[0]) && len(cmd) > 1:
@@ -75,12 +73,12 @@ func parseCmd(cmdStr string) (string, []string, error) {
 					return "help", nil, fmt.Errorf(`%w: wanted a positive integer`, ErrInvalidArguments)
 				}
 			}
-			return "get-reviews", cmd[1:], err
+			return "get-reviews", cmd[1:], nil
 		case cmd[0] == "add-review":
 			//We manually split the input cmdStr here since the above code converts it to lower case
 			//and we want to presever the user's original formatting/casing
 			reviewArgs := strings.SplitN(cmdStr, " ", 2)
-			return "add-review", []string{reviewArgs[1]}, err
+			return "add-review", []string{reviewArgs[1]}, nil
 		case cmd[0] == "schedule":
 			var userSchedule []string
 
@@ -93,11 +91,11 @@ func parseCmd(cmdStr string) (string, []string, error) {
 				userSchedule = append(userSchedule, fullDayName)
 			}
 
-			return "schedule", userSchedule, err
+			return "schedule", userSchedule, nil
 		case cmd[0] == "version":
 			return "version", nil, nil
 		default:
-			return cmd[0], cmd[1:], err
+			return cmd[0], cmd[1:], nil
 		}
 
 	// if there's not a valid command

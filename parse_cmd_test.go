@@ -71,37 +71,40 @@ func TestParseCmdAccept(t *testing.T) {
 }
 
 var rejectedCommands = map[string]error{
-	"": nil,
+	"": ErrUnknownCommand,
 
 	// Funnily enough: nil, these *do* give you what you want!
-	"help me":       nil,
-	"halp":          nil,
+	"help me":       ErrInvalidArguments,
+	"halp":          ErrUnknownCommand,
+	"schedule":      ErrInvalidArguments,
 	"schedule help": ErrUnknownDay,
 
 	// Unexpected arguments
-	"status me": nil,
-	"cookie me": nil,
+	"status me": ErrInvalidArguments,
+	"cookie me": ErrInvalidArguments,
 
 	// Did they really want `schedule`?
-	"subscribe tue":   nil,
-	"unsubscribe thu": nil,
+	"subscribe tue":   ErrInvalidArguments,
+	"unsubscribe thu": ErrInvalidArguments,
 
 	// (Un)skipping requires an argument.
-	"skip":   nil,
-	"unskip": nil,
+	"skip":   ErrInvalidArguments,
+	"unskip": ErrInvalidArguments,
 
 	// TODO(#49): Allow (un)skipping days other than tomorrow
-	"skip friday": nil,
-	"unskip next": nil,
+	"skip friday": ErrInvalidArguments,
+	"unskip next": ErrInvalidArguments,
 
 	// This is not the way to delete reviews you don't like 😛
-	"get-reviews -1":  nil,
-	"get-reviews -10": nil,
+	"get-reviews -1":  ErrInvalidArguments,
+	"get-reviews -10": ErrInvalidArguments,
+
+	"add-review": ErrInvalidArguments,
 
 	// Unknown commands
-	"scheduleing monday": nil,
-	"schedul monday":     nil,
-	"mooh":               nil,
+	"scheduleing monday": ErrUnknownCommand,
+	"schedul monday":     ErrUnknownCommand,
+	"mooh":               ErrUnknownCommand,
 }
 
 func TestParseCmdReject(t *testing.T) {
@@ -109,11 +112,7 @@ func TestParseCmdReject(t *testing.T) {
 		t.Run(input, func(t *testing.T) {
 			cmd, args, err := parseCmd(input)
 
-			if want == nil {
-				_, _ = assert.ErrorAs[*parsingErr](t, err)
-			} else {
-				assert.ErrorIs(t, err, want)
-			}
+			assert.ErrorIs(t, err, want)
 
 			assert.Equal(t, cmd, "help")
 			assert.Equal(t, args, nil)

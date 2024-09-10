@@ -9,11 +9,8 @@ import (
 	"strings"
 )
 
-type parsingErr struct{ msg string }
-
-func (e parsingErr) Error() string {
-	return fmt.Sprintf("Error when parsing command: %s", e.msg)
-}
+var ErrUnknownCommand = errors.New("unknown command")
+var ErrInvalidArguments = errors.New("invalid arguments")
 
 func parseCmd(cmdStr string) (string, []string, error) {
 	log.Println("The cmdStr is: ", cmdStr)
@@ -53,9 +50,13 @@ func parseCmd(cmdStr string) (string, []string, error) {
 
 	// if there's a valid command and if there's no arguments
 	case contains(cmdList, cmd[0]) && len(cmd) == 1:
-		if cmd[0] == "schedule" || cmd[0] == "skip" || cmd[0] == "unskip" || cmd[0] == "add-review" {
-			err = &parsingErr{"the user issued a command without args, but it reqired args"}
-			return "help", nil, err
+		switch cmd[0] {
+		case "schedule":
+			return "help", nil, fmt.Errorf("%w: wanted list of days", ErrInvalidArguments)
+		case "skip", "unskip":
+			return "help", nil, fmt.Errorf(`%w: wanted "tomorrow"`, ErrInvalidArguments)
+		case "add-review":
+			return "help", nil, fmt.Errorf(`%w: wanted review content`, ErrInvalidArguments)
 		}
 		return cmd[0], nil, err
 
@@ -63,19 +64,15 @@ func parseCmd(cmdStr string) (string, []string, error) {
 	case contains(cmdList, cmd[0]) && len(cmd) > 1:
 		switch {
 		case cmd[0] == "subscribe" || cmd[0] == "unsubscribe" || cmd[0] == "help" || cmd[0] == "cookie" || cmd[0] == "status":
-			err = &parsingErr{"the user issued a command with args, but it disallowed args"}
-			return "help", nil, err
+			return "help", nil, fmt.Errorf("%w: wanted no arguments", ErrInvalidArguments)
 		case cmd[0] == "skip" && (len(cmd) != 2 || cmd[1] != "tomorrow"):
-			err = &parsingErr{"the user issued SKIP with malformed arguments"}
-			return "help", nil, err
+			return "help", nil, fmt.Errorf(`%w: wanted "tomorrow"`, ErrInvalidArguments)
 		case cmd[0] == "unskip" && (len(cmd) != 2 || cmd[1] != "tomorrow"):
-			err = &parsingErr{"the user issued UNSKIP with malformed arguments"}
-			return "help", nil, err
+			return "help", nil, fmt.Errorf(`%w: wanted "tomorrow"`, ErrInvalidArguments)
 		case cmd[0] == "get-reviews":
 			if len(cmd) > 1 {
 				if n, err := strconv.Atoi(cmd[1]); err != nil || len(cmd) > 2 || n < 0 {
-					err = &parsingErr{"the user issued GET-REVIEWS with malformed arguments"}
-					return "help", nil, err
+					return "help", nil, fmt.Errorf(`%w: wanted a positive integer`, ErrInvalidArguments)
 				}
 			}
 			return "get-reviews", cmd[1:], err
@@ -90,7 +87,7 @@ func parseCmd(cmdStr string) (string, []string, error) {
 			for _, day := range cmd[1:] {
 				fullDayName, err := parseDay(day)
 				if err != nil {
-					return "help", nil, err
+					return "help", nil, fmt.Errorf("%w: %w", ErrInvalidArguments, err)
 				}
 
 				userSchedule = append(userSchedule, fullDayName)
@@ -105,8 +102,7 @@ func parseCmd(cmdStr string) (string, []string, error) {
 
 	// if there's not a valid command
 	default:
-		err = &parsingErr{"the user-issued command wasn't valid"}
-		return "help", nil, err
+		return "help", nil, fmt.Errorf("%w: %q", ErrUnknownCommand, cmd[0])
 	}
 }
 

@@ -122,7 +122,8 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 	cmd, cmdArgs, err := parseCmd(hook.Data)
 	if err != nil {
 		log.Println(err)
-		return
+		// Error cases always correspond to cmd == "help", so it's safe to
+		// continue on to dispatch.
 	}
 
 	// the tofu and potatoes right here y'all

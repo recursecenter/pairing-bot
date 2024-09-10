@@ -95,15 +95,6 @@ func parseCmd(cmdStr string) (string, []string, error) {
 	}
 }
 
-func contains[S ~[]E, E comparable](list S, element E) bool {
-	for _, v := range list {
-		if v == element {
-			return true
-		}
-	}
-	return false
-}
-
 var ErrUnknownDay = errors.New("unknown day abbreviation")
 
 // parseDay expands day name abbreviations into their canonical form.

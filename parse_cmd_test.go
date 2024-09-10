@@ -99,6 +99,8 @@ var rejectedCommands = map[string]error{
 	"get-reviews -1":  ErrInvalidArguments,
 	"get-reviews -10": ErrInvalidArguments,
 
+	"get-reviews 1 2": ErrInvalidArguments,
+
 	"add-review": ErrInvalidArguments,
 
 	// Unknown commands

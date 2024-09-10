@@ -15,20 +15,6 @@ var ErrInvalidArguments = errors.New("invalid arguments")
 func parseCmd(cmdStr string) (string, []string, error) {
 	log.Println("The cmdStr is: ", cmdStr)
 
-	var cmdList = []string{
-		"subscribe",
-		"unsubscribe",
-		"help",
-		"schedule",
-		"skip",
-		"unskip",
-		"status",
-		"add-review",
-		"get-reviews",
-		"cookie",
-		"version",
-	}
-
 	// convert the string to a slice
 	// after this, we have a value "cmd" of type []string
 	// where cmd[0] is the command and cmd[1:] are any arguments
@@ -38,67 +24,72 @@ func parseCmd(cmdStr string) (string, []string, error) {
 	cmdStrLower := strings.ToLower(cmdStr)
 	cmd := strings.Split(cmdStrLower, ` `)
 
-	// Big validation logic -- hellooo darkness my old frieeend
-	switch {
-	// if there's nothing in the command string array
-	case len(cmd) == 0:
-		// This case is unreachable because strings.Split always returns at
-		// least one element.
-		return "help", nil, errors.New("the user-issued command was blank")
+	switch name := cmd[0]; name {
+	case "subscribe", "unsubscribe", "help", "status", "cookie":
+		if len(cmd) > 1 {
+			return "help", nil, fmt.Errorf("%w: wanted no arguments", ErrInvalidArguments)
+		}
+		return name, nil, nil
 
-	// if there's a valid command and if there's no arguments
-	case contains(cmdList, cmd[0]) && len(cmd) == 1:
-		switch cmd[0] {
-		case "schedule":
-			return "help", nil, fmt.Errorf("%w: wanted list of days", ErrInvalidArguments)
-		case "skip", "unskip":
-			return "help", nil, fmt.Errorf(`%w: wanted "tomorrow"`, ErrInvalidArguments)
-		case "add-review":
+	case "version":
+		// Ignore any extra arguments.
+		return name, nil, nil
+
+	case "add-review":
+		if len(cmd) == 1 {
 			return "help", nil, fmt.Errorf(`%w: wanted review content`, ErrInvalidArguments)
 		}
-		return cmd[0], nil, nil
 
-	// if there's a valid command and there's some arguments
-	case contains(cmdList, cmd[0]) && len(cmd) > 1:
-		switch {
-		case cmd[0] == "subscribe" || cmd[0] == "unsubscribe" || cmd[0] == "help" || cmd[0] == "cookie" || cmd[0] == "status":
-			return "help", nil, fmt.Errorf("%w: wanted no arguments", ErrInvalidArguments)
-		case cmd[0] == "skip" && (len(cmd) != 2 || cmd[1] != "tomorrow"):
-			return "help", nil, fmt.Errorf(`%w: wanted "tomorrow"`, ErrInvalidArguments)
-		case cmd[0] == "unskip" && (len(cmd) != 2 || cmd[1] != "tomorrow"):
-			return "help", nil, fmt.Errorf(`%w: wanted "tomorrow"`, ErrInvalidArguments)
-		case cmd[0] == "get-reviews":
-			if len(cmd) > 1 {
-				if n, err := strconv.Atoi(cmd[1]); err != nil || len(cmd) > 2 || n < 0 {
-					return "help", nil, fmt.Errorf(`%w: wanted a positive integer`, ErrInvalidArguments)
-				}
+		//We manually split the input cmdStr here since the above code converts it to lower case
+		//and we want to presever the user's original formatting/casing
+		reviewArgs := strings.SplitN(cmdStr, " ", 2)
+		return name, []string{reviewArgs[1]}, nil
+
+	case "get-reviews":
+		switch len(cmd) {
+		case 1:
+			return name, nil, nil
+		case 2:
+			n, err := strconv.Atoi(cmd[1])
+			if err != nil || n < 0 {
+				return "help", nil, fmt.Errorf(`%w: wanted a positive integer`, ErrInvalidArguments)
 			}
-			return "get-reviews", cmd[1:], nil
-		case cmd[0] == "add-review":
-			//We manually split the input cmdStr here since the above code converts it to lower case
-			//and we want to presever the user's original formatting/casing
-			reviewArgs := strings.SplitN(cmdStr, " ", 2)
-			return "add-review", []string{reviewArgs[1]}, nil
-		case cmd[0] == "schedule":
-			var userSchedule []string
-
-			for _, day := range cmd[1:] {
-				fullDayName, err := parseDay(day)
-				if err != nil {
-					return "help", nil, fmt.Errorf("%w: %w", ErrInvalidArguments, err)
-				}
-
-				userSchedule = append(userSchedule, fullDayName)
-			}
-
-			return "schedule", userSchedule, nil
-		case cmd[0] == "version":
-			return "version", nil, nil
+			return name, cmd[1:], nil
 		default:
-			return cmd[0], cmd[1:], nil
+			return "help", nil, fmt.Errorf(`%w: wanted a positive integer`, ErrInvalidArguments)
 		}
 
-	// if there's not a valid command
+	case "schedule":
+		if len(cmd) == 1 {
+			return "help", nil, fmt.Errorf("%w: wanted list of days", ErrInvalidArguments)
+		}
+
+		var userSchedule []string
+
+		for _, day := range cmd[1:] {
+			fullDayName, err := parseDay(day)
+			if err != nil {
+				return "help", nil, fmt.Errorf("%w: %w", ErrInvalidArguments, err)
+			}
+
+			userSchedule = append(userSchedule, fullDayName)
+		}
+
+		return "schedule", userSchedule, nil
+
+	case "skip", "unskip":
+		// TODO(#49): Allow (un)skipping days other than tomorrow
+		when := "tomorrow"
+
+		if len(cmd) != 2 {
+			return "help", nil, fmt.Errorf(`%w: wanted "tomorrow"`, ErrInvalidArguments)
+		}
+
+		if cmd[1] != when {
+			return "help", nil, fmt.Errorf(`%w: wanted "tomorrow"`, ErrInvalidArguments)
+		}
+		return name, []string{when}, nil
+
 	default:
 		return "help", nil, fmt.Errorf("%w: %q", ErrUnknownCommand, cmd[0])
 	}

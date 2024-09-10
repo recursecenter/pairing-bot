@@ -1,9 +1,9 @@
 package main
 
 import (
-	"errors"
-	"reflect"
 	"testing"
+
+	"github.com/recursecenter/pairing-bot/internal/assert"
 )
 
 type parseResult struct {
@@ -64,8 +64,8 @@ func TestParseCmdAccept(t *testing.T) {
 				t.Fatalf("unexpected error: %#+v", err)
 			}
 
-			assertEqual(t, cmd, expected.Cmd)
-			assertEqual(t, args, expected.Args)
+			assert.Equal(t, cmd, expected.Cmd)
+			assert.Equal(t, args, expected.Args)
 		})
 	}
 }
@@ -109,28 +109,10 @@ func TestParseCmdReject(t *testing.T) {
 		t.Run(input, func(t *testing.T) {
 			cmd, args, err := parseCmd(input)
 
-			_, _ = assertErrorAs[*parsingErr](t, err)
+			_, _ = assert.ErrorAs[*parsingErr](t, err)
 
-			assertEqual(t, cmd, "help")
-			assertEqual(t, args, nil)
+			assert.Equal(t, cmd, "help")
+			assert.Equal(t, args, nil)
 		})
 	}
-}
-
-func assertEqual[T any](t *testing.T, a, b T) {
-	t.Helper()
-
-	if reflect.DeepEqual(a, b) {
-		return
-	}
-
-	t.Errorf("expected %#+v to equal %#+v", a, b)
-}
-
-func assertErrorAs[T error](t *testing.T, err error) (target T, ok bool) {
-	ok = errors.As(err, &target)
-	if !ok {
-		t.Errorf("expected error as %T, got %#+v", target, err)
-	}
-	return target, ok
 }

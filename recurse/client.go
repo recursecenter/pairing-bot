@@ -136,6 +136,10 @@ func (d *Datestamp) MarshalJSON() ([]byte, error) {
 	return json.Marshal(s)
 }
 
+func (d Datestamp) Equal(other Datestamp) bool {
+	return time.Time(d).Equal(time.Time(other))
+}
+
 // A Batch is a cycle of the Recurse Center retreat.
 //
 // https://github.com/recursecenter/wiki/wiki/Recurse-Center-API#Batches

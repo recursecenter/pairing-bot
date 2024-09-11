@@ -63,7 +63,7 @@ func ErrorAs[E error](t *testing.T, err error) (E, bool) {
 	return want, false
 }
 
-// ErrorIs asserts that an error in err's chain matches target using errors.As.
+// ErrorIs asserts that an error in err's chain matches target using errors.Is.
 func ErrorIs(t *testing.T, got, want error) bool {
 	t.Helper()
 

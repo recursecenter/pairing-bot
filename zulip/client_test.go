@@ -2,45 +2,16 @@ package zulip_test
 
 import (
 	"context"
-	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"reflect"
 	"sync/atomic"
 	"testing"
 
+	"github.com/recursecenter/pairing-bot/internal/assert"
 	"github.com/recursecenter/pairing-bot/zulip"
 )
-
-func assertEqual[T any](t *testing.T, expected, actual T) {
-	t.Helper()
-
-	if reflect.DeepEqual(expected, actual) {
-		return
-	}
-
-	t.Errorf("expected %#+v to equal %#+v", expected, actual)
-}
-
-func assertNoError(t *testing.T, err error) {
-	t.Helper()
-
-	if err == nil {
-		return
-	}
-
-	t.Errorf("expected no error, got %#+v", err)
-}
-
-func assertErrorAs[T error](t *testing.T, err error) (target T, ok bool) {
-	ok = errors.As(err, &target)
-	if !ok {
-		t.Errorf("expected error as %T, got %#+v", target, err)
-	}
-	return target, ok
-}
 
 // MockServer wraps an httptest.Server to count the number of requests
 // received.
@@ -76,7 +47,7 @@ func (m *MockServer) AssertRequestCount(expected int) {
 	m.t.Helper()
 	m.srv.Close()
 
-	assertEqual(m.t, int64(expected), m.requestCount.Load())
+	assert.Equal(m.t, m.requestCount.Load(), int64(expected))
 }
 
 func TestClient_PostToTopic(t *testing.T) {
@@ -110,14 +81,14 @@ func TestClient_PostToTopic(t *testing.T) {
 		t.Setenv("APP_ENV", "production")
 
 		srv := mockServer(t, func(w http.ResponseWriter, r *http.Request) {
-			assertEqual(t, r.Method, http.MethodPost)
-			assertEqual(t, r.URL.Path, "/messages")
+			assert.Equal(t, r.Method, http.MethodPost)
+			assert.Equal(t, r.URL.Path, "/messages")
 
 			// Base64-encoding of "fake-username:fake-password"
 			authz := "Basic ZmFrZS11c2VybmFtZTpmYWtlLXBhc3N3b3Jk"
-			assertEqual(t, r.Header.Get("Authorization"), authz)
+			assert.Equal(t, r.Header.Get("Authorization"), authz)
 
-			assertEqual(t, r.Header.Get("Content-Type"), "application/x-www-form-urlencoded")
+			assert.Equal(t, r.Header.Get("Content-Type"), "application/x-www-form-urlencoded")
 
 			form := url.Values{
 				"type":    []string{"stream"},
@@ -125,8 +96,9 @@ func TestClient_PostToTopic(t *testing.T) {
 				"topic":   []string{"Pearing Bot"},
 				"content": []string{"Later, y'all!"},
 			}
-			assertNoError(t, r.ParseForm())
-			assertEqual(t, form, r.Form)
+			if assert.NoError(t, r.ParseForm()) {
+				assert.Equal(t, r.Form, form)
+			}
 		})
 
 		client, err := zulip.NewClient(
@@ -151,22 +123,23 @@ func TestClient_PostToTopic(t *testing.T) {
 
 func TestClient_SendUserMessage(t *testing.T) {
 	srv := mockServer(t, func(w http.ResponseWriter, r *http.Request) {
-		assertEqual(t, r.Method, http.MethodPost)
-		assertEqual(t, r.URL.Path, "/messages")
+		assert.Equal(t, r.Method, http.MethodPost)
+		assert.Equal(t, r.URL.Path, "/messages")
 
 		// Base64-encoding of "fake-username:fake-password"
 		authz := "Basic ZmFrZS11c2VybmFtZTpmYWtlLXBhc3N3b3Jk"
-		assertEqual(t, r.Header.Get("Authorization"), authz)
+		assert.Equal(t, r.Header.Get("Authorization"), authz)
 
-		assertEqual(t, r.Header.Get("Content-Type"), "application/x-www-form-urlencoded")
+		assert.Equal(t, r.Header.Get("Content-Type"), "application/x-www-form-urlencoded")
 
 		form := url.Values{
 			"type":    []string{"private"},
 			"to":      []string{"[0,1]"},
 			"content": []string{"Okay, go!"},
 		}
-		assertNoError(t, r.ParseForm())
-		assertEqual(t, form, r.Form)
+		if assert.NoError(t, r.ParseForm()) {
+			assert.Equal(t, r.Form, form)
+		}
 	})
 
 	client, err := zulip.NewClient(
@@ -208,14 +181,17 @@ func TestClient_zulip_errors(t *testing.T) {
 	ctx := context.Background()
 
 	err = client.SendUserMessage(ctx, []int64{0, 1}, "Okay, go!")
-	assertEqual(t, "error response from Zulip: 418 I'm a teapot", err.Error())
+	assert.Equal(t, err.Error(), "error response from Zulip: 418 I'm a teapot")
 
-	if respErr, ok := assertErrorAs[*zulip.ResponseError](t, err); ok {
-		assertEqual(t, 418, respErr.Response.StatusCode)
+	if respErr, ok := assert.ErrorAs[*zulip.ResponseError](t, err); ok {
+		assert.Equal(t, respErr.Response.StatusCode, 418)
 
 		body, readErr := io.ReadAll(respErr.Response.Body)
-		assertNoError(t, readErr)
-		assertEqual(t, "oops!", string(body))
+		if readErr != nil {
+			t.Fatal(readErr)
+		}
+
+		assert.Equal(t, string(body), "oops!")
 	}
 
 	srv.AssertRequestCount(1)

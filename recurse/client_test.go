@@ -4,49 +4,20 @@ import (
 	"cmp"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
-	"reflect"
 	"strconv"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/recursecenter/pairing-bot/internal/assert"
 	"github.com/recursecenter/pairing-bot/recurse"
 )
-
-func assertEqual[T any](t *testing.T, expected, actual T) {
-	t.Helper()
-
-	if reflect.DeepEqual(expected, actual) {
-		return
-	}
-
-	t.Errorf("expected %#+v to equal %#+v", expected, actual)
-}
-
-func assertNoError(t *testing.T, err error) {
-	t.Helper()
-
-	if err == nil {
-		return
-	}
-
-	t.Errorf("expected no error, got %#+v", err)
-}
-
-func assertErrorAs[T error](t *testing.T, err error) (target T, ok bool) {
-	ok = errors.As(err, &target)
-	if !ok {
-		t.Errorf("expected error as %T, got %#+v", target, err)
-	}
-	return target, ok
-}
 
 // MockServer wraps an httptest.Server to count the number of requests
 // received.
@@ -82,7 +53,7 @@ func (m *MockServer) AssertRequestCount(expected int) {
 	m.t.Helper()
 	m.Close()
 
-	assertEqual(m.t, int64(expected), m.requestCount.Load())
+	assert.Equal(m.t, m.requestCount.Load(), int64(expected))
 }
 
 func (m *MockServer) Close() {
@@ -143,8 +114,8 @@ func TestClient_ActiveRecursers(t *testing.T) {
 
 			pageIdx := 0
 			srv := mockServer(t, func(w http.ResponseWriter, r *http.Request) {
-				assertEqual(t, http.MethodGet, r.Method)
-				assertEqual(t, "/profiles", r.URL.Path)
+				assert.Equal(t, r.Method, http.MethodGet)
+				assert.Equal(t, r.URL.Path, "/profiles")
 
 				page := expectedPages[pageIdx]
 				pageIdx++
@@ -156,7 +127,7 @@ func TestClient_ActiveRecursers(t *testing.T) {
 					"offset":       []string{strconv.Itoa(page.Offset)},
 					"limit":        []string{strconv.Itoa(page.Limit)},
 				}
-				assertEqual(t, params, r.URL.Query())
+				assert.Equal(t, r.URL.Query(), params)
 
 				start := page.Offset
 				end := min(start+page.Limit, len(allProfiles))
@@ -184,7 +155,7 @@ func TestClient_ActiveRecursers(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			assertEqual(t, profiles, allProfiles)
+			assert.Equal(t, profiles, allProfiles)
 		})
 	}
 }
@@ -208,13 +179,13 @@ func TestClient_AllBatches(t *testing.T) {
 	allBatches := loadJSON[[]recurse.Batch](t, "testdata/batches.json")
 
 	srv := mockServer(t, func(w http.ResponseWriter, r *http.Request) {
-		assertEqual(t, http.MethodGet, r.Method)
-		assertEqual(t, "/batches", r.URL.Path)
+		assert.Equal(t, r.Method, http.MethodGet)
+		assert.Equal(t, r.URL.Path, "/batches")
 
 		params := url.Values{
 			"access_token": []string{"fake-access-token"},
 		}
-		assertEqual(t, params, r.URL.Query())
+		assert.Equal(t, r.URL.Query(), params)
 
 		err := json.NewEncoder(w).Encode(allBatches)
 		if err != nil {
@@ -239,15 +210,15 @@ func TestClient_AllBatches(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assertEqual(t, batches, allBatches)
+	assert.Equal(t, batches, allBatches)
 }
 
 func TestClient_IsCurrentlyAtRC(t *testing.T) {
 	// This handler is easier than the one for ActiveRecursers because we know
 	// there's exactly one page to return.
 	srv := mockServer(t, func(w http.ResponseWriter, r *http.Request) {
-		assertEqual(t, http.MethodGet, r.Method)
-		assertEqual(t, "/profiles", r.URL.Path)
+		assert.Equal(t, r.Method, http.MethodGet)
+		assert.Equal(t, r.URL.Path, "/profiles")
 
 		params := url.Values{
 			"access_token": []string{"fake-access-token"},
@@ -256,7 +227,7 @@ func TestClient_IsCurrentlyAtRC(t *testing.T) {
 			"offset":       []string{"0"},
 			"limit":        []string{"50"},
 		}
-		assertEqual(t, params, r.URL.Query())
+		assert.Equal(t, r.URL.Query(), params)
 
 		page := fakeProfiles(t, 25)
 
@@ -291,7 +262,7 @@ func TestClient_IsCurrentlyAtRC(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			assertEqual(t, atRC, expected)
+			assert.Equal(t, atRC, expected)
 		})
 	}
 }
@@ -316,14 +287,17 @@ func TestClient_recurse_errors(t *testing.T) {
 	ctx := context.Background()
 
 	_, err = client.ActiveRecursers(ctx)
-	assertEqual(t, "get active recursers (offset=0): error response from Recurse: 418 I'm a teapot", err.Error())
+	assert.Equal(t, err.Error(), "get active recursers (offset=0): error response from Recurse: 418 I'm a teapot")
 
-	if respErr, ok := assertErrorAs[*recurse.ResponseError](t, err); ok {
-		assertEqual(t, 418, respErr.Response.StatusCode)
+	if respErr, ok := assert.ErrorAs[*recurse.ResponseError](t, err); ok {
+		assert.Equal(t, respErr.Response.StatusCode, 418)
 
 		body, readErr := io.ReadAll(respErr.Response.Body)
-		assertNoError(t, readErr)
-		assertEqual(t, "oops!", string(body))
+		if readErr != nil {
+			t.Fatal(readErr)
+		}
+
+		assert.Equal(t, string(body), "oops!")
 	}
 
 	srv.AssertRequestCount(1)
@@ -334,12 +308,12 @@ func TestBatch_IsMini(t *testing.T) {
 
 	t.Run("mini batch", func(t *testing.T) {
 		batch := batches[2]
-		assertEqual(t, true, batch.IsMini())
+		assert.Equal(t, batch.IsMini(), true)
 	})
 
 	t.Run("not-mini batch", func(t *testing.T) {
 		batch := batches[0]
-		assertEqual(t, false, batch.IsMini())
+		assert.Equal(t, batch.IsMini(), false)
 	})
 }
 
@@ -374,7 +348,7 @@ func TestBatch_IsSecondWeek(t *testing.T) {
 	week2cron := must(time.Parse(time.RFC3339, "2024-05-28T14:00:00-04:00"))
 	week3cron := must(time.Parse(time.RFC3339, "2024-06-04T14:00:00-04:00"))
 
-	assertEqual(t, false, batch.IsSecondWeek(week1cron))
-	assertEqual(t, true, batch.IsSecondWeek(week2cron))
-	assertEqual(t, false, batch.IsSecondWeek(week3cron))
+	assert.Equal(t, batch.IsSecondWeek(week1cron), false)
+	assert.Equal(t, batch.IsSecondWeek(week2cron), true)
+	assert.Equal(t, batch.IsSecondWeek(week3cron), false)
 }

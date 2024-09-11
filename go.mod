@@ -4,6 +4,7 @@ go 1.22
 
 require (
 	cloud.google.com/go/firestore v1.14.0
+	github.com/google/go-cmp v0.6.0
 	google.golang.org/api v0.167.0
 	google.golang.org/grpc v1.62.0
 )

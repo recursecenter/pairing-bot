@@ -290,7 +290,7 @@ func TestClient_recurse_errors(t *testing.T) {
 	assert.Equal(t, err.Error(), "get active recursers (offset=0): error response from Recurse: 418 I'm a teapot")
 
 	if respErr, ok := assert.ErrorAs[*recurse.ResponseError](t, err); ok {
-		assert.Equal(t, 418, respErr.Response.StatusCode)
+		assert.Equal(t, respErr.Response.StatusCode, 418)
 
 		body, readErr := io.ReadAll(respErr.Response.Body)
 		if readErr != nil {

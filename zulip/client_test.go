@@ -81,8 +81,8 @@ func TestClient_PostToTopic(t *testing.T) {
 		t.Setenv("APP_ENV", "production")
 
 		srv := mockServer(t, func(w http.ResponseWriter, r *http.Request) {
-			assert.Equal(t, http.MethodPost, r.Method)
-			assert.Equal(t, "/messages", r.URL.Path)
+			assert.Equal(t, r.Method, http.MethodPost)
+			assert.Equal(t, r.URL.Path, "/messages")
 
 			// Base64-encoding of "fake-username:fake-password"
 			authz := "Basic ZmFrZS11c2VybmFtZTpmYWtlLXBhc3N3b3Jk"
@@ -123,8 +123,8 @@ func TestClient_PostToTopic(t *testing.T) {
 
 func TestClient_SendUserMessage(t *testing.T) {
 	srv := mockServer(t, func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, http.MethodPost, r.Method)
-		assert.Equal(t, "/messages", r.URL.Path)
+		assert.Equal(t, r.Method, http.MethodPost)
+		assert.Equal(t, r.URL.Path, "/messages")
 
 		// Base64-encoding of "fake-username:fake-password"
 		authz := "Basic ZmFrZS11c2VybmFtZTpmYWtlLXBhc3N3b3Jk"

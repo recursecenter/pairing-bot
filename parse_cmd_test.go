@@ -36,8 +36,8 @@ var acceptedCommands = map[string]parseResult{
 		[]string{"monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"},
 	},
 
-	// BUG(@jdkaplan): Don't squash spaces *inside* the review.
-	"add-review  :pear: ing    :robot:": {"add-review", []string{":pear: ing :robot:"}},
+	// Don't squash spaces *inside* the review.
+	"add-review  :pear: ing    :robot:": {"add-review", []string{":pear: ing    :robot:"}},
 
 	"get-reviews 0":  {"get-reviews", []string{"0"}},
 	"get-reviews 1":  {"get-reviews", []string{"1"}},
@@ -57,59 +57,64 @@ var acceptedCommands = map[string]parseResult{
 }
 
 func TestParseCmdAccept(t *testing.T) {
-	for input, expected := range acceptedCommands {
+	for input, want := range acceptedCommands {
 		t.Run(input, func(t *testing.T) {
 			cmd, args, err := parseCmd(input)
 			if err != nil {
 				t.Fatalf("unexpected error: %#+v", err)
 			}
 
-			assert.Equal(t, cmd, expected.Cmd)
-			assert.Equal(t, args, expected.Args)
+			assert.Equal(t, cmd, want.Cmd)
+			assert.Equal(t, args, want.Args)
 		})
 	}
 }
 
-var rejectedCommands = []string{
-	"",
+var rejectedCommands = map[string]error{
+	"": ErrUnknownCommand,
 
-	// Funnily enough, these *do* give you what you want!
-	"help me",
-	"halp",
-	"schedule help",
+	// Funnily enough: nil, these *do* give you what you want!
+	"help me":       ErrInvalidArguments,
+	"halp":          ErrUnknownCommand,
+	"schedule":      ErrInvalidArguments,
+	"schedule help": ErrUnknownDay,
 
 	// Unexpected arguments
-	"status me",
-	"cookie me",
+	"status me": ErrInvalidArguments,
+	"cookie me": ErrInvalidArguments,
 
 	// Did they really want `schedule`?
-	"subscribe tue",
-	"unsubscribe thu",
+	"subscribe tue":   ErrInvalidArguments,
+	"unsubscribe thu": ErrInvalidArguments,
 
 	// (Un)skipping requires an argument.
-	"skip",
-	"unskip",
+	"skip":   ErrInvalidArguments,
+	"unskip": ErrInvalidArguments,
 
 	// TODO(#49): Allow (un)skipping days other than tomorrow
-	"skip friday",
-	"unskip next",
+	"skip friday": ErrInvalidArguments,
+	"unskip next": ErrInvalidArguments,
 
 	// This is not the way to delete reviews you don't like 😛
-	"get-reviews -1",
-	"get-reviews -10",
+	"get-reviews -1":  ErrInvalidArguments,
+	"get-reviews -10": ErrInvalidArguments,
+
+	"get-reviews 1 2": ErrInvalidArguments,
+
+	"add-review": ErrInvalidArguments,
 
 	// Unknown commands
-	"scheduleing monday",
-	"schedul monday",
-	"mooh",
+	"scheduleing monday": ErrUnknownCommand,
+	"schedul monday":     ErrUnknownCommand,
+	"mooh":               ErrUnknownCommand,
 }
 
 func TestParseCmdReject(t *testing.T) {
-	for _, input := range rejectedCommands {
+	for input, want := range rejectedCommands {
 		t.Run(input, func(t *testing.T) {
 			cmd, args, err := parseCmd(input)
 
-			_, _ = assert.ErrorAs[*parsingErr](t, err)
+			assert.ErrorIs(t, err, want)
 
 			assert.Equal(t, cmd, "help")
 			assert.Equal(t, args, nil)

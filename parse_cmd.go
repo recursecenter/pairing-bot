@@ -4,139 +4,112 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"regexp"
 	"strconv"
 	"strings"
 )
 
-type parsingErr struct{ msg string }
-
-func (e parsingErr) Error() string {
-	return fmt.Sprintf("Error when parsing command: %s", e.msg)
-}
+var ErrUnknownCommand = errors.New("unknown command")
+var ErrInvalidArguments = errors.New("invalid arguments")
 
 func parseCmd(cmdStr string) (string, []string, error) {
+	cmdStr = strings.TrimSpace(cmdStr)
+
 	log.Println("The cmdStr is: ", cmdStr)
 
-	var err error
-	var cmdList = []string{
-		"subscribe",
-		"unsubscribe",
-		"help",
-		"schedule",
-		"skip",
-		"unskip",
-		"status",
-		"add-review",
-		"get-reviews",
-		"cookie",
-		"version",
-	}
+	name, rest, _ := strings.Cut(cmdStr, " ")
+	name = strings.ToLower(name)
+	rest = strings.TrimSpace(rest)
 
-	//This contains the days of the week and common abbreviations
-	//so users can more easily set their schedules
-	dayAbbrevMap := map[string]string{
-		"monday":    "monday",
-		"mon":       "monday",
-		"tuesday":   "tuesday",
-		"tu":        "tuesday",
-		"tue":       "tuesday",
-		"wednesday": "wednesday",
-		"wed":       "wednesday",
-		"thursday":  "thursday",
-		"th":        "thursday",
-		"thu":       "thursday",
-		"thurs":     "thursday",
-		"friday":    "friday",
-		"fri":       "friday",
-		"saturday":  "saturday",
-		"sat":       "saturday",
-		"sunday":    "sunday",
-		"sun":       "sunday",
-	}
-
-	// convert the string to a slice
-	// after this, we have a value "cmd" of type []string
-	// where cmd[0] is the command and cmd[1:] are any arguments
-	space := regexp.MustCompile(`\s+`)
-	cmdStr = space.ReplaceAllString(cmdStr, ` `)
-	cmdStr = strings.TrimSpace(cmdStr)
-	cmdStrLower := strings.ToLower(cmdStr)
-	cmd := strings.Split(cmdStrLower, ` `)
-
-	// Big validation logic -- hellooo darkness my old frieeend
-	switch {
-	// if there's nothing in the command string array
-	case len(cmd) == 0:
-		// This case is unreachable because strings.Split always returns at
-		// least one element.
-		err = errors.New("the user-issued command was blank")
-		return "help", nil, err
-
-	// if there's a valid command and if there's no arguments
-	case contains(cmdList, cmd[0]) && len(cmd) == 1:
-		if cmd[0] == "schedule" || cmd[0] == "skip" || cmd[0] == "unskip" || cmd[0] == "add-review" {
-			err = &parsingErr{"the user issued a command without args, but it reqired args"}
-			return "help", nil, err
+	switch name {
+	case "subscribe", "unsubscribe", "help", "status", "cookie":
+		if len(rest) > 0 {
+			return "help", nil, fmt.Errorf("%w: wanted no arguments", ErrInvalidArguments)
 		}
-		return cmd[0], nil, err
+		return name, nil, nil
 
-	// if there's a valid command and there's some arguments
-	case contains(cmdList, cmd[0]) && len(cmd) > 1:
-		switch {
-		case cmd[0] == "subscribe" || cmd[0] == "unsubscribe" || cmd[0] == "help" || cmd[0] == "cookie" || cmd[0] == "status":
-			err = &parsingErr{"the user issued a command with args, but it disallowed args"}
-			return "help", nil, err
-		case cmd[0] == "skip" && (len(cmd) != 2 || cmd[1] != "tomorrow"):
-			err = &parsingErr{"the user issued SKIP with malformed arguments"}
-			return "help", nil, err
-		case cmd[0] == "unskip" && (len(cmd) != 2 || cmd[1] != "tomorrow"):
-			err = &parsingErr{"the user issued UNSKIP with malformed arguments"}
-			return "help", nil, err
-		case cmd[0] == "get-reviews":
-			if len(cmd) > 1 {
-				if n, err := strconv.Atoi(cmd[1]); err != nil || len(cmd) > 2 || n < 0 {
-					err = &parsingErr{"the user issued GET-REVIEWS with malformed arguments"}
-					return "help", nil, err
-				}
+	case "version":
+		// Ignore any extra arguments.
+		return name, nil, nil
+
+	case "add-review":
+		if rest == "" {
+			return "help", nil, fmt.Errorf(`%w: wanted review content`, ErrInvalidArguments)
+		}
+		return name, []string{rest}, nil
+
+	case "get-reviews":
+		args := strings.Fields(rest)
+		switch len(args) {
+		case 0:
+			return name, nil, nil
+		case 1:
+			n, err := strconv.Atoi(args[0])
+			if err != nil || n < 0 {
+				return "help", nil, fmt.Errorf(`%w: wanted a positive integer`, ErrInvalidArguments)
 			}
-			return "get-reviews", cmd[1:], err
-		case cmd[0] == "add-review":
-			//We manually split the input cmdStr here since the above code converts it to lower case
-			//and we want to presever the user's original formatting/casing
-			reviewArgs := strings.SplitN(cmdStr, " ", 2)
-			return "add-review", []string{reviewArgs[1]}, err
-		case cmd[0] == "schedule":
-			var userSchedule []string
-
-			for _, day := range cmd[1:] {
-				if fullDayName, ok := dayAbbrevMap[day]; ok {
-					userSchedule = append(userSchedule, fullDayName)
-				} else {
-					err = &parsingErr{"the user issued SCHEDULE with malformed arguments"}
-					return "help", nil, err
-				}
-			}
-
-			return "schedule", userSchedule, err
-		case cmd[0] == "version":
-			return "version", nil, nil
+			return name, args, nil
 		default:
-			return cmd[0], cmd[1:], err
+			return "help", nil, fmt.Errorf(`%w: wanted a positive integer`, ErrInvalidArguments)
 		}
 
-	// if there's not a valid command
+	case "schedule":
+		args := strings.Fields(rest)
+		if len(args) == 0 {
+			return "help", nil, fmt.Errorf("%w: wanted list of days", ErrInvalidArguments)
+		}
+
+		var userSchedule []string
+
+		for _, day := range args {
+			fullDayName, err := parseDay(day)
+			if err != nil {
+				return "help", nil, fmt.Errorf("%w: %w", ErrInvalidArguments, err)
+			}
+
+			userSchedule = append(userSchedule, fullDayName)
+		}
+
+		return "schedule", userSchedule, nil
+
+	case "skip", "unskip":
+		// TODO(#49): Allow (un)skipping days other than tomorrow
+		if rest != "tomorrow" {
+			return "help", nil, fmt.Errorf(`%w: wanted "tomorrow"`, ErrInvalidArguments)
+		}
+		return name, []string{"tomorrow"}, nil
+
 	default:
-		err = &parsingErr{"the user-issued command wasn't valid"}
-		return "help", nil, err
+		return "help", nil, fmt.Errorf("%w: %q", ErrUnknownCommand, name)
 	}
 }
 
-func contains[S ~[]E, E comparable](list S, element E) bool {
-	for _, v := range list {
-		if v == element {
-			return true
-		}
+var ErrUnknownDay = errors.New("unknown day abbreviation")
+
+// parseDay expands day name abbreviations into their canonical form.
+func parseDay(word string) (string, error) {
+	switch strings.ToLower(word) {
+	case "mon", "monday":
+		return "monday", nil
+
+	case "tu", "tue", "tuesday":
+		return "tuesday", nil
+
+	case "wed", "wednesday":
+		return "wednesday", nil
+
+	case "th", "thu", "thurs", "thursday":
+		return "thursday", nil
+
+	case "fri", "friday":
+		return "friday", nil
+
+	case "sat", "saturday":
+		return "saturday", nil
+
+	case "sun", "sunday":
+		return "sunday", nil
+
+	default:
+		return "", fmt.Errorf("%w: %q", ErrUnknownDay, word)
 	}
-	return false
 }

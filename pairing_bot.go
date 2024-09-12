@@ -6,6 +6,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -259,7 +260,7 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 
 		recurser := &recursersList[i]
 
-		isAtRCThisWeek := contains(idsOfPeopleAtRc, recurser.ID)
+		isAtRCThisWeek := slices.Contains(idsOfPeopleAtRc, recurser.ID)
 		wasAtRCLastWeek := recursersList[i].CurrentlyAtRC
 
 		log.Printf("User: %s was at RC last week: %t and is at RC this week: %t", recurser.Name, wasAtRCLastWeek, isAtRCThisWeek)

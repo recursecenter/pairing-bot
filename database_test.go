@@ -116,6 +116,21 @@ func TestFirestoreRecurserDB(t *testing.T) {
 	})
 }
 
+func TestFirestoreReviewDB(t *testing.T) {
+	t.Run("round-trip content", func(t *testing.T) {
+		ctx := context.Background()
+		projectID := fakeProjectID(t)
+
+		client := testFirestoreClient(t, ctx, projectID)
+		reviews := &FirestoreReviewDB{client}
+		_ = reviews
+
+		t.Fatal("TODO: Write a review")
+		t.Fatal("TODO: Read the review")
+		t.Fatal("TODO: assert that the review matches")
+	})
+}
+
 func (r Recurser) Equal(s Recurser) bool {
 	return r.ID == s.ID &&
 		r.Name == s.Name &&

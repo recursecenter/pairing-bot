@@ -254,10 +254,10 @@ func (f *FirestoreReviewDB) GetAll(ctx context.Context) ([]Review, error) {
 			return nil, err
 		}
 
-		currentReview := Review{
-			Content:   doc.Data()["content"].(string),
-			Email:     doc.Data()["email"].(string),
-			Timestamp: doc.Data()["timestamp"].(int64),
+		var currentReview Review
+		if err := doc.DataTo(&currentReview); err != nil {
+			// TODO: log skip
+			continue
 		}
 
 		allReviews = append(allReviews, currentReview)
@@ -279,10 +279,10 @@ func (f *FirestoreReviewDB) GetLastN(ctx context.Context, n int) ([]Review, erro
 			return nil, err
 		}
 
-		currentReview := Review{
-			Content:   doc.Data()["content"].(string),
-			Email:     doc.Data()["email"].(string),
-			Timestamp: doc.Data()["timestamp"].(int64),
+		var currentReview Review
+		if err := doc.DataTo(&currentReview); err != nil {
+			// TODO: log skip
+			continue
 		}
 
 		lastFive = append(lastFive, currentReview)
@@ -302,11 +302,7 @@ func (f *FirestoreReviewDB) GetRandom(ctx context.Context) (Review, error) {
 }
 
 func (f *FirestoreReviewDB) Insert(ctx context.Context, review Review) error {
-	_, _, err := f.client.Collection("reviews").Add(ctx, map[string]interface{}{
-		"content":   review.Content,
-		"email":     review.Email,
-		"timestamp": review.Timestamp,
-	})
+	_, _, err := f.client.Collection("reviews").Add(ctx, review)
 	return err
 }
 

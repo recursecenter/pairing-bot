@@ -184,7 +184,7 @@ func (pl *PairingLogic) AddReview(ctx context.Context, rec *Recurser, content st
 
 	err := pl.revdb.Insert(ctx, Review{
 		Content:   content,
-		Timestamp: int(currentTimestamp),
+		Timestamp: currentTimestamp,
 		Email:     rec.Email,
 	})
 	if err != nil {

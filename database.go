@@ -226,7 +226,7 @@ func (f *FirestorePairingsDB) GetTotalPairingsDuringLastWeek(ctx context.Context
 type Review struct {
 	Content   string `firestore:"content"`
 	Email     string `firestore:"email"`
-	Timestamp int    `firestore:"timestamp"`
+	Timestamp int64  `firestore:"timestamp"`
 }
 
 type ReviewDB interface {
@@ -257,7 +257,7 @@ func (f *FirestoreReviewDB) GetAll(ctx context.Context) ([]Review, error) {
 		currentReview := Review{
 			Content:   doc.Data()["content"].(string),
 			Email:     doc.Data()["email"].(string),
-			Timestamp: int(doc.Data()["timestamp"].(int64)),
+			Timestamp: doc.Data()["timestamp"].(int64),
 		}
 
 		allReviews = append(allReviews, currentReview)
@@ -282,7 +282,7 @@ func (f *FirestoreReviewDB) GetLastN(ctx context.Context, n int) ([]Review, erro
 		currentReview := Review{
 			Content:   doc.Data()["content"].(string),
 			Email:     doc.Data()["email"].(string),
-			Timestamp: int(doc.Data()["timestamp"].(int64)),
+			Timestamp: doc.Data()["timestamp"].(int64),
 		}
 
 		lastFive = append(lastFive, currentReview)

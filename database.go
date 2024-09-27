@@ -242,53 +242,17 @@ type FirestoreReviewDB struct {
 }
 
 func (f *FirestoreReviewDB) GetAll(ctx context.Context) ([]Review, error) {
-	var allReviews []Review
-
 	iter := f.client.Collection("reviews").Documents(ctx)
-	for {
-		doc, err := iter.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			return nil, err
-		}
-
-		var currentReview Review
-		if err := doc.DataTo(&currentReview); err != nil {
-			// TODO: log skip
-			continue
-		}
-
-		allReviews = append(allReviews, currentReview)
-	}
-
-	return allReviews, nil
+	return fetchAll[Review](iter)
 }
 
 func (f *FirestoreReviewDB) GetLastN(ctx context.Context, n int) ([]Review, error) {
-	var lastFive []Review
-
-	iter := f.client.Collection("reviews").OrderBy("timestamp", firestore.Desc).Limit(n).Documents(ctx)
-	for {
-		doc, err := iter.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			return nil, err
-		}
-
-		var currentReview Review
-		if err := doc.DataTo(&currentReview); err != nil {
-			// TODO: log skip
-			continue
-		}
-
-		lastFive = append(lastFive, currentReview)
-	}
-
-	return lastFive, nil
+	iter := f.client.
+		Collection("reviews").
+		OrderBy("timestamp", firestore.Desc).
+		Limit(n).
+		Documents(ctx)
+	return fetchAll[Review](iter)
 }
 
 func (f *FirestoreReviewDB) GetRandom(ctx context.Context) (Review, error) {

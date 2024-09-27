@@ -183,9 +183,9 @@ func (pl *PairingLogic) AddReview(ctx context.Context, rec *Recurser, content st
 	currentTimestamp := time.Now().Unix()
 
 	err := pl.revdb.Insert(ctx, Review{
-		content:   content,
-		timestamp: int(currentTimestamp),
-		email:     rec.Email,
+		Content:   content,
+		Timestamp: int(currentTimestamp),
+		Email:     rec.Email,
 	})
 	if err != nil {
 		log.Println("Encountered an error when trying to save a review: ", err)
@@ -204,7 +204,7 @@ func (pl *PairingLogic) GetReviews(ctx context.Context, numReviews int) (string,
 
 	response := "Here are some reviews of pairing bot:\n"
 	for _, rev := range lastN {
-		response += "* \"" + rev.content + "\"!\n"
+		response += "* \"" + rev.Content + "\"!\n"
 	}
 	return response, nil
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 
@@ -14,10 +15,29 @@ import (
 
 // It's alive! The application starts here.
 func main() {
-	// Log the date and time (to the second),
-	// in UTC regardles of local time zone,
-	// and the file:line (without the full path- we don't have directories.)
-	log.SetFlags(log.Ldate | log.Ltime | log.LUTC | log.Lshortfile)
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
+		AddSource: true,
+		ReplaceAttr: func(groups []string, attr slog.Attr) slog.Attr {
+			// Leave all nested attributes as-is.
+			if len(groups) != 0 {
+				return attr
+			}
+
+			// Rewrite some standard fields to match the logging agent's
+			// expectations.
+			//
+			// https://cloud.google.com/logging/docs/agent/logging/configuration#special-fields
+			switch attr.Key {
+			case slog.MessageKey:
+				attr.Key = "message"
+			case slog.LevelKey:
+				attr.Key = "severity"
+			case slog.SourceKey:
+				attr.Key = "logging.googleapis.com/sourceLocation"
+			}
+			return attr
+		},
+	})))
 
 	ctx := context.Background()
 

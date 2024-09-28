@@ -314,7 +314,7 @@ func (pl *PairingLogic) checkin(w http.ResponseWriter, r *http.Request) {
 		log.Println("Could not get a random review from DB: ", err)
 	}
 
-	checkinMessage, err := renderCheckin(time.Now(), numPairings, len(recursersList), review.content)
+	checkinMessage, err := renderCheckin(time.Now(), numPairings, len(recursersList), review.Content)
 	if err != nil {
 		log.Printf("Error when trying to render Pairing Bot checkin: %s", err)
 		return

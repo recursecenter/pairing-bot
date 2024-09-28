@@ -224,9 +224,9 @@ func (f *FirestorePairingsDB) GetTotalPairingsDuringLastWeek(ctx context.Context
 }
 
 type Review struct {
-	content   string
-	email     string
-	timestamp int
+	Content   string `firestore:"content"`
+	Email     string `firestore:"email"`
+	Timestamp int64  `firestore:"timestamp"`
 }
 
 type ReviewDB interface {
@@ -242,53 +242,17 @@ type FirestoreReviewDB struct {
 }
 
 func (f *FirestoreReviewDB) GetAll(ctx context.Context) ([]Review, error) {
-	var allReviews []Review
-
 	iter := f.client.Collection("reviews").Documents(ctx)
-	for {
-		doc, err := iter.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			return nil, err
-		}
-
-		currentReview := Review{
-			content:   doc.Data()["content"].(string),
-			email:     doc.Data()["email"].(string),
-			timestamp: int(doc.Data()["timestamp"].(int64)),
-		}
-
-		allReviews = append(allReviews, currentReview)
-	}
-
-	return allReviews, nil
+	return fetchAll[Review](iter)
 }
 
 func (f *FirestoreReviewDB) GetLastN(ctx context.Context, n int) ([]Review, error) {
-	var lastFive []Review
-
-	iter := f.client.Collection("reviews").OrderBy("timestamp", firestore.Desc).Limit(n).Documents(ctx)
-	for {
-		doc, err := iter.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			return nil, err
-		}
-
-		currentReview := Review{
-			content:   doc.Data()["content"].(string),
-			email:     doc.Data()["email"].(string),
-			timestamp: int(doc.Data()["timestamp"].(int64)),
-		}
-
-		lastFive = append(lastFive, currentReview)
-	}
-
-	return lastFive, nil
+	iter := f.client.
+		Collection("reviews").
+		OrderBy("timestamp", firestore.Desc).
+		Limit(n).
+		Documents(ctx)
+	return fetchAll[Review](iter)
 }
 
 func (f *FirestoreReviewDB) GetRandom(ctx context.Context) (Review, error) {
@@ -302,11 +266,7 @@ func (f *FirestoreReviewDB) GetRandom(ctx context.Context) (Review, error) {
 }
 
 func (f *FirestoreReviewDB) Insert(ctx context.Context, review Review) error {
-	_, _, err := f.client.Collection("reviews").Add(ctx, map[string]interface{}{
-		"content":   review.content,
-		"email":     review.email,
-		"timestamp": review.timestamp,
-	})
+	_, _, err := f.client.Collection("reviews").Add(ctx, review)
 	return err
 }
 

@@ -126,6 +126,49 @@ func (r Recurser) Equal(s Recurser) bool {
 		r.CurrentlyAtRC == s.CurrentlyAtRC
 }
 
+func TestFirestoreReviewDB(t *testing.T) {
+	t.Run("round-trip content", func(t *testing.T) {
+		ctx := context.Background()
+		projectID := fakeProjectID(t)
+
+		client := testFirestoreClient(t, ctx, projectID)
+		reviews := &FirestoreReviewDB{client}
+
+		review := Review{
+			Content:   "test review",
+			Email:     "test@recurse.example.net",
+			Timestamp: randInt64(t),
+		}
+
+		err := reviews.Insert(ctx, review)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Reviews are returned as a slice, even for just one review
+		expected := []Review{review}
+
+		actual, err := reviews.GetLastN(ctx, 1)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if len(actual) != len(expected) {
+			t.Fatalf("number of reviews not equal:\nactual:   %d\nexpected: %d", len(actual), len(expected))
+		}
+
+		if !actual[0].Equal(expected[0]) {
+			t.Errorf("values not equal:\nactual:   %+v\nexpected: %+v", actual[0], expected[0])
+		}
+	})
+}
+
+func (r Review) Equal(s Review) bool {
+	return r.Content == s.Content &&
+		r.Email == s.Email &&
+		r.Timestamp == s.Timestamp
+}
+
 func TestFirestoreAuthDB(t *testing.T) {
 	ctx := context.Background()
 	projectID := fakeProjectID(t)

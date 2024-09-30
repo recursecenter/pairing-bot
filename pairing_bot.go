@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"log/slog"
 	"math/rand"
 	"net/http"
 	"slices"
@@ -245,9 +246,8 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 	profiles, err := pl.recurse.ActiveRecursers(ctx)
 	if err != nil {
 		log.Println("Encountered error while getting currently-active Recursers: ", err)
-		// TODO: https://github.com/recursecenter/pairing-bot/issues/61: Alert here!
-		// Using a FATAL here so it gets called out in the logs.
-		log.Fatal("Aborting end-of-batch processing!")
+		slog.Error("Aborting end-of-batch processing!")
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 

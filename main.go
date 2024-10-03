@@ -44,16 +44,20 @@ func main() {
 	appVersion := os.Getenv("GAE_VERSION")
 
 	appEnv := os.Getenv("APP_ENV")
+
 	projectId := "pairing-bot-284823"
 	botUsername := "pairing-bot@recurse.zulipchat.com"
+	welcomeStream := "current batches"
 
 	log.Printf("Running the app in environment = %s", appEnv)
 
-	//We have two pairing bot projects. One for production and one for testing/dev work.
+	// We have two pairing bot projects. One for production and one for testing/dev work.
 	if appEnv != "production" {
+		slog.Info("Setting dev/test config values")
+
 		projectId = "pairing-bot-dev"
 		botUsername = "dev-pairing-bot@recurse.zulipchat.com"
-		log.Println("Running pairing bot in the testing environment for development")
+		welcomeStream = "test-bot"
 	}
 
 	// Set up database wrappers. The Firestore client has a connection pool, so
@@ -119,6 +123,8 @@ func main() {
 		recurse: recurseClient,
 		zulip:   zulipClient,
 		version: appVersion,
+
+		welcomeStream: welcomeStream,
 	}
 
 	http.HandleFunc("/", http.NotFound)           // will this handle anything that's not defined?

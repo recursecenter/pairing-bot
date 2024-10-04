@@ -177,8 +177,13 @@ func (f *FirestoreAPIAuthDB) GetToken(ctx context.Context, path string) (string,
 	return token.Value, nil
 }
 
+type Pairing struct {
+	Value     int   `firestore:"value"`
+	Timestamp int64 `firestore:"timestamp"`
+}
+
 type PairingsDB interface {
-	SetNumPairings(ctx context.Context, timestamp int, numPairings int) error
+	SetNumPairings(ctx context.Context, pairing Pairing) error
 	GetTotalPairingsDuringLastWeek(ctx context.Context) (int, error)
 }
 
@@ -187,13 +192,10 @@ type FirestorePairingsDB struct {
 	client *firestore.Client
 }
 
-func (f *FirestorePairingsDB) SetNumPairings(ctx context.Context, timestamp int, numPairings int) error {
-	timestampAsString := strconv.Itoa(timestamp)
+func (f *FirestorePairingsDB) SetNumPairings(ctx context.Context, pairing Pairing) error {
+	timestampAsString := strconv.FormatInt(pairing.Timestamp, 10)
 
-	_, err := f.client.Collection("pairings").Doc(timestampAsString).Set(ctx, map[string]interface{}{
-		"value":     numPairings,
-		"timestamp": timestamp,
-	})
+	_, err := f.client.Collection("pairings").Doc(timestampAsString).Set(ctx, pairing)
 	return err
 }
 
@@ -213,11 +215,15 @@ func (f *FirestorePairingsDB) GetTotalPairingsDuringLastWeek(ctx context.Context
 			return 0, err
 		}
 
-		dailyPairings := int(doc.Data()["value"].(int64))
+		var pairing Pairing
+		if err = doc.DataTo(&pairing); err != nil {
+			log.Printf("Skipping %q: %s", doc.Ref.Path, err)
+			continue
+		}
 
-		log.Println("The timestamp is: ", doc.Data()["timestamp"])
+		log.Println("The timestamp is: ", pairing.Timestamp)
 
-		totalPairings += dailyPairings
+		totalPairings += pairing.Value
 	}
 
 	return totalPairings, nil

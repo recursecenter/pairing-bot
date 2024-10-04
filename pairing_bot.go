@@ -219,10 +219,12 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Pairing Bot paired up %d recursers today", numRecursersPairedUp)
 
-	numPairings := numRecursersPairedUp / 2
+	pairing := Pairing{
+		Value:     numRecursersPairedUp / 2,
+		Timestamp: time.Now().Unix(),
+	}
 
-	timestamp := time.Now().Unix()
-	if err := pl.pdb.SetNumPairings(ctx, int(timestamp), numPairings); err != nil {
+	if err := pl.pdb.SetNumPairings(ctx, pairing); err != nil {
 		log.Printf("Failed to record today's pairings: %s", err)
 	}
 }

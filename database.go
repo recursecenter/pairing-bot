@@ -195,10 +195,7 @@ type FirestorePairingsDB struct {
 func (f *FirestorePairingsDB) SetNumPairings(ctx context.Context, pairing Pairing) error {
 	timestampAsString := strconv.FormatInt(pairing.Timestamp, 10)
 
-	_, err := f.client.Collection("pairings").Doc(timestampAsString).Set(ctx, map[string]interface{}{
-		"value":     pairing.Value,
-		"timestamp": pairing.Timestamp,
-	})
+	_, err := f.client.Collection("pairings").Doc(timestampAsString).Set(ctx, pairing)
 	return err
 }
 
@@ -218,9 +215,10 @@ func (f *FirestorePairingsDB) GetTotalPairingsDuringLastWeek(ctx context.Context
 			return 0, err
 		}
 
-		pairing := Pairing{
-			Value:     int(doc.Data()["value"].(int64)),
-			Timestamp: doc.Data()["timestamp"].(int64),
+		var pairing Pairing
+		if err = doc.DataTo(&pairing); err != nil {
+			log.Printf("Skipping %q: %s", doc.Ref.Path, err)
+			continue
 		}
 
 		log.Println("The timestamp is: ", pairing.Timestamp)

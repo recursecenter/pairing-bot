@@ -219,7 +219,10 @@ func TestFirestorePairingsDB(t *testing.T) {
 
 		// Entries representing pairings for each day of the week
 		for i := 6; i >= 0; i-- {
-			err := pairings.SetNumPairings(ctx, int(time.Now().Add(-time.Duration(i)*24*time.Hour).Unix()), 5)
+			err := pairings.SetNumPairings(ctx, Pairing{
+				Value:     5,
+				Timestamp: int(time.Now().Add(-time.Duration(i) * 24 * time.Hour).Unix()),
+			})
 			if err != nil {
 				t.Fatal(err)
 			}

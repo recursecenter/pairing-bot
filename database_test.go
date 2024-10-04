@@ -221,7 +221,7 @@ func TestFirestorePairingsDB(t *testing.T) {
 		for i := 6; i >= 0; i-- {
 			err := pairings.SetNumPairings(ctx, Pairing{
 				Value:     5,
-				Timestamp: int(time.Now().Add(-time.Duration(i) * 24 * time.Hour).Unix()),
+				Timestamp: time.Now().Add(-time.Duration(i) * 24 * time.Hour).Unix(),
 			})
 			if err != nil {
 				t.Fatal(err)

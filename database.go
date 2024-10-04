@@ -178,8 +178,8 @@ func (f *FirestoreAPIAuthDB) GetToken(ctx context.Context, path string) (string,
 }
 
 type Pairing struct {
-	Value     int `firestore:"value"`
-	Timestamp int `firestore:"timestamp"`
+	Value     int   `firestore:"value"`
+	Timestamp int64 `firestore:"timestamp"`
 }
 
 type PairingsDB interface {
@@ -193,7 +193,7 @@ type FirestorePairingsDB struct {
 }
 
 func (f *FirestorePairingsDB) SetNumPairings(ctx context.Context, pairing Pairing) error {
-	timestampAsString := strconv.Itoa(pairing.Timestamp)
+	timestampAsString := strconv.FormatInt(pairing.Timestamp, 10)
 
 	_, err := f.client.Collection("pairings").Doc(timestampAsString).Set(ctx, map[string]interface{}{
 		"value":     pairing.Value,
@@ -220,7 +220,7 @@ func (f *FirestorePairingsDB) GetTotalPairingsDuringLastWeek(ctx context.Context
 
 		pairing := Pairing{
 			Value:     int(doc.Data()["value"].(int64)),
-			Timestamp: int(doc.Data()["timestamp"].(int64)),
+			Timestamp: doc.Data()["timestamp"].(int64),
 		}
 
 		log.Println("The timestamp is: ", pairing.Timestamp)

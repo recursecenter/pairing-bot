@@ -221,7 +221,7 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 
 	pairing := Pairing{
 		Value:     numRecursersPairedUp / 2,
-		Timestamp: int(time.Now().Unix()),
+		Timestamp: time.Now().Unix(),
 	}
 
 	if err := pl.pdb.SetNumPairings(ctx, pairing); err != nil {

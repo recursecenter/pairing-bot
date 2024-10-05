@@ -68,7 +68,7 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("Handling a new Zulip request")
 
-	botAuth, err := pl.adb.GetToken(ctx, "botauth/token")
+	botAuth, err := pl.adb.GetToken(ctx, "secrets/zulip_webhook_token")
 	if err != nil {
 		log.Println("Something weird happened trying to read the auth token from the database")
 	}

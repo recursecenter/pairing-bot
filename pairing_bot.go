@@ -52,6 +52,8 @@ type PairingLogic struct {
 	zulip   *zulip.Client
 	recurse *recurse.Client
 	version string
+
+	welcomeStream string
 }
 
 func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
@@ -327,12 +329,12 @@ func (pl *PairingLogic) checkin(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-/*
-Sends out a "Welcome to Pairing Bot" message to 397 Bridge during the second week of RC to introduce people to RC.
-
-We don't send this welcome message during the first week since it's a bit overwhelming with all of the orientation meetings
-and people haven't had time to think too much about their projects.
-*/
+// welcome sends a "Welcome to Pairing Bot" message to introduce the new batch
+// to Pairing Bot.
+//
+// We send this message during the second week of batch. The first week is a
+// bit overwhelming with all of the orientation meetings and messages, and
+// people haven't had time to think too much about their projects.
 func (pl *PairingLogic) welcome(w http.ResponseWriter, r *http.Request) {
 	// Check that the request is originating from within app engine
 	// https://cloud.google.com/appengine/docs/flexible/go/scheduling-jobs-with-cron-yaml#validating_cron_requests
@@ -371,7 +373,7 @@ func (pl *PairingLogic) welcome(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if err := pl.zulip.PostToTopic(ctx, "397 Bridge", "🍐🤖", msg); err != nil {
+		if err := pl.zulip.PostToTopic(ctx, pl.welcomeStream, "🍐🤖", msg); err != nil {
 			log.Printf("Error when trying to send welcome message about Pairing Bot %s\n", err)
 		}
 	}

@@ -1,10 +1,10 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
-	"log/slog"
 	"math/rand"
 	"net/http"
 	"slices"
@@ -142,27 +142,17 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// "match" makes matches for pairing, and messages those people to notify them of their match
-// it runs once per day (it's triggered with app engine's cron service)
-func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
-	// Check that the request is originating from within app engine
-	// https://cloud.google.com/appengine/docs/flexible/go/scheduling-jobs-with-cron-yaml#validating_cron_requests
-	if r.Header.Get("X-Appengine-Cron") != "true" {
-		http.NotFound(w, r)
-		return
-	}
-
-	ctx := r.Context()
-
+// Match generates new pairs for today and sends notifications for them.
+func (pl *PairingLogic) Match(ctx context.Context) error {
 	recursersList, err := pl.rdb.ListPairingTomorrow(ctx)
 	log.Println(recursersList)
 	if err != nil {
-		log.Printf("Could not get list of recursers from DB: %s\n", err)
+		return fmt.Errorf("get today's recursers from DB: %w", err)
 	}
 
 	skippersList, err := pl.rdb.ListSkippingTomorrow(ctx)
 	if err != nil {
-		log.Printf("Could not get list of skippers from DB: %s\n", err)
+		return fmt.Errorf("get today's skippers from DB: %w", err)
 	}
 
 	// get everyone who was set to skip today and set them back to isSkippingTomorrow = false
@@ -187,7 +177,7 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 	// if for some reason there's no matches today, we're done
 	if len(recursersList) == 0 {
 		log.Println("No one was signed up to pair today -- so there were no matches")
-		return
+		return nil
 	}
 
 	// message the peeps!
@@ -229,19 +219,13 @@ func (pl *PairingLogic) match(w http.ResponseWriter, r *http.Request) {
 	if err := pl.pdb.SetNumPairings(ctx, pairing); err != nil {
 		log.Printf("Failed to record today's pairings: %s", err)
 	}
+
+	return nil
 }
 
-// Unsubscribe people from Pairing Bot when their batch is over. They're always welcome to re-subscribe manually!
-func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
-	// Check that the request is originating from within app engine
-	// https://cloud.google.com/appengine/docs/flexible/go/scheduling-jobs-with-cron-yaml#validating_cron_requests
-	if r.Header.Get("X-Appengine-Cron") != "true" {
-		http.NotFound(w, r)
-		return
-	}
-
+// EndOfBatch unsubscribes everyone who just never-graduated with this batch.
+func (pl *PairingLogic) EndOfBatch(ctx context.Context) error {
 	// getting all the recursers
-	ctx := r.Context()
 	recursersList, err := pl.rdb.GetAllUsers(ctx)
 	if err != nil {
 		log.Println("Could not get list of recursers from DB: ", err)
@@ -249,10 +233,7 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 
 	profiles, err := pl.recurse.ActiveRecursers(ctx)
 	if err != nil {
-		log.Println("Encountered error while getting currently-active Recursers: ", err)
-		slog.Error("Aborting end-of-batch processing!")
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		return fmt.Errorf("get active Recursers: %w", err)
 	}
 
 	var idsOfPeopleAtRc []int64
@@ -297,13 +278,13 @@ func (pl *PairingLogic) endofbatch(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+
+	return nil
 }
 
-func (pl *PairingLogic) checkin(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
+// Checkin posts a message to Pairing Bot's checkin topic.
+func (pl *PairingLogic) Checkin(ctx context.Context) error {
 	numPairings, err := pl.pdb.GetTotalPairingsDuringLastWeek(ctx)
-
 	if err != nil {
 		log.Println("Unable to get the total number of pairings during the last week: : ", err)
 	}
@@ -320,36 +301,26 @@ func (pl *PairingLogic) checkin(w http.ResponseWriter, r *http.Request) {
 
 	checkinMessage, err := renderCheckin(time.Now(), numPairings, len(recursersList), review.Content)
 	if err != nil {
-		log.Printf("Error when trying to render Pairing Bot checkin: %s", err)
-		return
+		return fmt.Errorf("render checkin: %w", err)
 	}
 
 	if err := pl.zulip.PostToTopic(ctx, "checkins", "Pairing Bot", checkinMessage); err != nil {
-		log.Printf("Error when trying to submit Pairing Bot checkins stream message: %s\n", err)
+		return fmt.Errorf("send checkin: %w", err)
 	}
+
+	return nil
 }
 
-// welcome sends a "Welcome to Pairing Bot" message to introduce the new batch
+// Welcome sends a "Welcome to Pairing Bot" message to introduce the new batch
 // to Pairing Bot.
 //
 // We send this message during the second week of batch. The first week is a
 // bit overwhelming with all of the orientation meetings and messages, and
 // people haven't had time to think too much about their projects.
-func (pl *PairingLogic) welcome(w http.ResponseWriter, r *http.Request) {
-	// Check that the request is originating from within app engine
-	// https://cloud.google.com/appengine/docs/flexible/go/scheduling-jobs-with-cron-yaml#validating_cron_requests
-	if r.Header.Get("X-Appengine-Cron") != "true" {
-		http.NotFound(w, r)
-		return
-	}
-
-	ctx := r.Context()
-
+func (pl *PairingLogic) Welcome(ctx context.Context) error {
 	batches, err := pl.recurse.AllBatches(ctx)
 	if err != nil {
-		log.Printf("Error when fetching batches: %s", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		return fmt.Errorf("get list of batches: %w", err)
 	}
 
 	// Loop through the batches until we find the first non-mini batch. Mini
@@ -369,12 +340,13 @@ func (pl *PairingLogic) welcome(w http.ResponseWriter, r *http.Request) {
 	if currentBatch.IsSecondWeek(now) {
 		msg, err := renderWelcome(now)
 		if err != nil {
-			log.Printf("Error when trying to send welcome message about Pairing Bot %s\n", err)
-			return
+			return fmt.Errorf("render welcome message: %w", err)
 		}
 
 		if err := pl.zulip.PostToTopic(ctx, pl.welcomeStream, "🍐🤖", msg); err != nil {
-			log.Printf("Error when trying to send welcome message about Pairing Bot %s\n", err)
+			return fmt.Errorf("send welcome message: %w", err)
 		}
 	}
+
+	return nil
 }

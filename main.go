@@ -85,7 +85,7 @@ func main() {
 	}
 
 	zulipCredentials := func(ctx context.Context) (zulip.Credentials, error) {
-		password, err := adb.GetToken(ctx, "apiauth/key")
+		password, err := adb.GetToken(ctx, "secrets/zulip_api_key")
 		if err != nil {
 			return zulip.Credentials{}, err
 		}
@@ -102,7 +102,7 @@ func main() {
 	}
 
 	recurseAccessToken := func(ctx context.Context) (recurse.AccessToken, error) {
-		token, err := adb.GetToken(ctx, "rc-accesstoken/key")
+		token, err := adb.GetToken(ctx, "secrets/recurse_access_token")
 		if err != nil {
 			return "", err
 		}

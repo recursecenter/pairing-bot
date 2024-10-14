@@ -45,13 +45,13 @@ func testFirestoreClient(t *testing.T, ctx context.Context, projectID string) *f
 	return client
 }
 
-func TestFirestoreRecurserDB(t *testing.T) {
+func TestFirestoreRecursersClient(t *testing.T) {
 	t.Run("round-trip new recurser", func(t *testing.T) {
 		ctx := context.Background()
 		projectID := fakeProjectID(t)
 
 		client := testFirestoreClient(t, ctx, projectID)
-		recursers := &FirestoreRecurserDB{client}
+		recursers := &RecursersClient{client}
 
 		recurser := Recurser{
 			ID:                 randInt64(t),
@@ -128,13 +128,13 @@ func (r Recurser) Equal(s Recurser) bool {
 		r.CurrentlyAtRC == s.CurrentlyAtRC
 }
 
-func TestFirestoreReviewDB(t *testing.T) {
+func TestFirestoreReviewsClient(t *testing.T) {
 	t.Run("round-trip content", func(t *testing.T) {
 		ctx := context.Background()
 		projectID := fakeProjectID(t)
 
 		client := testFirestoreClient(t, ctx, projectID)
-		reviews := &FirestoreReviewDB{client}
+		reviews := &ReviewsClient{client}
 
 		review := Review{
 			Content:   "test review",
@@ -171,12 +171,12 @@ func (r Review) Equal(s Review) bool {
 		r.Timestamp == s.Timestamp
 }
 
-func TestFirestoreAuthDB(t *testing.T) {
+func TestFirestoreSecretsClient(t *testing.T) {
 	ctx := context.Background()
 	projectID := fakeProjectID(t)
 
 	client := testFirestoreClient(t, ctx, projectID)
-	auth := &FirestoreAPIAuthDB{client}
+	auth := &SecretsClient{client}
 
 	// Try to keep tests from conflicting with each other by adding a token
 	// that only this test knows about.
@@ -209,13 +209,13 @@ func TestFirestoreAuthDB(t *testing.T) {
 	})
 }
 
-func TestFirestorePairingsDB(t *testing.T) {
+func TestFirestorePairingsClient(t *testing.T) {
 	t.Run("round trip weekly pairings", func(t *testing.T) {
 		ctx := context.Background()
 		projectID := fakeProjectID(t)
 
 		client := testFirestoreClient(t, ctx, projectID)
-		pairings := &FirestorePairingsDB{client}
+		pairings := &PairingsClient{client}
 
 		// Entries representing pairings for each day of the week
 		for i := 6; i >= 0; i-- {

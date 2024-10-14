@@ -12,7 +12,7 @@ func Test_dispatch(t *testing.T) {
 	client := testFirestoreClient(t, ctx, projectID)
 
 	pl := &PairingLogic{
-		rdb:     &FirestoreRecurserDB{client},
+		rdb:     &RecursersClient{client},
 		version: "test string",
 	}
 

@@ -65,14 +65,14 @@ type Recurser struct {
 	IsSubscribed bool `firestore:"-"`
 }
 
-// FirestoreRecurserDB manages Pairing Bot subscribers ("Recursers").
-type FirestoreRecurserDB struct {
+// RecursersClient manages Pairing Bot subscribers ("Recursers").
+type RecursersClient struct {
 	client *firestore.Client
 }
 
-func (f *FirestoreRecurserDB) GetByUserID(ctx context.Context, userID int64, userEmail, userName string) (*Recurser, error) {
+func (r *RecursersClient) GetByUserID(ctx context.Context, userID int64, userEmail, userName string) (*Recurser, error) {
 	docID := strconv.FormatInt(userID, 10)
-	doc, err := f.client.Collection("recursers").Doc(docID).Get(ctx)
+	doc, err := r.client.Collection("recursers").Doc(docID).Get(ctx)
 
 	// A missing document still returns a non-nil doc with its NotFound error.
 	// Any other error is a real error.
@@ -105,36 +105,36 @@ func (f *FirestoreRecurserDB) GetByUserID(ctx context.Context, userID int64, use
 	return &recurser, nil
 }
 
-func (f *FirestoreRecurserDB) GetAllUsers(ctx context.Context) ([]Recurser, error) {
-	iter := f.client.Collection("recursers").Documents(ctx)
+func (r *RecursersClient) GetAllUsers(ctx context.Context) ([]Recurser, error) {
+	iter := r.client.Collection("recursers").Documents(ctx)
 	return fetchAll[Recurser](iter)
 }
 
-func (f *FirestoreRecurserDB) Set(ctx context.Context, _ int64, recurser *Recurser) error {
+func (r *RecursersClient) Set(ctx context.Context, _ int64, recurser *Recurser) error {
 	docID := strconv.FormatInt(recurser.ID, 10)
 
 	// Merging isn't supported when using struct data, but we never do partial
 	// writes in the first place. So this will completely overwrite an existing
 	// document.
-	_, err := f.client.Collection("recursers").Doc(docID).Set(ctx, recurser)
+	_, err := r.client.Collection("recursers").Doc(docID).Set(ctx, recurser)
 	return err
 
 }
 
-func (f *FirestoreRecurserDB) Delete(ctx context.Context, userID int64) error {
+func (r *RecursersClient) Delete(ctx context.Context, userID int64) error {
 	docID := strconv.FormatInt(userID, 10)
-	_, err := f.client.Collection("recursers").Doc(docID).Delete(ctx)
+	_, err := r.client.Collection("recursers").Doc(docID).Delete(ctx)
 	return err
 }
 
-func (f *FirestoreRecurserDB) ListPairingTomorrow(ctx context.Context) ([]Recurser, error) {
+func (r *RecursersClient) ListPairingTomorrow(ctx context.Context) ([]Recurser, error) {
 	// this gets the time from system time, which is UTC
 	// on app engine (and most other places). This works
 	// fine for us in NYC, but might not if pairing bot
 	// were ever running in another time zone
 	today := strings.ToLower(time.Now().Weekday().String())
 
-	iter := f.client.
+	iter := r.client.
 		Collection("recursers").
 		Where("isSkippingTomorrow", "==", false).
 		Where("schedule."+today, "==", true).
@@ -142,26 +142,26 @@ func (f *FirestoreRecurserDB) ListPairingTomorrow(ctx context.Context) ([]Recurs
 	return fetchAll[Recurser](iter)
 }
 
-func (f *FirestoreRecurserDB) ListSkippingTomorrow(ctx context.Context) ([]Recurser, error) {
-	iter := f.client.
+func (r *RecursersClient) ListSkippingTomorrow(ctx context.Context) ([]Recurser, error) {
+	iter := r.client.
 		Collection("recursers").
 		Where("isSkippingTomorrow", "==", true).
 		Documents(ctx)
 	return fetchAll[Recurser](iter)
 }
 
-func (f *FirestoreRecurserDB) UnsetSkippingTomorrow(ctx context.Context, recurser *Recurser) error {
+func (r *RecursersClient) UnsetSkippingTomorrow(ctx context.Context, recurser *Recurser) error {
 	recurser.IsSkippingTomorrow = false
-	return f.Set(ctx, recurser.ID, recurser)
+	return r.Set(ctx, recurser.ID, recurser)
 }
 
-// FirestoreAPIAuthDB manages auth tokens stored in Firestore.
-type FirestoreAPIAuthDB struct {
+// SecretsClient manages auth tokens stored in Firestore.
+type SecretsClient struct {
 	client *firestore.Client
 }
 
-func (f *FirestoreAPIAuthDB) GetToken(ctx context.Context, path string) (string, error) {
-	doc, err := f.client.Doc(path).Get(ctx)
+func (s *SecretsClient) GetToken(ctx context.Context, path string) (string, error) {
+	doc, err := s.client.Doc(path).Get(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -182,25 +182,24 @@ type Pairing struct {
 	Timestamp int64 `firestore:"timestamp"`
 }
 
-// FirestorePairingsDB manages pairing (matching) result records.
-type FirestorePairingsDB struct {
+// PairingsClient manages pairing (matching) result records.
+type PairingsClient struct {
 	client *firestore.Client
 }
 
-func (f *FirestorePairingsDB) SetNumPairings(ctx context.Context, pairing Pairing) error {
+func (p *PairingsClient) SetNumPairings(ctx context.Context, pairing Pairing) error {
 	timestampAsString := strconv.FormatInt(pairing.Timestamp, 10)
 
-	_, err := f.client.Collection("pairings").Doc(timestampAsString).Set(ctx, pairing)
+	_, err := p.client.Collection("pairings").Doc(timestampAsString).Set(ctx, pairing)
 	return err
 }
 
-func (f *FirestorePairingsDB) GetTotalPairingsDuringLastWeek(ctx context.Context) (int, error) {
-
+func (p *PairingsClient) GetTotalPairingsDuringLastWeek(ctx context.Context) (int, error) {
 	totalPairings := 0
 
 	timestampSevenDaysAgo := time.Now().Add(-7 * 24 * time.Hour).Unix()
 
-	iter := f.client.Collection("pairings").Where("timestamp", ">", timestampSevenDaysAgo).Documents(ctx)
+	iter := p.client.Collection("pairings").Where("timestamp", ">", timestampSevenDaysAgo).Documents(ctx)
 	for {
 		doc, err := iter.Next()
 		if err == iterator.Done {
@@ -230,18 +229,18 @@ type Review struct {
 	Timestamp int64  `firestore:"timestamp"`
 }
 
-// FirestoreReviewsDB manages user-submitted Pairing Bot reviews.
-type FirestoreReviewDB struct {
+// ReviewsClient manages user-submitted Pairing Bot reviews.
+type ReviewsClient struct {
 	client *firestore.Client
 }
 
-func (f *FirestoreReviewDB) GetAll(ctx context.Context) ([]Review, error) {
-	iter := f.client.Collection("reviews").Documents(ctx)
+func (r *ReviewsClient) GetAll(ctx context.Context) ([]Review, error) {
+	iter := r.client.Collection("reviews").Documents(ctx)
 	return fetchAll[Review](iter)
 }
 
-func (f *FirestoreReviewDB) GetLastN(ctx context.Context, n int) ([]Review, error) {
-	iter := f.client.
+func (r *ReviewsClient) GetLastN(ctx context.Context, n int) ([]Review, error) {
+	iter := r.client.
 		Collection("reviews").
 		OrderBy("timestamp", firestore.Desc).
 		Limit(n).
@@ -249,8 +248,8 @@ func (f *FirestoreReviewDB) GetLastN(ctx context.Context, n int) ([]Review, erro
 	return fetchAll[Review](iter)
 }
 
-func (f *FirestoreReviewDB) GetRandom(ctx context.Context) (Review, error) {
-	allReviews, err := f.GetAll(ctx)
+func (r *ReviewsClient) GetRandom(ctx context.Context) (Review, error) {
+	allReviews, err := r.GetAll(ctx)
 
 	if err != nil {
 		return Review{}, err
@@ -259,8 +258,8 @@ func (f *FirestoreReviewDB) GetRandom(ctx context.Context) (Review, error) {
 	return allReviews[rand.Intn(len(allReviews))], nil
 }
 
-func (f *FirestoreReviewDB) Insert(ctx context.Context, review Review) error {
-	_, _, err := f.client.Collection("reviews").Add(ctx, review)
+func (r *ReviewsClient) Insert(ctx context.Context, review Review) error {
+	_, _, err := r.client.Collection("reviews").Add(ctx, review)
 	return err
 }
 

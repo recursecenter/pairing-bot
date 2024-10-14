@@ -68,19 +68,19 @@ func main() {
 	}
 	defer db.Close()
 
-	rdb := &FirestoreRecurserDB{
+	rdb := &RecursersClient{
 		client: db,
 	}
 
-	adb := &FirestoreAPIAuthDB{
+	adb := &SecretsClient{
 		client: db,
 	}
 
-	pdb := &FirestorePairingsDB{
+	pdb := &PairingsClient{
 		client: db,
 	}
 
-	revdb := &FirestoreReviewDB{
+	revdb := &ReviewsClient{
 		client: db,
 	}
 

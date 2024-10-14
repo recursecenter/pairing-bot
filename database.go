@@ -70,6 +70,10 @@ type RecursersClient struct {
 	client *firestore.Client
 }
 
+func Recursers(client *firestore.Client) *RecursersClient {
+	return &RecursersClient{client}
+}
+
 func (r *RecursersClient) GetByUserID(ctx context.Context, userID int64, userEmail, userName string) (*Recurser, error) {
 	docID := strconv.FormatInt(userID, 10)
 	doc, err := r.client.Collection("recursers").Doc(docID).Get(ctx)
@@ -160,6 +164,10 @@ type SecretsClient struct {
 	client *firestore.Client
 }
 
+func Secrets(client *firestore.Client) *SecretsClient {
+	return &SecretsClient{client}
+}
+
 func (s *SecretsClient) Get(ctx context.Context, name string) (string, error) {
 	doc, err := s.client.Collection("secrets").Doc(name).Get(ctx)
 	if err != nil {
@@ -185,6 +193,10 @@ type Pairing struct {
 // PairingsClient manages pairing (matching) result records.
 type PairingsClient struct {
 	client *firestore.Client
+}
+
+func Pairings(client *firestore.Client) *PairingsClient {
+	return &PairingsClient{client}
 }
 
 func (p *PairingsClient) SetNumPairings(ctx context.Context, pairing Pairing) error {
@@ -232,6 +244,10 @@ type Review struct {
 // ReviewsClient manages user-submitted Pairing Bot reviews.
 type ReviewsClient struct {
 	client *firestore.Client
+}
+
+func Reviews(client *firestore.Client) *ReviewsClient {
+	return &ReviewsClient{client}
 }
 
 func (r *ReviewsClient) GetAll(ctx context.Context) ([]Review, error) {

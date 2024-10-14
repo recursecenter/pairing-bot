@@ -68,21 +68,10 @@ func main() {
 	}
 	defer db.Close()
 
-	rdb := &RecursersClient{
-		client: db,
-	}
-
-	sdb := &SecretsClient{
-		client: db,
-	}
-
-	pdb := &PairingsClient{
-		client: db,
-	}
-
-	revdb := &ReviewsClient{
-		client: db,
-	}
+	rdb := Recursers(db)
+	sdb := Secrets(db)
+	pdb := Pairings(db)
+	revdb := Reviews(db)
 
 	zulipCredentials := func(ctx context.Context) (zulip.Credentials, error) {
 		password, err := sdb.Get(ctx, "zulip_api_key")

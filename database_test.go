@@ -2,59 +2,27 @@ package main
 
 import (
 	"context"
-	"crypto/rand"
 	"fmt"
 	"maps"
-	"math/big"
 	"strconv"
 	"testing"
 	"time"
 
-	"cloud.google.com/go/firestore"
 	"github.com/recursecenter/pairing-bot/internal/assert"
+	"github.com/recursecenter/pairing-bot/internal/pbtest"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-func fakeProjectID(t *testing.T) string {
-	return fmt.Sprintf("fake-project-%d", randInt64(t))
-}
-
-func randInt64(t *testing.T) int64 {
-	int64Max := int64(1<<63 - 1)
-
-	n, err := rand.Int(rand.Reader, big.NewInt(int64Max))
-	if err != nil {
-		t.Fatal(err)
-	}
-	return n.Int64()
-}
-
-func testFirestoreClient(t *testing.T, ctx context.Context, projectID string) *firestore.Client {
-	client, err := firestore.NewClient(ctx, projectID)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	t.Cleanup(func() {
-		if err := client.Close(); err != nil {
-			t.Logf("Error closing Firestore client: %v", err)
-		}
-	})
-
-	return client
-}
-
 func TestFirestoreRecursersClient(t *testing.T) {
 	t.Run("round-trip new recurser", func(t *testing.T) {
 		ctx := context.Background()
-		projectID := fakeProjectID(t)
 
-		client := testFirestoreClient(t, ctx, projectID)
+		client := pbtest.FirestoreClient(t, ctx)
 		recursers := &RecursersClient{client}
 
 		recurser := Recurser{
-			ID:                 randInt64(t),
+			ID:                 pbtest.RandInt64(t),
 			Name:               "Your Name",
 			Email:              "test@recurse.example.net",
 			IsSkippingTomorrow: false,
@@ -131,15 +99,14 @@ func (r Recurser) Equal(s Recurser) bool {
 func TestFirestoreReviewsClient(t *testing.T) {
 	t.Run("round-trip content", func(t *testing.T) {
 		ctx := context.Background()
-		projectID := fakeProjectID(t)
 
-		client := testFirestoreClient(t, ctx, projectID)
+		client := pbtest.FirestoreClient(t, ctx)
 		reviews := &ReviewsClient{client}
 
 		review := Review{
 			Content:   "test review",
 			Email:     "test@recurse.example.net",
-			Timestamp: randInt64(t),
+			Timestamp: pbtest.RandInt64(t),
 		}
 
 		err := reviews.Insert(ctx, review)
@@ -173,15 +140,14 @@ func (r Review) Equal(s Review) bool {
 
 func TestFirestoreSecretsClient(t *testing.T) {
 	ctx := context.Background()
-	projectID := fakeProjectID(t)
 
-	client := testFirestoreClient(t, ctx, projectID)
+	client := pbtest.FirestoreClient(t, ctx)
 	secrets := &SecretsClient{client}
 
 	// Try to keep tests from conflicting with each other by adding a token
 	// that only this test knows about.
-	key := fmt.Sprintf("token-%d", randInt64(t))
-	val := fmt.Sprintf("secret-%d", randInt64(t))
+	key := fmt.Sprintf("token-%d", pbtest.RandInt64(t))
+	val := fmt.Sprintf("secret-%d", pbtest.RandInt64(t))
 	doc := map[string]any{
 		"value": val,
 	}
@@ -212,9 +178,8 @@ func TestFirestoreSecretsClient(t *testing.T) {
 func TestFirestorePairingsClient(t *testing.T) {
 	t.Run("round trip weekly pairings", func(t *testing.T) {
 		ctx := context.Background()
-		projectID := fakeProjectID(t)
 
-		client := testFirestoreClient(t, ctx, projectID)
+		client := pbtest.FirestoreClient(t, ctx)
 		pairings := &PairingsClient{client}
 
 		// Entries representing pairings for each day of the week

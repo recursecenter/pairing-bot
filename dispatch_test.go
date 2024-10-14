@@ -3,13 +3,13 @@ package main
 import (
 	"context"
 	"testing"
+
+	"github.com/recursecenter/pairing-bot/internal/pbtest"
 )
 
 func Test_dispatch(t *testing.T) {
 	ctx := context.Background()
-	projectID := fakeProjectID(t)
-
-	client := testFirestoreClient(t, ctx, projectID)
+	client := pbtest.FirestoreClient(t, ctx)
 
 	pl := &PairingLogic{
 		rdb:     &RecursersClient{client},

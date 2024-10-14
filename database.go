@@ -160,8 +160,8 @@ type SecretsClient struct {
 	client *firestore.Client
 }
 
-func (s *SecretsClient) GetToken(ctx context.Context, path string) (string, error) {
-	doc, err := s.client.Doc(path).Get(ctx)
+func (s *SecretsClient) Get(ctx context.Context, name string) (string, error) {
+	doc, err := s.client.Collection("secrets").Doc(name).Get(ctx)
 	if err != nil {
 		return "", err
 	}

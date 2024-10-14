@@ -176,7 +176,7 @@ func TestFirestoreSecretsClient(t *testing.T) {
 	projectID := fakeProjectID(t)
 
 	client := testFirestoreClient(t, ctx, projectID)
-	auth := &SecretsClient{client}
+	secrets := &SecretsClient{client}
 
 	// Try to keep tests from conflicting with each other by adding a token
 	// that only this test knows about.
@@ -185,20 +185,20 @@ func TestFirestoreSecretsClient(t *testing.T) {
 	doc := map[string]any{
 		"value": val,
 	}
-	_, err := client.Collection("testing").Doc(key).Set(ctx, doc)
+	_, err := client.Collection("secrets").Doc(key).Set(ctx, doc)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	t.Run("missing", func(t *testing.T) {
-		_, err := auth.GetToken(ctx, "does-not/exist")
+		_, err := secrets.Get(ctx, "does-not-exist")
 		if status.Code(err) != codes.NotFound {
 			t.Fatalf("expected NotFound error, got %#+v", err)
 		}
 	})
 
 	t.Run("present", func(t *testing.T) {
-		actual, err := auth.GetToken(ctx, fmt.Sprintf("testing/%s", key))
+		actual, err := secrets.Get(ctx, key)
 		if err != nil {
 			t.Fatal(err)
 		}

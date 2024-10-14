@@ -72,7 +72,7 @@ func main() {
 		client: db,
 	}
 
-	adb := &SecretsClient{
+	sdb := &SecretsClient{
 		client: db,
 	}
 
@@ -85,7 +85,7 @@ func main() {
 	}
 
 	zulipCredentials := func(ctx context.Context) (zulip.Credentials, error) {
-		password, err := adb.GetToken(ctx, "secrets/zulip_api_key")
+		password, err := sdb.Get(ctx, "zulip_api_key")
 		if err != nil {
 			return zulip.Credentials{}, err
 		}
@@ -102,7 +102,7 @@ func main() {
 	}
 
 	recurseAccessToken := func(ctx context.Context) (recurse.AccessToken, error) {
-		token, err := adb.GetToken(ctx, "secrets/recurse_access_token")
+		token, err := sdb.Get(ctx, "recurse_access_token")
 		if err != nil {
 			return "", err
 		}
@@ -116,7 +116,7 @@ func main() {
 
 	pl := &PairingLogic{
 		rdb:   rdb,
-		adb:   adb,
+		sdb:   sdb,
 		pdb:   pdb,
 		revdb: revdb,
 

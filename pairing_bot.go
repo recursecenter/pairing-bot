@@ -45,7 +45,7 @@ func maintainersMention() string {
 
 type PairingLogic struct {
 	rdb   *RecursersClient
-	adb   *SecretsClient
+	sdb   *SecretsClient
 	pdb   *PairingsClient
 	revdb *ReviewsClient
 
@@ -68,7 +68,7 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("Handling a new Zulip request")
 
-	botAuth, err := pl.adb.GetToken(ctx, "secrets/zulip_webhook_token")
+	botAuth, err := pl.sdb.Get(ctx, "zulip_webhook_token")
 	if err != nil {
 		log.Println("Something weird happened trying to read the auth token from the database")
 	}

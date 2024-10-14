@@ -46,8 +46,8 @@ func maintainersMention() string {
 type PairingLogic struct {
 	rdb   *FirestoreRecurserDB
 	adb   *FirestoreAPIAuthDB
-	pdb   PairingsDB
-	revdb ReviewDB
+	pdb   *FirestorePairingsDB
+	revdb *FirestoreReviewDB
 
 	zulip   *zulip.Client
 	recurse *recurse.Client

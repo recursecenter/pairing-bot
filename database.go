@@ -182,12 +182,7 @@ type Pairing struct {
 	Timestamp int64 `firestore:"timestamp"`
 }
 
-type PairingsDB interface {
-	SetNumPairings(ctx context.Context, pairing Pairing) error
-	GetTotalPairingsDuringLastWeek(ctx context.Context) (int, error)
-}
-
-// implements RecurserDB
+// FirestorePairingsDB manages pairing (matching) result records.
 type FirestorePairingsDB struct {
 	client *firestore.Client
 }
@@ -235,14 +230,7 @@ type Review struct {
 	Timestamp int64  `firestore:"timestamp"`
 }
 
-type ReviewDB interface {
-	GetAll(ctx context.Context) ([]Review, error)
-	GetLastN(ctx context.Context, n int) ([]Review, error)
-	GetRandom(ctx context.Context) (Review, error)
-	Insert(ctx context.Context, review Review) error
-}
-
-// implements ReviewDB
+// FirestoreReviewsDB manages user-submitted Pairing Bot reviews.
 type FirestoreReviewDB struct {
 	client *firestore.Client
 }

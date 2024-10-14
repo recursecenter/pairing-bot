@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/recursecenter/pairing-bot/internal/pbtest"
+	"github.com/recursecenter/pairing-bot/store"
 )
 
 func Test_dispatch(t *testing.T) {
@@ -12,11 +13,11 @@ func Test_dispatch(t *testing.T) {
 	client := pbtest.FirestoreClient(t, ctx)
 
 	pl := &PairingLogic{
-		rdb:     &RecursersClient{client},
+		rdb:     store.Recursers(client),
 		version: "test string",
 	}
 
-	rec := &Recurser{
+	rec := &store.Recurser{
 		ID:                 0,
 		Name:               "Your Name",
 		Email:              "fake@recurse.example.net",

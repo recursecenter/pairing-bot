@@ -10,6 +10,7 @@ import (
 
 	"cloud.google.com/go/firestore"
 	"github.com/recursecenter/pairing-bot/recurse"
+	"github.com/recursecenter/pairing-bot/store"
 	"github.com/recursecenter/pairing-bot/zulip"
 )
 
@@ -68,10 +69,10 @@ func main() {
 	}
 	defer db.Close()
 
-	rdb := Recursers(db)
-	sdb := Secrets(db)
-	pdb := Pairings(db)
-	revdb := Reviews(db)
+	rdb := store.Recursers(db)
+	sdb := store.Secrets(db)
+	pdb := store.Pairings(db)
+	revdb := store.Reviews(db)
 
 	zulipCredentials := func(ctx context.Context) (zulip.Credentials, error) {
 		password, err := sdb.Get(ctx, "zulip_api_key")

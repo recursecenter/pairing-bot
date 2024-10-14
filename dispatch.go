@@ -7,9 +7,11 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/recursecenter/pairing-bot/store"
 )
 
-func (pl *PairingLogic) dispatch(ctx context.Context, cmd string, cmdArgs []string, rec *Recurser) (string, error) {
+func (pl *PairingLogic) dispatch(ctx context.Context, cmd string, cmdArgs []string, rec *store.Recurser) (string, error) {
 	// here's the actual actions. command input from
 	// the user input has already been sanitized, so we can
 	// trust that cmd and cmdArgs only have valid stuff in them
@@ -59,12 +61,12 @@ func (pl *PairingLogic) dispatch(ctx context.Context, cmd string, cmdArgs []stri
 	}
 }
 
-func (pl *PairingLogic) SetSchedule(ctx context.Context, rec *Recurser, days []string) (string, error) {
+func (pl *PairingLogic) SetSchedule(ctx context.Context, rec *store.Recurser, days []string) (string, error) {
 	if !rec.IsSubscribed {
 		return notSubscribedMessage, nil
 	}
 
-	rec.Schedule = newSchedule(days)
+	rec.Schedule = store.NewSchedule(days)
 
 	if err := pl.rdb.Set(ctx, rec.ID, rec); err != nil {
 		return writeErrorMessage, err
@@ -72,7 +74,7 @@ func (pl *PairingLogic) SetSchedule(ctx context.Context, rec *Recurser, days []s
 	return "Awesome, your new schedule's been set! You can check it with `status`.", nil
 }
 
-func (pl *PairingLogic) Subscribe(ctx context.Context, rec *Recurser) (string, error) {
+func (pl *PairingLogic) Subscribe(ctx context.Context, rec *store.Recurser) (string, error) {
 	if rec.IsSubscribed {
 		return "You're already subscribed! Use `schedule` to set your schedule.", nil
 	}
@@ -92,7 +94,7 @@ func (pl *PairingLogic) Subscribe(ctx context.Context, rec *Recurser) (string, e
 	return subscribeMessage, nil
 }
 
-func (pl *PairingLogic) Unsubscribe(ctx context.Context, rec *Recurser) (string, error) {
+func (pl *PairingLogic) Unsubscribe(ctx context.Context, rec *store.Recurser) (string, error) {
 	if !rec.IsSubscribed {
 		return notSubscribedMessage, nil
 	}
@@ -103,7 +105,7 @@ func (pl *PairingLogic) Unsubscribe(ctx context.Context, rec *Recurser) (string,
 	return unsubscribeMessage, nil
 }
 
-func (pl *PairingLogic) SkipTomorrow(ctx context.Context, rec *Recurser) (string, error) {
+func (pl *PairingLogic) SkipTomorrow(ctx context.Context, rec *store.Recurser) (string, error) {
 	if !rec.IsSubscribed {
 		return notSubscribedMessage, nil
 	}
@@ -116,7 +118,7 @@ func (pl *PairingLogic) SkipTomorrow(ctx context.Context, rec *Recurser) (string
 	return `Tomorrow: cancelled. I feel you. **I will not match you** for pairing tomorrow <3`, nil
 }
 
-func (pl *PairingLogic) UnskipTomorrow(ctx context.Context, rec *Recurser) (string, error) {
+func (pl *PairingLogic) UnskipTomorrow(ctx context.Context, rec *store.Recurser) (string, error) {
 	if !rec.IsSubscribed {
 		return notSubscribedMessage, nil
 	}
@@ -128,7 +130,7 @@ func (pl *PairingLogic) UnskipTomorrow(ctx context.Context, rec *Recurser) (stri
 	return "Tomorrow: uncancelled! Heckin *yes*! **I will match you** for pairing tomorrow :)", nil
 }
 
-func (pl *PairingLogic) Status(ctx context.Context, rec *Recurser) (string, error) {
+func (pl *PairingLogic) Status(ctx context.Context, rec *store.Recurser) (string, error) {
 	if !rec.IsSubscribed {
 		return notSubscribedMessage, nil
 	}
@@ -179,10 +181,10 @@ func (pl *PairingLogic) Status(ctx context.Context, rec *Recurser) (string, erro
 	return fmt.Sprintf("* You're %v\n* You're scheduled for pairing on **%v**\n* **You're%vset to skip** pairing tomorrow", whoami, scheduleStr, skipStr), nil
 }
 
-func (pl *PairingLogic) AddReview(ctx context.Context, rec *Recurser, content string) (string, error) {
+func (pl *PairingLogic) AddReview(ctx context.Context, rec *store.Recurser, content string) (string, error) {
 	currentTimestamp := time.Now().Unix()
 
-	err := pl.revdb.Insert(ctx, Review{
+	err := pl.revdb.Insert(ctx, store.Review{
 		Content:   content,
 		Timestamp: currentTimestamp,
 		Email:     rec.Email,

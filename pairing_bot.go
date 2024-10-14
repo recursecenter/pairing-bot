@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/recursecenter/pairing-bot/recurse"
+	"github.com/recursecenter/pairing-bot/store"
 	"github.com/recursecenter/pairing-bot/zulip"
 )
 
@@ -44,10 +45,10 @@ func maintainersMention() string {
 }
 
 type PairingLogic struct {
-	rdb   *RecursersClient
-	sdb   *SecretsClient
-	pdb   *PairingsClient
-	revdb *ReviewsClient
+	rdb   *store.RecursersClient
+	sdb   *store.SecretsClient
+	pdb   *store.PairingsClient
+	revdb *store.ReviewsClient
 
 	zulip   *zulip.Client
 	recurse *recurse.Client
@@ -211,7 +212,7 @@ func (pl *PairingLogic) Match(ctx context.Context) error {
 
 	log.Printf("Pairing Bot paired up %d recursers today", numRecursersPairedUp)
 
-	pairing := Pairing{
+	pairing := store.Pairing{
 		Value:     numRecursersPairedUp / 2,
 		Timestamp: time.Now().Unix(),
 	}

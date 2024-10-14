@@ -1,4 +1,4 @@
-package main
+package store
 
 import (
 	"context"
@@ -26,7 +26,7 @@ func TestFirestoreRecursersClient(t *testing.T) {
 			Name:               "Your Name",
 			Email:              "test@recurse.example.net",
 			IsSkippingTomorrow: false,
-			Schedule:           newSchedule([]string{"monday", "friday"}),
+			Schedule:           NewSchedule([]string{"monday", "friday"}),
 			IsSubscribed:       false,
 			CurrentlyAtRC:      false,
 		}

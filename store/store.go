@@ -1,4 +1,4 @@
-package main
+package store
 
 import (
 	"context"
@@ -19,7 +19,7 @@ import (
 // The only valid keys are all-lowercase day names (e.g., "monday").
 type Schedule map[string]bool
 
-func defaultSchedule() map[string]bool {
+func DefaultSchedule() map[string]bool {
 	return map[string]bool{
 		"monday":    true,
 		"tuesday":   true,
@@ -32,15 +32,15 @@ func defaultSchedule() map[string]bool {
 	}
 }
 
-func newSchedule(days []string) map[string]bool {
-	schedule := emptySchedule()
+func NewSchedule(days []string) map[string]bool {
+	schedule := EmptySchedule()
 	for _, day := range days {
 		schedule[day] = true
 	}
 	return schedule
 }
 
-func emptySchedule() map[string]bool {
+func EmptySchedule() map[string]bool {
 	return map[string]bool{
 		"monday":    false,
 		"tuesday":   false,
@@ -90,7 +90,7 @@ func (r *RecursersClient) GetByUserID(ctx context.Context, userID int64, userEma
 			ID:       userID,
 			Name:     userName,
 			Email:    userEmail,
-			Schedule: defaultSchedule(),
+			Schedule: DefaultSchedule(),
 		}, nil
 	}
 

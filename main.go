@@ -69,13 +69,8 @@ func main() {
 	}
 	defer db.Close()
 
-	rdb := store.Recursers(db)
-	sdb := store.Secrets(db)
-	pdb := store.Pairings(db)
-	revdb := store.Reviews(db)
-
 	zulipCredentials := func(ctx context.Context) (zulip.Credentials, error) {
-		password, err := sdb.Get(ctx, "zulip_api_key")
+		password, err := store.Secrets(db).Get(ctx, "zulip_api_key")
 		if err != nil {
 			return zulip.Credentials{}, err
 		}
@@ -92,7 +87,7 @@ func main() {
 	}
 
 	recurseAccessToken := func(ctx context.Context) (recurse.AccessToken, error) {
-		token, err := sdb.Get(ctx, "recurse_access_token")
+		token, err := store.Secrets(db).Get(ctx, "recurse_access_token")
 		if err != nil {
 			return "", err
 		}
@@ -105,15 +100,11 @@ func main() {
 	}
 
 	pl := &PairingLogic{
-		rdb:   rdb,
-		sdb:   sdb,
-		pdb:   pdb,
-		revdb: revdb,
-
+		db:      db,
 		recurse: recurseClient,
 		zulip:   zulipClient,
-		version: appVersion,
 
+		version:       appVersion,
 		welcomeStream: welcomeStream,
 	}
 

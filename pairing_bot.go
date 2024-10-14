@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"cloud.google.com/go/firestore"
 	"github.com/recursecenter/pairing-bot/recurse"
 	"github.com/recursecenter/pairing-bot/store"
 	"github.com/recursecenter/pairing-bot/zulip"
@@ -45,15 +46,11 @@ func maintainersMention() string {
 }
 
 type PairingLogic struct {
-	rdb   *store.RecursersClient
-	sdb   *store.SecretsClient
-	pdb   *store.PairingsClient
-	revdb *store.ReviewsClient
-
+	db      *firestore.Client
 	zulip   *zulip.Client
 	recurse *recurse.Client
-	version string
 
+	version       string
 	welcomeStream string
 }
 
@@ -69,7 +66,7 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("Handling a new Zulip request")
 
-	botAuth, err := pl.sdb.Get(ctx, "zulip_webhook_token")
+	botAuth, err := store.Secrets(pl.db).Get(ctx, "zulip_webhook_token")
 	if err != nil {
 		log.Println("Something weird happened trying to read the auth token from the database")
 	}
@@ -111,7 +108,7 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("The user: %s (%d) issued the following request to Pairing Bot: %s", hook.Message.SenderFullName, hook.Message.SenderID, hook.Data)
 
-	user, err := pl.rdb.GetByUserID(ctx, hook.Message.SenderID, hook.Message.SenderEmail, hook.Message.SenderFullName)
+	user, err := store.Recursers(pl.db).GetByUserID(ctx, hook.Message.SenderID, hook.Message.SenderEmail, hook.Message.SenderFullName)
 	if err != nil {
 		log.Println(err)
 
@@ -145,20 +142,20 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 
 // Match generates new pairs for today and sends notifications for them.
 func (pl *PairingLogic) Match(ctx context.Context) error {
-	recursersList, err := pl.rdb.ListPairingTomorrow(ctx)
+	recursersList, err := store.Recursers(pl.db).ListPairingTomorrow(ctx)
 	log.Println(recursersList)
 	if err != nil {
 		return fmt.Errorf("get today's recursers from DB: %w", err)
 	}
 
-	skippersList, err := pl.rdb.ListSkippingTomorrow(ctx)
+	skippersList, err := store.Recursers(pl.db).ListSkippingTomorrow(ctx)
 	if err != nil {
 		return fmt.Errorf("get today's skippers from DB: %w", err)
 	}
 
 	// get everyone who was set to skip today and set them back to isSkippingTomorrow = false
 	for _, skipper := range skippersList {
-		err := pl.rdb.UnsetSkippingTomorrow(ctx, &skipper)
+		err := store.Recursers(pl.db).UnsetSkippingTomorrow(ctx, &skipper)
 		if err != nil {
 			log.Printf("Could not unset skipping for recurser %v: %s\n", skipper.ID, err)
 		}
@@ -217,7 +214,7 @@ func (pl *PairingLogic) Match(ctx context.Context) error {
 		Timestamp: time.Now().Unix(),
 	}
 
-	if err := pl.pdb.SetNumPairings(ctx, pairing); err != nil {
+	if err := store.Pairings(pl.db).SetNumPairings(ctx, pairing); err != nil {
 		log.Printf("Failed to record today's pairings: %s", err)
 	}
 
@@ -227,7 +224,7 @@ func (pl *PairingLogic) Match(ctx context.Context) error {
 // EndOfBatch unsubscribes everyone who just never-graduated with this batch.
 func (pl *PairingLogic) EndOfBatch(ctx context.Context) error {
 	// getting all the recursers
-	recursersList, err := pl.rdb.GetAllUsers(ctx)
+	recursersList, err := store.Recursers(pl.db).GetAllUsers(ctx)
 	if err != nil {
 		log.Println("Could not get list of recursers from DB: ", err)
 	}
@@ -253,7 +250,7 @@ func (pl *PairingLogic) EndOfBatch(ctx context.Context) error {
 
 		recurser.CurrentlyAtRC = isAtRCThisWeek
 
-		if err = pl.rdb.Set(ctx, recurser.ID, recurser); err != nil {
+		if err = store.Recursers(pl.db).Set(ctx, recurser.ID, recurser); err != nil {
 			log.Printf("Error encountered while update currentlyAtRC status for user: %s (ID %d)", recurser.Name, recurser.ID)
 		}
 
@@ -263,7 +260,7 @@ func (pl *PairingLogic) EndOfBatch(ctx context.Context) error {
 		if wasAtRCLastWeek && !isAtRCThisWeek {
 			var message string
 
-			err = pl.rdb.Delete(ctx, recurser.ID)
+			err = store.Recursers(pl.db).Delete(ctx, recurser.ID)
 			if err != nil {
 				log.Println(err)
 				message = fmt.Sprintf("Uh oh, I was trying to offboard you since it's the end of batch, but something went wrong. Consider messaging the maintainers to let them know this happened: %s", maintainersMention())
@@ -285,17 +282,17 @@ func (pl *PairingLogic) EndOfBatch(ctx context.Context) error {
 
 // Checkin posts a message to Pairing Bot's checkin topic.
 func (pl *PairingLogic) Checkin(ctx context.Context) error {
-	numPairings, err := pl.pdb.GetTotalPairingsDuringLastWeek(ctx)
+	numPairings, err := store.Pairings(pl.db).GetTotalPairingsDuringLastWeek(ctx)
 	if err != nil {
 		log.Println("Unable to get the total number of pairings during the last week: : ", err)
 	}
 
-	recursersList, err := pl.rdb.GetAllUsers(ctx)
+	recursersList, err := store.Recursers(pl.db).GetAllUsers(ctx)
 	if err != nil {
 		log.Printf("Could not get list of recursers from DB: %s\n", err)
 	}
 
-	review, err := pl.revdb.GetRandom(ctx)
+	review, err := store.Reviews(pl.db).GetRandom(ctx)
 	if err != nil {
 		log.Println("Could not get a random review from DB: ", err)
 	}

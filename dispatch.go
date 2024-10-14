@@ -68,7 +68,7 @@ func (pl *PairingLogic) SetSchedule(ctx context.Context, rec *store.Recurser, da
 
 	rec.Schedule = store.NewSchedule(days)
 
-	if err := pl.rdb.Set(ctx, rec.ID, rec); err != nil {
+	if err := store.Recursers(pl.db).Set(ctx, rec.ID, rec); err != nil {
 		return writeErrorMessage, err
 	}
 	return "Awesome, your new schedule's been set! You can check it with `status`.", nil
@@ -87,7 +87,7 @@ func (pl *PairingLogic) Subscribe(ctx context.Context, rec *store.Recurser) (str
 
 	rec.CurrentlyAtRC = atRC
 
-	if err = pl.rdb.Set(ctx, rec.ID, rec); err != nil {
+	if err = store.Recursers(pl.db).Set(ctx, rec.ID, rec); err != nil {
 		log.Printf("Could not update recurser in database: %s", err)
 		return writeErrorMessage, err
 	}
@@ -99,7 +99,7 @@ func (pl *PairingLogic) Unsubscribe(ctx context.Context, rec *store.Recurser) (s
 		return notSubscribedMessage, nil
 	}
 
-	if err := pl.rdb.Delete(ctx, rec.ID); err != nil {
+	if err := store.Recursers(pl.db).Delete(ctx, rec.ID); err != nil {
 		return writeErrorMessage, err
 	}
 	return unsubscribeMessage, nil
@@ -112,7 +112,7 @@ func (pl *PairingLogic) SkipTomorrow(ctx context.Context, rec *store.Recurser) (
 
 	rec.IsSkippingTomorrow = true
 
-	if err := pl.rdb.Set(ctx, rec.ID, rec); err != nil {
+	if err := store.Recursers(pl.db).Set(ctx, rec.ID, rec); err != nil {
 		return writeErrorMessage, err
 	}
 	return `Tomorrow: cancelled. I feel you. **I will not match you** for pairing tomorrow <3`, nil
@@ -124,7 +124,7 @@ func (pl *PairingLogic) UnskipTomorrow(ctx context.Context, rec *store.Recurser)
 	}
 	rec.IsSkippingTomorrow = false
 
-	if err := pl.rdb.Set(ctx, rec.ID, rec); err != nil {
+	if err := store.Recursers(pl.db).Set(ctx, rec.ID, rec); err != nil {
 		return writeErrorMessage, err
 	}
 	return "Tomorrow: uncancelled! Heckin *yes*! **I will match you** for pairing tomorrow :)", nil
@@ -184,7 +184,7 @@ func (pl *PairingLogic) Status(ctx context.Context, rec *store.Recurser) (string
 func (pl *PairingLogic) AddReview(ctx context.Context, rec *store.Recurser, content string) (string, error) {
 	currentTimestamp := time.Now().Unix()
 
-	err := pl.revdb.Insert(ctx, store.Review{
+	err := store.Reviews(pl.db).Insert(ctx, store.Review{
 		Content:   content,
 		Timestamp: currentTimestamp,
 		Email:     rec.Email,
@@ -198,7 +198,7 @@ func (pl *PairingLogic) AddReview(ctx context.Context, rec *store.Recurser, cont
 }
 
 func (pl *PairingLogic) GetReviews(ctx context.Context, numReviews int) (string, error) {
-	lastN, err := pl.revdb.GetLastN(ctx, numReviews)
+	lastN, err := store.Reviews(pl.db).GetLastN(ctx, numReviews)
 	if err != nil {
 		log.Printf("Encountered an error when trying to fetch the last %v reviews: %v", numReviews, err)
 		return readErrorMessage, err

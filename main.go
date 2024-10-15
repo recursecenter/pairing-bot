@@ -142,7 +142,7 @@ func main() {
 
 	if m, ok := os.LookupEnv("PB_MAINT"); ok {
 		if m == "true" {
-			maintenanceMode = true
+			pl.maintenanceMode = true
 		}
 	}
 

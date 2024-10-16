@@ -10,6 +10,7 @@ import (
 
 	"cloud.google.com/go/firestore"
 	"github.com/recursecenter/pairing-bot/recurse"
+	"github.com/recursecenter/pairing-bot/store"
 	"github.com/recursecenter/pairing-bot/zulip"
 )
 
@@ -68,24 +69,8 @@ func main() {
 	}
 	defer db.Close()
 
-	rdb := &FirestoreRecurserDB{
-		client: db,
-	}
-
-	adb := &FirestoreAPIAuthDB{
-		client: db,
-	}
-
-	pdb := &FirestorePairingsDB{
-		client: db,
-	}
-
-	revdb := &FirestoreReviewDB{
-		client: db,
-	}
-
 	zulipCredentials := func(ctx context.Context) (zulip.Credentials, error) {
-		password, err := adb.GetToken(ctx, "secrets/zulip_api_key")
+		password, err := store.Secrets(db).Get(ctx, "zulip_api_key")
 		if err != nil {
 			return zulip.Credentials{}, err
 		}
@@ -102,7 +87,7 @@ func main() {
 	}
 
 	recurseAccessToken := func(ctx context.Context) (recurse.AccessToken, error) {
-		token, err := adb.GetToken(ctx, "secrets/recurse_access_token")
+		token, err := store.Secrets(db).Get(ctx, "recurse_access_token")
 		if err != nil {
 			return "", err
 		}
@@ -115,15 +100,11 @@ func main() {
 	}
 
 	pl := &PairingLogic{
-		rdb:   rdb,
-		adb:   adb,
-		pdb:   pdb,
-		revdb: revdb,
-
+		db:      db,
 		recurse: recurseClient,
 		zulip:   zulipClient,
-		version: appVersion,
 
+		version:       appVersion,
 		welcomeStream: welcomeStream,
 	}
 

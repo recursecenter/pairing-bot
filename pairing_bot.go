@@ -17,8 +17,6 @@ import (
 	"github.com/recursecenter/pairing-bot/zulip"
 )
 
-var maintenanceMode = false
-
 // maintainers contains the Zulip IDs of the current maintainers.
 //
 // This is a map instead of a slice to allow for easy membership checks.
@@ -50,7 +48,9 @@ type PairingLogic struct {
 	zulip   *zulip.Client
 	recurse *recurse.Client
 
-	version       string
+	version         string
+	maintenanceMode bool
+
 	welcomeStream string
 }
 
@@ -99,7 +99,7 @@ func (pl *PairingLogic) handle(w http.ResponseWriter, r *http.Request) {
 
 	// for testing only
 	// this responds with a maintenance message and quits if the request is coming from anyone other than a maintainer
-	if !isMaintainer(hook.Message.SenderID) && maintenanceMode {
+	if !isMaintainer(hook.Message.SenderID) && pl.maintenanceMode {
 		if err = responder.Encode(zulip.Reply(`pairing bot is down for maintenance`)); err != nil {
 			log.Println(err)
 		}

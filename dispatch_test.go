@@ -39,7 +39,7 @@ func Test_dispatch(t *testing.T) {
 		}
 	})
 
-	t.Run("thank you", func(t *testing.T) {
+	t.Run("thanks", func(t *testing.T) {
 		resp, err := pl.dispatch(ctx, "thanks", nil, rec)
 
 		if err != nil {

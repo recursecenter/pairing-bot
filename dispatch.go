@@ -54,6 +54,9 @@ func (pl *PairingLogic) dispatch(ctx context.Context, cmd string, cmdArgs []stri
 	case "version":
 		return pl.version, nil
 
+  case "thanks":
+    return youreWelcomeMessage, nil
+
 	default:
 		// this won't execute because all input has been sanitized
 		// by parseCmd() and all cases are handled explicitly above

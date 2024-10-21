@@ -55,9 +55,9 @@ var acceptedCommands = map[string]parseResult{
 	// Review content *is* case-sensitive.
 	"add-review   I :heart: Pairing Bot!\n": {"add-review", []string{"I :heart: Pairing Bot!"}},
 
-  // We appreciate being appreciated
-  "thanks": {"thanks", nil},
-  "thank you": {"thanks", nil},
+	// We appreciate being appreciated
+	"thanks":    {"thanks", nil},
+	"thank you": {"thanks", nil},
 }
 
 func TestParseCmdAccept(t *testing.T) {

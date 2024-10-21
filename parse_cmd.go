@@ -77,8 +77,8 @@ func parseCmd(cmdStr string) (string, []string, error) {
 			return "help", nil, fmt.Errorf(`%w: wanted "tomorrow"`, ErrInvalidArguments)
 		}
 		return name, []string{"tomorrow"}, nil
-  case "thank", "thanks":
-    return "thanks", nil, nil
+	case "thank", "thanks":
+		return "thanks", nil, nil
 	default:
 		return "help", nil, fmt.Errorf("%w: %q", ErrUnknownCommand, name)
 	}

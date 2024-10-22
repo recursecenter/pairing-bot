@@ -38,4 +38,17 @@ func Test_dispatch(t *testing.T) {
 			t.Errorf("expected %q, got %q", expected, resp)
 		}
 	})
+
+	t.Run("thanks", func(t *testing.T) {
+		resp, err := pl.dispatch(ctx, "thanks", nil, rec)
+
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		expected := "You're welcome!"
+		if resp != expected {
+			t.Errorf("expected %q, got %q", expected, resp)
+		}
+	})
 }

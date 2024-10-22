@@ -30,6 +30,7 @@ var subscribeMessage string
 var unsubscribeMessage string
 
 const notSubscribedMessage string = "You're not subscribed to Pairing Bot <3"
+const youreWelcomeMessage string = "You're welcome!"
 
 var writeErrorMessage = fmt.Sprintf("Something went sideways while writing to the database. You should probably ping %v", maintainersMention())
 var readErrorMessage = fmt.Sprintf("Something went sideways while reading from the database. You should probably ping %v", maintainersMention())

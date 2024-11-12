@@ -48,7 +48,7 @@ func main() {
 
 	projectId := "pairing-bot-284823"
 	botUsername := "pairing-bot@recurse.zulipchat.com"
-	welcomeStream := "current batches"
+	welcomeStream := "🧑‍💻 current batches" // The emoji is literally part of the channel name!
 
 	log.Printf("Running the app in environment = %s", appEnv)
 

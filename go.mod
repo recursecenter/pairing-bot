@@ -1,6 +1,6 @@
 module github.com/recursecenter/pairing-bot
 
-go 1.23
+go 1.22.7
 
 require (
 	cloud.google.com/go/firestore v1.17.0

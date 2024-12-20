@@ -1,12 +1,19 @@
 steps:
-- name: 'gcr.io/cloud-builders/go'
+- name: 'gcr.io/cloud-builders/go:1.22'
+  args: ['version']
+  env: [GOPATH=/gopath']
+  volumes:
+  - name: 'go'
+    path: '/gopath'
+
+- name: 'gcr.io/cloud-builders/go:1.22'
   args: ['get', '-d']
   env: [GOPATH=/gopath']
   volumes:
   - name: 'go'
     path: '/gopath'
 
-- name: 'gcr.io/cloud-builders/gcloud'
+- name: 'gcr.io/cloud-builders/gcloud:1.22'
   args: ['app','deploy', 'cron.yaml']
   timeout: 600s
   env: ['GOPATH=/gopath']

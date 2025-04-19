@@ -1,13 +1,13 @@
 steps:
-- name: 'gcr.io/cloud-builders/go:1.22'
-  args: ['version']
+- name: 'docker.io/library/golang:1.24'
+  args: ['go', 'version']
   env: [GOPATH=/gopath']
   volumes:
   - name: 'go'
     path: '/gopath'
 
-- name: 'gcr.io/cloud-builders/go:1.22'
-  args: ['get', '-d']
+- name: 'docker.io/library/golang:1.24'
+  args: ['go', 'get', '-d']
   env: [GOPATH=/gopath']
   volumes:
   - name: 'go'

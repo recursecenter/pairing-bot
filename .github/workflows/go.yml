@@ -51,9 +51,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-    - run: 'sudo apt-get install openjdk-21-jdk'
-
-
     - uses: actions/checkout@v6
 
     - name: Set up Go
@@ -65,6 +62,11 @@ jobs:
       with:
         version: '>= 486.0.0'
         install_components: 'cloud-firestore-emulator'
+
+    - uses: actions/setup-java@v2
+      with:
+        distribution: 'zulu'
+        java-version: '21'
 
     - name: Start Firestore emulator
       run: |

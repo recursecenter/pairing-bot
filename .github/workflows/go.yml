@@ -51,6 +51,9 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
+    - run: 'apt install openjdk-21-jdk'
+
+
     - uses: actions/checkout@v6
 
     - name: Set up Go

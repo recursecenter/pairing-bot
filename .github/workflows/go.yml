@@ -16,7 +16,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v6
       with:
-        go-version: '1.22'
+        go-version: '1.23'
 
     - name: Build
       run: go build -v ./...
@@ -34,7 +34,7 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.23'
 
       - uses: golangci/golangci-lint-action@v6
         with:
@@ -51,7 +51,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v6
       with:
-        go-version: '1.22'
+        go-version: '1.23'
 
     - uses: google-github-actions/setup-gcloud@v3
       with:

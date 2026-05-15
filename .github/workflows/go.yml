@@ -51,7 +51,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-    - run: 'apt install openjdk-21-jdk'
+    - run: 'sudo apt-get install openjdk-21-jdk'
 
 
     - uses: actions/checkout@v6

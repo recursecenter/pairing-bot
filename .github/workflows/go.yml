@@ -43,7 +43,7 @@ jobs:
 
       - uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.1
+          version: v2.12
           # Only report new issues introduced by *this* PR. Requires
           # `permissons.pull-requests: read`.
           only-new-issues: true

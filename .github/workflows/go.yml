@@ -8,11 +8,6 @@ on:
   pull_request:
 
 jobs:
-  java-version:
-    runs-on: ubuntu-latest
-    steps:
-    - run: "java --version"
-
   build:
     runs-on: ubuntu-latest
     steps:
@@ -21,7 +16,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v6
       with:
-        go-version: '1.23'
+        go-version: '1.25'
 
     - name: Build
       run: go build -v ./...
@@ -39,11 +34,11 @@ jobs:
 
       - uses: actions/setup-go@v6
         with:
-          go-version: '1.23'
+          go-version: '1.25'
 
       - uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.1
+          version: v2.12
           # Only report new issues introduced by *this* PR. Requires
           # `permissons.pull-requests: read`.
           only-new-issues: true
@@ -56,7 +51,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v6
       with:
-        go-version: '1.23'
+        go-version: '1.25'
 
     - uses: google-github-actions/setup-gcloud@v3
       with:

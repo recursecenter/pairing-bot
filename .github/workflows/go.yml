@@ -8,11 +8,6 @@ on:
   pull_request:
 
 jobs:
-  java-version:
-    runs-on: ubuntu-latest
-    steps:
-    - run: "java --version"
-
   build:
     runs-on: ubuntu-latest
     steps:

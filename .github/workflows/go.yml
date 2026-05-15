@@ -8,6 +8,11 @@ on:
   pull_request:
 
 jobs:
+  java-version:
+    runs-on: ubuntu-latest
+    steps:
+    - run: "java --version"
+
   build:
     runs-on: ubuntu-latest
     steps:
@@ -32,13 +37,13 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: '1.23'
 
-      - uses: golangci/golangci-lint-action@v6
+      - uses: golangci/golangci-lint-action@v9
         with:
-          version: v1.60
+          version: v2.1
           # Only report new issues introduced by *this* PR. Requires
           # `permissons.pull-requests: read`.
           only-new-issues: true

@@ -1,4 +1,4 @@
-runtime: go122
+runtime: go126
 env_variables:
   PB_MAINT: "false"
   APP_ENV: "development"

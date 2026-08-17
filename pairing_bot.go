@@ -250,7 +250,7 @@ func (pl *PairingLogic) EndOfBatch(ctx context.Context) error {
 
 		recurser.CurrentlyAtRC = isAtRCThisWeek
 
-		if err = store.Recursers(pl.db).Set(ctx, recurser.ID, recurser); err != nil {
+		if err = store.Recursers(pl.db).Set(ctx, recurser); err != nil {
 			log.Printf("Error encountered while update currentlyAtRC status for user: %s (ID %d)", recurser.Name, recurser.ID)
 		}
 

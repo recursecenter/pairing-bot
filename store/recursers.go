@@ -111,7 +111,7 @@ func (r *RecursersClient) GetAllUsers(ctx context.Context) ([]Recurser, error) {
 	return fetchAll[Recurser](iter)
 }
 
-func (r *RecursersClient) Set(ctx context.Context, _ int64, recurser *Recurser) error {
+func (r *RecursersClient) Set(ctx context.Context, recurser *Recurser) error {
 	docID := strconv.FormatInt(recurser.ID, 10)
 
 	// Merging isn't supported when using struct data, but we never do partial
@@ -153,5 +153,5 @@ func (r *RecursersClient) ListSkippingTomorrow(ctx context.Context) ([]Recurser,
 
 func (r *RecursersClient) UnsetSkippingTomorrow(ctx context.Context, recurser *Recurser) error {
 	recurser.IsSkippingTomorrow = false
-	return r.Set(ctx, recurser.ID, recurser)
+	return r.Set(ctx, recurser)
 }

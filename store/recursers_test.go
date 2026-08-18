@@ -27,7 +27,7 @@ func TestFirestoreRecursersClient(t *testing.T) {
 			CurrentlyAtRC:      false,
 		}
 
-		err := recursers.Set(ctx, recurser.ID, &recurser)
+		err := recursers.Set(ctx, &recurser)
 		if err != nil {
 			t.Fatal(err)
 		}

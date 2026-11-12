@@ -170,6 +170,10 @@ func (pl *PairingLogic) Status(ctx context.Context, rec *store.Recurser) (string
 			schedule = append(schedule, day)
 		}
 	}
+	if len(schedule) == 0 {
+		return fmt.Sprintf("* You're %v\n* You're not scheduled for pairing on any days\n* **You're%vset to skip** pairing tomorrow", whoami, skipStr), nil
+	}
+
 	// make a lil nice-lookin schedule string
 	var scheduleStr string
 	for i := range schedule[:len(schedule)-1] {
